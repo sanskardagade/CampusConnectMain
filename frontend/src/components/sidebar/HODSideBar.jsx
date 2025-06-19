@@ -26,11 +26,11 @@ import SidebarMenu from "./SideBarMenu";
       name: "View Student Attendance",
       icon: <FaUser />,
     },
-    {
-      path: "/hod/view-faculty",
-      name: "View Faculty Attendance",
-      icon: <AiOutlinePlus />,
-    },
+    // {
+    //   path: "/hod/view-faculty",
+    //   name: "View Faculty Attendance",
+    //   icon: <AiOutlinePlus />,
+    // },
     {
       path: "/hod/leave-approval",
       name: "Faculty Leave Approval",
@@ -41,11 +41,11 @@ import SidebarMenu from "./SideBarMenu";
       name: "View Student Stress Level",
       icon: <AiTwotoneFileExclamation />,
     },
-    {
-        path: "/hod/view-student-location",
-        name: "View Student Location",
-        icon: <BiAnalyse />,
-      },
+    // {
+    //     path: "/hod/view-student-location",
+    //     name: "View Student Location",
+    //     icon: <BiAnalyse />,
+    //   },
     {
       path: "/hod/faculty-log",
       name: "Faculty Logger ",

@@ -151,4 +151,51 @@ router.get('/faculty', authenticateToken, async (req, res) => {
   }
 });
 
+// Update HOD profile
+router.put('/profile', authenticateToken, async (req, res) => {
+  try {
+    const { name, email } = req.body;
+    if (!name || !email) {
+      return res.status(400).json({ message: 'Name and email are required' });
+    }
+    const id = req.user.id;
+    const result = await sql`
+      UPDATE hod
+      SET name = ${name}, email = ${email}, updated_at = CURRENT_TIMESTAMP
+      WHERE id = ${id}
+      RETURNING id, erpid, name, email, department_id, start_date, end_date, is_active
+    `;
+    if (!result || result.length === 0) {
+      return res.status(404).json({ message: 'HOD not found' });
+    }
+    const hod = result[0];
+    // Try to get department name if department table exists
+    let departmentName = null;
+    try {
+      const deptResult = await sql`
+        SELECT name FROM department WHERE id = ${hod.department_id}
+      `;
+      if (deptResult && deptResult.length > 0) {
+        departmentName = deptResult[0].name;
+      }
+    } catch (deptError) {
+      // Continue without department name
+    }
+    const response = {
+      id: hod.id,
+      erpStaffId: hod.erpid,
+      name: hod.name,
+      email: hod.email,
+      department: departmentName || 'Department ID: ' + hod.department_id,
+      startDate: hod.start_date,
+      endDate: hod.end_date,
+      isActive: hod.is_active
+    };
+    res.json(response);
+  } catch (error) {
+    console.error('Error updating HOD profile:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
 module.exports = router; 
