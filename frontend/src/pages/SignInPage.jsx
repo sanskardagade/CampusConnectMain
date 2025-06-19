@@ -19,6 +19,9 @@ const SignInPage = () => {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
+  // Get backend URL from environment variable
+  const backendUrl = import.meta.env.VITE_BACKEND_URL;
+
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
@@ -30,8 +33,8 @@ const SignInPage = () => {
 
     try {
       const endpoint = formData.role === 'student' 
-        ? "http://localhost:5000/api/student/login"
-        : "http://localhost:5000/api/auth/login";
+        ? "http://69.62.83.14:9000/api/student/login"
+        : "http://69.62.83.14:9000/api/auth/login";
 
       console.log('Attempting login with:', {
         endpoint,

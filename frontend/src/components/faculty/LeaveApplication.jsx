@@ -25,7 +25,7 @@ export default function LeaveApplication() {
   useEffect(() => {
     const fetchUserData = async () => {
       try {
-        const response = await fetch('http://localhost:5000/api/faculty/dashboard', {
+        const response = await fetch('http://69.62.83.14:9000/api/faculty/dashboard', {
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -57,7 +57,7 @@ export default function LeaveApplication() {
   useEffect(() => {
     const fetchLeaveApplications = async () => {
       try {
-        const response = await fetch('http://localhost:5000/api/faculty/leave-apply', {
+        const response = await fetch('http://69.62.83.14:9000/api/faculty/leave-apply', {
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -145,7 +145,7 @@ export default function LeaveApplication() {
     setIsSubmitting(true);
     
     try {
-      const response = await fetch('http://localhost:5000/api/faculty/leave-apply', {
+      const response = await fetch('http://69.62.83.14:9000/api/faculty/leave-apply', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -173,7 +173,7 @@ export default function LeaveApplication() {
       });
 
       // Refresh leave applications
-      const applicationsResponse = await fetch('http://localhost:5000/api/faculty/leave-apply', {
+      const applicationsResponse = await fetch('http://69.62.83.14:9000/api/faculty/leave-apply', {
         headers: {
           'Authorization': `Bearer ${token}`
         }

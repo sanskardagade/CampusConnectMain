@@ -20,7 +20,7 @@ const FacultyDashboard = () => {
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
-        const response = await axios.get('http://localhost:5000/api/faculty/dashboard', {
+        const response = await axios.get('http://69.62.83.14:9000/api/faculty/dashboard', {
           headers: {
             Authorization: `Bearer ${localStorage.getItem('token')}`
           }

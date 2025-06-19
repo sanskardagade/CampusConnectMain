@@ -79,7 +79,7 @@ const StudentStressDashboard = () => {
 
     const fetchStressData = async () => {
       try {
-        const response = await fetch('http://localhost:5000/api/faculty/student-stress-level', {
+        const response = await fetch('http://69.62.83.14:9000/api/faculty/student-stress-level', {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`,
             'Content-Type': 'application/json'
@@ -130,7 +130,7 @@ const StudentStressDashboard = () => {
   const handleRefresh = async () => {
     setIsRefreshing(true);
     try {
-      const response = await fetch('http://localhost:5000/api/faculty/student-stress-level', {
+      const response = await fetch('http://69.62.83.14:9000/api/faculty/student-stress-level', {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
           'Content-Type': 'application/json'

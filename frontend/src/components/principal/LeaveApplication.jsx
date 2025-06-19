@@ -36,7 +36,7 @@ export default function LeaveApplication() {
   useEffect(() => {
     const fetchLeaveApplications = async () => {
       try {
-        const response = await axios.get('http://localhost:5000/api/principal/faculty-leave-approval');
+        const response = await axios.get('http://69.62.83.14:9000/api/principal/faculty-leave-approval');
         
         if (response.data && Array.isArray(response.data)) {
           console.log('Received data from backend:', response.data);
@@ -75,7 +75,7 @@ export default function LeaveApplication() {
     }
 
     try {
-      const response = await axios.put(`http://localhost:5000/api/principal/faculty-leave-approval/${application.ErpStaffId}`, {
+      const response = await axios.put(`http://69.62.83.14:9000/api/principal/faculty-leave-approval/${application.ErpStaffId}`, {
         PrincipalApproval: 'Approved'
       });
 
@@ -112,7 +112,7 @@ export default function LeaveApplication() {
     }
     
     try {
-      const response = await axios.put(`http://localhost:5000/api/principal/faculty-leave-approval/${selectedApplication.ErpStaffId}`, {
+      const response = await axios.put(`http://69.62.83.14:9000/api/principal/faculty-leave-approval/${selectedApplication.ErpStaffId}`, {
         PrincipalApproval: 'Rejected'
       });
 

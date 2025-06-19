@@ -76,7 +76,7 @@ const HODDashboard = () => {
         console.log('Fetching dashboard and faculty data...');
 
         // Fetch faculty members first
-        const facultyResponse = await fetch('http://localhost:5000/api/hod/faculty', {
+        const facultyResponse = await fetch('http://69.62.83.14:9000/api/hod/faculty', {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
@@ -100,7 +100,7 @@ const HODDashboard = () => {
         setFacultyMembers(facultyData || []); // Ensure facultyData is an array
 
         // Fetch dashboard data
-        const dashboardResponse = await fetch('http://localhost:5000/api/hod/dashboard', {
+        const dashboardResponse = await fetch('http://69.62.83.14:9000/api/hod/dashboard', {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
@@ -1378,7 +1378,7 @@ export default HODDashboard;
 //         console.log('Fetching dashboard and faculty data...');
 
 //         // Fetch faculty members first
-//         const facultyResponse = await fetch('http://localhost:5000/api/hod/faculty', {
+//         const facultyResponse = await fetch('http://69.62.83.14:9000/api/hod/faculty', {
 //           method: 'GET',
 //           headers: {
 //             'Content-Type': 'application/json',
@@ -1411,7 +1411,7 @@ export default HODDashboard;
 //         }));
 
 //         // Fetch dashboard data
-//         const dashboardResponse = await fetch('http://localhost:5000/api/hod/dashboard', {
+//         const dashboardResponse = await fetch('http://69.62.83.14:9000/api/hod/dashboard', {
 //           method: 'GET',
 //           headers: {
 //             'Content-Type': 'application/json',
