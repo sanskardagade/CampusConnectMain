@@ -10,9 +10,8 @@ import HODProfileEdit from "../components/hod/HODProfileEdit";
 import HODChangePassword from "../components/hod/HODChangePassword";
 import HODSideBar from "../components/sidebar/HODSideBar";
 import HODDashboard from "../pages/HODDashboard";
-import FacultyLog from "../components/hod/facultylog";
 import LeaveApprovalDashboard from "../components/hod/LeaveApproaval";
-import AttendanceTracker from "../components/hod/facultylog";
+import AttendanceTracker from "../components/hod/FacultyLog";
 
 const HOD = () => {
   return (
