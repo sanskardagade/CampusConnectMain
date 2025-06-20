@@ -8,6 +8,7 @@ import {
   FiSearch, FiX
 } from 'react-icons/fi';
 import ProfileView from './ProfileView';
+import FacultyLogDisplay from '../components/faculty/FacultyLogDisplay';
 
 const PrincipalDashboard = () => {
   const [loading, setLoading] = useState(true);
@@ -28,6 +29,9 @@ const PrincipalDashboard = () => {
   const [isSearching, setIsSearching] = useState(false);
   const [showMemberTypes, setShowMemberTypes] = useState(false);
   const [showMembersList, setShowMembersList] = useState(false);
+  const [facultyLogs, setFacultyLogs] = useState([]);
+  const [showFacultyLogs, setShowFacultyLogs] = useState(false);
+  const [facultyLogsLoading, setFacultyLogsLoading] = useState(false);
 
   useEffect(() => {
     fetchDashboardData();
@@ -37,7 +41,7 @@ const PrincipalDashboard = () => {
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
-      const response = await axios.get('http://69.62.83.14:9000/api/principal/dashboard', {
+      const response = await axios.get('http://localhost:5000/api/principal/dashboard', {
         headers: { Authorization: `Bearer ${token}` }
       });
       setStats(response.data.stats);
@@ -66,7 +70,7 @@ const PrincipalDashboard = () => {
     try {
       const token = localStorage.getItem('token');
       const response = await axios.get(
-        'http://69.62.83.14:9000/api/principal/all-members',
+        'http://localhost:5000/api/principal/all-members',
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setMembers(response.data.members);
@@ -80,7 +84,7 @@ const PrincipalDashboard = () => {
       setSelectedType(type);
       const token = localStorage.getItem('token');
       const response = await axios.get(
-        `http://69.62.83.14:9000/api/principal/members?deptId=${deptId}&type=${type}`,
+        `http://localhost:5000/api/principal/members?deptId=${deptId}&type=${type}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setMembers(response.data.members);
@@ -95,11 +99,27 @@ const PrincipalDashboard = () => {
       setProfileLoading(true);
       const token = localStorage.getItem('token');
       const response = await axios.get(
-        `http://69.62.83.14:9000/api/principal/profile/${memberId}?type=${selectedType}`,
+        `http://localhost:5000/api/principal/profile/${memberId}?type=${selectedType}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setProfileData(response.data);
       setSelectedMember(memberId);
+      if (selectedType === 'faculty') {
+        setFacultyLogsLoading(true);
+        setShowFacultyLogs(false);
+        try {
+          const logsRes = await axios.get(
+            `http://localhost:5000/api/principal/faculty-logs/${memberId}`,
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
+          setFacultyLogs(logsRes.data.logs || []);
+          setShowFacultyLogs(true);
+        } catch (e) {
+          setFacultyLogs([]);
+        } finally {
+          setFacultyLogsLoading(false);
+        }
+      }
     } catch (err) {
       console.error('Error fetching profile:', err);
     } finally {
@@ -247,7 +267,7 @@ const PrincipalDashboard = () => {
         )}
       </motion.div>
 
-      {/* Department Selection - Horizontal */}
+      {/* Department Selection - Vertical */}
       <motion.div 
         className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden mb-4"
         initial={{ opacity: 0, y: 20 }}
@@ -260,7 +280,7 @@ const PrincipalDashboard = () => {
             {selectedDept ? departments.find(d => d.id === selectedDept)?.name : 'Select a department'}
           </span>
         </div>
-        <div className="flex overflow-x-auto pb-2 px-2 hide-scrollbar">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-2 p-2">
           {departments.map((dept) => (
             <motion.button
               key={dept.id}
@@ -280,7 +300,7 @@ const PrincipalDashboard = () => {
               }`}>
                 <FiBook size={16} />
               </div>
-              <span className="text-sm font-medium text-center max-w-[80px] truncate">
+              <span className="text-sm font-medium text-center max-w-[120px] whitespace-normal break-words">
                 {dept.name}
               </span>
             </motion.button>
@@ -454,6 +474,24 @@ const PrincipalDashboard = () => {
               type={selectedType} 
               loading={profileLoading} 
             />
+            {selectedType === 'faculty' && showFacultyLogs && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+                <div className="bg-white rounded-xl shadow-lg max-w-3xl w-full max-h-[90vh] overflow-y-auto relative p-6">
+                  <button
+                    className="absolute top-2 right-2 text-gray-500 hover:text-red-600 text-2xl font-bold"
+                    onClick={() => setShowFacultyLogs(false)}
+                  >
+                    &times;
+                  </button>
+                  <h2 className="text-xl font-bold mb-4 text-red-700">Faculty Attendance Logs</h2>
+                  {facultyLogsLoading ? (
+                    <div className="text-center py-8 text-gray-400">Loading logs...</div>
+                  ) : (
+                    <FacultyLogDisplay logs={facultyLogs} />
+                  )}
+                </div>
+              </div>
+            )}
           </motion.div>
         ) : (
           <motion.div
@@ -535,538 +573,3 @@ const MemberTypeButton = ({ active, onClick, icon, label, color }) => (
 );
 
 export default PrincipalDashboard;
-
-
-// import React, { useState, useEffect } from 'react';
-// import { motion, AnimatePresence } from 'framer-motion';
-// import axios from 'axios';
-// import { 
-//   FiUsers, 
-//   FiUser,
-//   FiBook,
-//   FiBriefcase,
-//   FiChevronDown,
-//   FiChevronRight,
-//   FiRefreshCw,
-//   FiMail,
-//   FiCalendar,
-//   FiActivity,
-//   FiBarChart2
-// } from 'react-icons/fi';
-// import ProfileView from './ProfileView';
-
-// const PrincipalDashboard = () => {
-//   const [loading, setLoading] = useState(true);
-//   const [stats, setStats] = useState({
-//     departments: 0,
-//     students: 0,
-//     faculty: 0,
-//     staff: 0
-//   });
-//   const [departments, setDepartments] = useState([]);
-//   const [selectedDept, setSelectedDept] = useState(null);
-//   const [selectedType, setSelectedType] = useState(null);
-//   const [members, setMembers] = useState([]);
-//   const [selectedMember, setSelectedMember] = useState(null);
-//   const [profileData, setProfileData] = useState(null);
-//   const [profileLoading, setProfileLoading] = useState(false);
-
-//   useEffect(() => {
-//     fetchDashboardData();
-//   }, []);
-
-//   const fetchDashboardData = async () => {
-//     try {
-//       setLoading(true);
-//       const token = localStorage.getItem('token');
-//       const response = await axios.get('http://69.62.83.14:9000/api/principal/dashboard', {
-//         headers: { Authorization: `Bearer ${token}` }
-//       });
-//       setStats(response.data.stats);
-//       setDepartments(response.data.departments);
-//       setSelectedDept(null);
-//       setSelectedType(null);
-//       setMembers([]);
-//       setSelectedMember(null);
-//       setProfileData(null);
-//     } catch (err) {
-//       console.error('Error fetching dashboard data:', err);
-//     } finally {
-//       setLoading(false);
-//     }
-//   };
-
-//   const fetchDepartmentMembers = async (deptId, type) => {
-//     try {
-//       setSelectedType(type);
-//       const token = localStorage.getItem('token');
-//       const response = await axios.get(
-//         `http://69.62.83.14:9000/api/principal/members?deptId=${deptId}&type=${type}`,
-//         { headers: { Authorization: `Bearer ${token}` } }
-//       );
-//       setMembers(response.data.members);
-//     } catch (err) {
-//       console.error('Error fetching members:', err);
-//     }
-//   };
-
-//   const fetchMemberProfile = async (memberId) => {
-//     try {
-//       setProfileLoading(true);
-//       const token = localStorage.getItem('token');
-//       const response = await axios.get(
-//         `http://69.62.83.14:9000/api/principal/profile/${memberId}?type=${selectedType}`,
-//         { headers: { Authorization: `Bearer ${token}` } }
-//       );
-//       setProfileData(response.data);
-//       setSelectedMember(memberId);
-//     } catch (err) {
-//       console.error('Error fetching profile:', err);
-//     } finally {
-//       setProfileLoading(false);
-//     }
-//   };
-
-//   if (loading) {
-//     return (
-//       <div className="flex-1 overflow-auto bg-gray-50 p-4 sm:p-6 flex items-center justify-center">
-//         <motion.div
-//           animate={{ rotate: 360 }}
-//           transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
-//           className="text-red-600"
-//         >
-//           <FiRefreshCw size={32} />
-//         </motion.div>
-//       </div>
-//     );
-//   }
-
-//   return (
-//     <div className="flex-1 overflow-auto bg-gray-50 p-4 sm:p-6">
-//       {/* Header */}
-//       <motion.header
-//         initial={{ opacity: 0, y: -20 }}
-//         animate={{ opacity: 1, y: 0 }}
-//         className="bg-white rounded-xl shadow-sm p-6 mb-6 border border-gray-100"
-//       >
-//         <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
-//           <div>
-//             <h1 className="text-2xl font-bold text-gray-900">Principal Dashboard</h1>
-//             <p className="text-gray-600">Institutional Overview and Management</p>
-//           </div>
-//           <motion.button
-//             whileHover={{ scale: 1.05 }}
-//             whileTap={{ scale: 0.95 }}
-//             onClick={fetchDashboardData}
-//             className="mt-4 md:mt-0 px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium flex items-center"
-//           >
-//             <FiRefreshCw className="mr-2" />
-//             Refresh Data
-//           </motion.button>
-//         </div>
-//       </motion.header>
-
-//       {/* Stats Overview */}
-//       <motion.div 
-//         initial={{ opacity: 0 }}
-//         animate={{ opacity: 1 }}
-//         transition={{ delay: 0.2 }}
-//         className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8"
-//       >
-//         <StatCard 
-//           icon={<FiBook size={24} />}
-//           title="Departments"
-//           value={stats.departments}
-//           color="bg-blue-100 text-blue-600"
-//         />
-//         <StatCard 
-//           icon={<FiUsers size={24} />}
-//           title="Students"
-//           value={stats.students}
-//           color="bg-green-100 text-green-600"
-//         />
-//         <StatCard 
-//           icon={<FiUser size={24} />}
-//           title="Faculty"
-//           value={stats.faculty}
-//           color="bg-red-100 text-red-600"
-//         />
-//         <StatCard 
-//           icon={<FiBriefcase size={24} />}
-//           title="Staff"
-//           value={stats.staff}
-//           color="bg-purple-100 text-purple-600"
-//         />
-//       </motion.div>
-
-//       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-//         {/* Department and Member Selection */}
-//         <div className="lg:col-span-1 space-y-6">
-//           {/* Department Selection */}
-//           <motion.div 
-//             className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden"
-//             whileHover={{ y: -2 }}
-//           >
-//             <div className="p-4 border-b border-gray-100">
-//               <h3 className="font-bold text-gray-900">Select Department</h3>
-//             </div>
-//             <div className="divide-y divide-gray-100">
-//               {departments.map((dept) => (
-//                 <motion.div 
-//                   key={dept.id}
-//                   whileHover={{ backgroundColor: "#f9fafb" }}
-//                   className={`p-4 cursor-pointer ${selectedDept === dept.id ? 'bg-gray-50' : ''}`}
-//                   onClick={() => {
-//                     setSelectedDept(dept.id);
-//                     setSelectedType(null);
-//                     setMembers([]);
-//                     setSelectedMember(null);
-//                     setProfileData(null);
-//                   }}
-//                 >
-//                   <div className="flex justify-between items-center">
-//                     <div className="flex items-center">
-//                       <div className="w-8 h-8 rounded-md bg-red-100 text-red-600 flex items-center justify-center mr-3">
-//                         <FiBook size={16} />
-//                       </div>
-//                       <span className="font-medium">{dept.name}</span>
-//                     </div>
-//                     <FiChevronRight className="text-gray-400" />
-//                   </div>
-//                 </motion.div>
-//               ))}
-//             </div>
-//           </motion.div>
-
-//           {/* Type Selection */}
-//           {selectedDept && (
-//             <motion.div 
-//               initial={{ opacity: 0, y: 20 }}
-//               animate={{ opacity: 1, y: 0 }}
-//               className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden"
-//             >
-//               <div className="p-4 border-b border-gray-100">
-//                 <h3 className="font-bold text-gray-900">Select Member Type</h3>
-//               </div>
-//               <div className="grid grid-cols-3 divide-x divide-gray-100">
-//                 <MemberTypeButton
-//                   active={selectedType === 'students'}
-//                   onClick={() => fetchDepartmentMembers(selectedDept, 'students')}
-//                   icon={<FiUsers size={18} />}
-//                   label="Students"
-//                 />
-//                 <MemberTypeButton
-//                   active={selectedType === 'faculty'}
-//                   onClick={() => fetchDepartmentMembers(selectedDept, 'faculty')}
-//                   icon={<FiUser size={18} />}
-//                   label="Faculty"
-//                 />
-//                 <MemberTypeButton
-//                   active={selectedType === 'staff'}
-//                   onClick={() => fetchDepartmentMembers(selectedDept, 'staff')}
-//                   icon={<FiBriefcase size={18} />}
-//                   label="Staff"
-//                 />
-//               </div>
-//             </motion.div>
-//           )}
-
-//           {/* Members List */}
-//           {selectedType && members.length > 0 && (
-//             <motion.div 
-//               initial={{ opacity: 0, y: 20 }}
-//               animate={{ opacity: 1, y: 0 }}
-//               className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden"
-//             >
-//               <div className="p-4 border-b border-gray-100">
-//                 <h3 className="font-bold text-gray-900">
-//                   {selectedType.charAt(0).toUpperCase() + selectedType.slice(1)} List
-//                 </h3>
-//               </div>
-//               <div className="divide-y divide-gray-100 max-h-96 overflow-y-auto">
-//                 {members.map((member) => (
-//                   <motion.div
-//                     key={member.id}
-//                     whileHover={{ backgroundColor: "#f9fafb" }}
-//                     className={`p-4 cursor-pointer ${selectedMember === member.id ? 'bg-red-50' : ''}`}
-//                     onClick={() => fetchMemberProfile(member.id)}
-//                   >
-//                     <div className="flex items-center">
-//                       <div className={`w-8 h-8 rounded-full flex items-center justify-center mr-3 ${
-//                         selectedType === 'students' ? 'bg-blue-100 text-blue-600' :
-//                         selectedType === 'faculty' ? 'bg-red-100 text-red-600' :
-//                         'bg-purple-100 text-purple-600'
-//                       }`}>
-//                         {selectedType === 'students' ? <FiUsers size={16} /> :
-//                          selectedType === 'faculty' ? <FiUser size={16} /> :
-//                          <FiBriefcase size={16} />}
-//                       </div>
-//                       <div>
-//                         <h4 className="font-medium">{member.name}</h4>
-//                         <p className="text-sm text-gray-600">{member.email}</p>
-//                       </div>
-//                     </div>
-//                   </motion.div>
-//                 ))}
-//               </div>
-//             </motion.div>
-//           )}
-//         </div>
-
-//         {/* Profile View */}
-//         <div className="lg:col-span-2">
-//           {profileData ? (
-//             <ProfileView 
-//               data={profileData} 
-//               type={selectedType} 
-//               loading={profileLoading} 
-//             />
-//           ) : (
-//             <motion.div 
-//               initial={{ opacity: 0 }}
-//               animate={{ opacity: 1 }}
-//               className="bg-white rounded-xl shadow-sm border border-gray-100 h-full flex items-center justify-center"
-//             >
-//               <div className="text-center p-8">
-//                 <div className="mx-auto w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-//                   <FiUser className="text-gray-400" size={24} />
-//                 </div>
-//                 <h3 className="text-lg font-medium text-gray-900 mb-1">No Profile Selected</h3>
-//                 <p className="text-gray-500">
-//                   {selectedType 
-//                     ? `Select a ${selectedType.slice(0, -1)} to view details` 
-//                     : "Select a department and member type first"}
-//                 </p>
-//               </div>
-//             </motion.div>
-//           )}
-//         </div>
-//       </div>
-//     </div>
-//   );
-// };
-
-// const StatCard = ({ icon, title, value, color }) => (
-//   <motion.div 
-//     whileHover={{ y: -5 }}
-//     className="bg-white rounded-xl shadow-sm border border-gray-100 p-6"
-//   >
-//     <div className="flex items-center">
-//       <div className={`w-12 h-12 rounded-lg ${color} flex items-center justify-center mr-4`}>
-//         {icon}
-//       </div>
-//       <div>
-//         <p className="text-sm font-medium text-gray-500">{title}</p>
-//         <h3 className="text-2xl font-bold">{value}</h3>
-//       </div>
-//     </div>
-//   </motion.div>
-// );
-
-// const MemberTypeButton = ({ active, onClick, icon, label }) => (
-//   <motion.button
-//     whileHover={{ scale: 1.03 }}
-//     whileTap={{ scale: 0.97 }}
-//     onClick={onClick}
-//     className={`p-4 flex flex-col items-center justify-center ${active ? 'bg-red-50 text-red-600' : 'text-gray-600'}`}
-//   >
-//     <div className={`w-10 h-10 rounded-full mb-2 flex items-center justify-center ${
-//       active ? 'bg-red-100 text-red-600' : 'bg-gray-100 text-gray-500'
-//     }`}>
-//       {icon}
-//     </div>
-//     <span className="text-sm font-medium">{label}</span>
-//   </motion.button>
-// );
-
-// export default PrincipalDashboard;
-
-// import React, { useState, useEffect } from 'react';
-// import { motion, AnimatePresence } from 'framer-motion';
-// import axios from 'axios';
-// import { 
-//   FiUsers, 
-//   FiUserCheck,
-//   FiActivity,
-//   FiTrendingUp,
-//   FiTrendingDown,
-//   FiBarChart2,
-//   FiChevronDown,
-//   FiChevronRight,
-//   FiRefreshCw,
-//   FiMail,
-//   FiUser
-// } from 'react-icons/fi';
-
-// const PrincipalDashboard = () => {
-//   const [loading, setLoading] = useState(true);
-//   const [error, setError] = useState(null);
-//   const [facultyData, setFacultyData] = useState([]);
-//   const [expandedDept, setExpandedDept] = useState(null);
-
-//   useEffect(() => {
-//     fetchFacultyData();
-//   }, []);
-
-//   const fetchFacultyData = async () => {
-//     try {
-//       setLoading(true);
-//       const token = localStorage.getItem('token');
-//       const response = await axios.get('http://69.62.83.14:9000/api/principalu/faculty', {
-//         headers: { Authorization: `Bearer ${token}` }
-//       });
-//       setFacultyData(response.data.departments);
-//       setError(null);
-//     } catch (err) {
-//       console.error('Error fetching faculty data:', err);
-//       setError('Failed to fetch faculty data. Please try again.');
-//     } finally {
-//       setLoading(false);
-//     }
-//   };
-
-//   const refreshData = () => {
-//     fetchFacultyData();
-//   };
-
-//   if (loading) {
-//     return (
-//       <div className="flex-1 overflow-auto bg-gray-50 p-4 sm:p-6 flex items-center justify-center">
-//         <motion.div
-//           animate={{ rotate: 360 }}
-//           transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
-//           className="text-red-600"
-//         >
-//           <FiRefreshCw size={32} />
-//         </motion.div>
-//       </div>
-//     );
-//   }
-
-//   if (error) {
-//     return (
-//       <div className="flex-1 overflow-auto bg-gray-50 p-4 sm:p-6 flex items-center justify-center">
-//         <div className="text-center">
-//           <p className="text-red-600 mb-4">{error}</p>
-//           <button
-//             onClick={refreshData}
-//             className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-//           >
-//             Retry
-//           </button>
-//         </div>
-//       </div>
-//     );
-//   }
-
-//   return (
-//     <div className="flex-1 overflow-auto bg-gray-50 p-4 sm:p-6">
-//       {/* Header */}
-//       <motion.header
-//         initial={{ opacity: 0, y: -20 }}
-//         animate={{ opacity: 1, y: 0 }}
-//         transition={{ type: "spring", stiffness: 300 }}
-//         className="bg-white rounded-xl shadow-sm p-6 mb-6 border border-gray-100"
-//       >
-//         <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
-//           <div>
-//             <h1 className="text-2xl font-bold text-gray-900">Faculty Overview</h1>
-//             <p className="text-gray-600">Department-wise Faculty List</p>
-//           </div>
-//           <motion.button
-//             whileHover={{ scale: 1.05 }}
-//             whileTap={{ scale: 0.95 }}
-//             onClick={refreshData} 
-//             className="mt-4 md:mt-0 px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium flex items-center"
-//           >
-//             <FiRefreshCw className="mr-2" />
-//             Refresh Data
-//           </motion.button>
-//         </div>
-//       </motion.header>
-
-//       {/* Faculty List */}
-//       <motion.div
-//         initial={{ opacity: 0 }}
-//         animate={{ opacity: 1 }}
-//         transition={{ delay: 0.2 }}
-//         className="grid grid-cols-1 gap-6"
-//       >
-//         {facultyData.map((department) => (
-//           <motion.div
-//             key={department.department_id}
-//             whileHover={{ y: -5 }}
-//             className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden"
-//           >
-//             <motion.button
-//               onClick={() => setExpandedDept(expandedDept === department.department_id ? null : department.department_id)}
-//               className="w-full flex justify-between items-center p-4 hover:bg-gray-50 transition-colors"
-//             >
-//               <div className="flex items-center">
-//                 <div className="w-10 h-10 rounded-lg mr-3 bg-red-100 text-red-700 flex items-center justify-center">
-//                   <FiUsers size={20} />
-//                 </div>
-//                 <div className="text-left">
-//                   <h3 className="font-bold text-gray-900">{department.department_name}</h3>
-//                   <p className="text-sm text-gray-600">{department.faculty.length} Faculty Members</p>
-//                 </div>
-//               </div>
-//               <motion.div
-//                 animate={{ rotate: expandedDept === department.department_id ? 180 : 0 }}
-//               >
-//                 <FiChevronDown />
-//               </motion.div>
-//             </motion.button>
-
-//             <AnimatePresence>
-//               {expandedDept === department.department_id && (
-//                 <motion.div
-//                   initial={{ opacity: 0, height: 0 }}
-//                   animate={{ opacity: 1, height: 'auto' }}
-//                   exit={{ opacity: 0, height: 0 }}
-//                   transition={{ duration: 0.3 }}
-//                   className="px-4 pb-4"
-//                 >
-//                   <div className="space-y-4">
-//                     {department.faculty.map((faculty) => (
-//                       <motion.div
-//                         key={faculty.id}
-//                         initial={{ opacity: 0, x: -20 }}
-//                         animate={{ opacity: 1, x: 0 }}
-//                         className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
-//                       >
-//                         <div className="flex items-center">
-//                           <div className="w-8 h-8 rounded-full bg-red-100 text-red-700 flex items-center justify-center mr-3">
-//                             <FiUser size={16} />
-//                           </div>
-//                           <div>
-//                             <h4 className="font-medium text-gray-900">{faculty.name}</h4>
-//                             <div className="flex items-center text-sm text-gray-600">
-//                               <FiMail className="mr-1" size={14} />
-//                               {faculty.email}
-//                             </div>
-//                           </div>
-//                         </div>
-//                         <div className="flex items-center">
-//                           <span className={`text-xs px-2 py-1 rounded-full ${
-//                             faculty.isActive 
-//                               ? 'bg-green-100 text-green-800' 
-//                               : 'bg-red-100 text-red-800'
-//                           }`}>
-//                             {faculty.isActive ? 'Active' : 'Inactive'}
-//                           </span>
-//                         </div>
-//                       </motion.div>
-//                     ))}
-//                   </div>
-//                 </motion.div>
-//               )}
-//             </AnimatePresence>
-//           </motion.div>
-//         ))}
-//       </motion.div>
-//     </div>
-//   );
-// };
-
-// export default PrincipalDashboard;

@@ -363,5 +363,27 @@ function calculateAttendancePercentage(logs) {
   return Math.round((present / logs.length) * 100);
 }
 
+// Add this route after other principal routes
+router.get('/faculty-logs/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    // Get ERP ID for the faculty
+    const [faculty] = await sql`
+      SELECT erpid FROM faculty WHERE id = ${id}
+    `;
+    if (!faculty) {
+      return res.status(404).json({ message: 'Faculty not found' });
+    }
+    // Get all logs for this faculty
+    const logs = await sql`
+      SELECT * FROM faculty_logs WHERE erp_id = ${faculty.erpid} ORDER BY timestamp DESC
+    `;
+    res.json({ logs });
+  } catch (error) {
+    console.error('Error fetching faculty logs:', error);
+    res.status(500).json({ message: 'Failed to fetch faculty logs' });
+  }
+});
+
 module.exports = router;
 
