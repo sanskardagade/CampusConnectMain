@@ -3,6 +3,8 @@ import { Check, X, ChevronDown, ChevronUp, AlertCircle, Clock } from 'lucide-rea
 import axios from 'axios';
 
 export default function LeaveApplication() {
+  // Get token from localStorage or sessionStorage
+  const [token] = useState(localStorage.getItem('token') || sessionStorage.getItem('token'));
   const [selectedApplication, setSelectedApplication] = useState(null);
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [notifications, setNotifications] = useState([]);
@@ -36,8 +38,11 @@ export default function LeaveApplication() {
   useEffect(() => {
     const fetchLeaveApplications = async () => {
       try {
-        const response = await axios.get('http://69.62.83.14:9000/api/principal/faculty-leave-approval');
-        
+        const response = await axios.get('http://69.62.83.14:9000/api/principal/faculty-leave-approval', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
         if (response.data && Array.isArray(response.data)) {
           console.log('Received data from backend:', response.data);
           // Log the exact structure of the first application
@@ -65,7 +70,7 @@ export default function LeaveApplication() {
     };
 
     fetchLeaveApplications();
-  }, []);
+  }, [token]);
 
   const handleApprove = async (application) => {
     if (!application || !application.ErpStaffId) {
@@ -75,16 +80,21 @@ export default function LeaveApplication() {
     }
 
     try {
-      const response = await axios.put(`http://69.62.83.14:9000/api/principal/faculty-leave-approval/${application.ErpStaffId}`, {
-        PrincipalApproval: 'Approved'
-      });
+      const response = await axios.put(
+        `http://69.62.83.14:9000/api/principal/faculty-leave-approval/${application.ErpStaffId}`,
+        { PrincipalApproval: 'Approved' },
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        }
+      );
 
       if (response.status === 200) {
         setLeaveApplications(leaveApplications.map(app => 
           app.ErpStaffId === application.ErpStaffId ? 
             {...app, PrincipalApproval: "Approved", FinalStatus: "Approved"} : app
         ));
-        
         addNotification(`Approved leave for ${application.StaffName}`);
         addRecentAction({
           type: 'approve',
@@ -93,7 +103,6 @@ export default function LeaveApplication() {
           fromDate: application.fromDate,
           toDate: application.toDate
         });
-        
         if (selectedApplication && selectedApplication.ErpStaffId === application.ErpStaffId) {
           setSelectedApplication(null);
         }
@@ -110,18 +119,21 @@ export default function LeaveApplication() {
       addNotification('Error: Invalid application data');
       return;
     }
-    
     try {
-      const response = await axios.put(`http://69.62.83.14:9000/api/principal/faculty-leave-approval/${selectedApplication.ErpStaffId}`, {
-        PrincipalApproval: 'Rejected'
-      });
-
+      const response = await axios.put(
+        `http://69.62.83.14:9000/api/principal/faculty-leave-approval/${selectedApplication.ErpStaffId}`,
+        { PrincipalApproval: 'Rejected' },
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        }
+      );
       if (response.status === 200) {
         setLeaveApplications(leaveApplications.map(app => 
           app.ErpStaffId === selectedApplication.ErpStaffId ? 
             {...app, PrincipalApproval: "Rejected", FinalStatus: "Rejected"} : app
         ));
-        
         addNotification(`Rejected leave for ${selectedApplication.StaffName}`);
         addRecentAction({
           type: 'reject',
@@ -130,7 +142,6 @@ export default function LeaveApplication() {
           fromDate: selectedApplication.fromDate,
           toDate: selectedApplication.toDate
         });
-        
         setShowRejectModal(false);
         setSelectedApplication(null);
       }
