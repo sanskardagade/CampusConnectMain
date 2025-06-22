@@ -39,6 +39,9 @@ import {
   Smile,
   Frown,
   Meh,
+  ArrowLeft,
+  User,
+  BarChart3,
 } from "lucide-react";
 
 const statusColors = {
@@ -70,6 +73,7 @@ const StudentStressDashboard = () => {
   const [filterStatus, setFilterStatus] = useState("All");
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
+  const [viewMode, setViewMode] = useState('list'); // 'list' or 'detail'
   const fetchRef = useRef(false);
 
   // Fetch data from the backend
@@ -98,16 +102,14 @@ const StudentStressDashboard = () => {
             name: student.name,
             rollNo: student.erpid,
             erpid: student.erpid,
-            MorningSlot: 'neutral', // Default value since not in backend
-            AfternoonSlot: 'neutral', // Default value since not in backend
-            score: Math.round(parseFloat(student.confidence_score) * 100), // Convert to percentage
+            score: Math.round(parseFloat(student.confidence_score) * 100),
             confidence_score: student.confidence_score,
             status: student.stress_status,
             stress_status: student.stress_status,
             timestamp: student.timestamp,
-            trend: 'stable' // Default value
+            trend: 'stable'
           }))
-          .sort((a, b) => a.id - b.id); // Sort by ID in ascending order
+          .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)); // Sort by timestamp descending
 
         setStressData(transformedData);
         setError(null);
@@ -142,15 +144,12 @@ const StudentStressDashboard = () => {
       }
       const data = await response.json();
 
-      // Transform the data to match the component's expected property names
       const transformedData = data
         .map(student => ({
           id: student.id,
           name: student.name,
           rollNo: student.erpid,
           erpid: student.erpid,
-          MorningSlot: 'neutral',
-          AfternoonSlot: 'neutral',
           score: Math.round(parseFloat(student.confidence_score) * 100),
           confidence_score: student.confidence_score,
           status: student.stress_status,
@@ -158,7 +157,7 @@ const StudentStressDashboard = () => {
           timestamp: student.timestamp,
           trend: 'stable'
         }))
-        .sort((a, b) => a.id - b.id);
+        .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
       setStressData(transformedData);
       setAnimationKey(prev => prev + 1);
@@ -171,15 +170,53 @@ const StudentStressDashboard = () => {
     }
   };
 
-  const filteredStudents = stressData.filter((student) => {
+  // Get unique students
+  const getUniqueStudents = () => {
+    const studentMap = new Map();
+    
+    stressData.forEach(entry => {
+      const key = entry.erpid;
+      if (!studentMap.has(key)) {
+        studentMap.set(key, {
+          erpid: entry.erpid,
+          name: entry.name,
+          latestEntry: entry,
+          totalEntries: 1,
+          statuses: [entry.status]
+        });
+      } else {
+        const existing = studentMap.get(key);
+        existing.totalEntries++;
+        existing.statuses.push(entry.status);
+        // Keep the latest entry (assuming data is already sorted by timestamp desc)
+        if (new Date(entry.timestamp) > new Date(existing.latestEntry.timestamp)) {
+          existing.latestEntry = entry;
+        }
+      }
+    });
+
+    return Array.from(studentMap.values());
+  };
+
+  // Get all entries for a specific student
+  const getStudentEntries = (erpid) => {
+    return stressData
+      .filter(entry => entry.erpid === erpid)
+      .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+  };
+
+  const uniqueStudents = getUniqueStudents();
+  
+  const filteredStudents = uniqueStudents.filter((student) => {
     const matchesSearch = student.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          student.erpid?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesFilter = filterStatus === "All" || student.stress_status === filterStatus;
+    const matchesFilter = filterStatus === "All" || student.latestEntry.status === filterStatus;
     return matchesSearch && matchesFilter;
   });
 
-  const statusCounts = stressData.reduce((acc, student) => {
-    const status = student.stress_status || "Unknown";
+  // Calculate status counts from unique students
+  const statusCounts = uniqueStudents.reduce((acc, student) => {
+    const status = student.latestEntry.status || "Unknown";
     acc[status] = (acc[status] || 0) + 1;
     return acc;
   }, {});
@@ -187,16 +224,6 @@ const StudentStressDashboard = () => {
   const pieData = Object.entries(statusCounts).map(([status, value]) => ({
     name: status,
     value,
-  }));
-
-  // Convert confidence score to percentage for chart display
-  const chartData = filteredStudents.map((student) => ({
-    name: student.name?.split(' ')[0] || student.erpid,
-    score: Math.round(parseFloat(student.confidence_score || 0) * 100),
-    fullName: student.name,
-    erpid: student.erpid,
-    status: student.stress_status,
-    timestamp: student.timestamp,
   }));
 
   const formatTimestamp = (timestamp) => {
@@ -259,6 +286,259 @@ const StudentStressDashboard = () => {
     );
   }
 
+  // Student Detail View
+  if (viewMode === 'detail' && selectedStudent) {
+    const studentEntries = getStudentEntries(selectedStudent);
+    const studentInfo = uniqueStudents.find(s => s.erpid === selectedStudent);
+    
+    if (!studentInfo) {
+      setViewMode('list');
+      setSelectedStudent(null);
+      return null;
+    }
+
+    // Prepare chart data for the selected student
+    const chartData = studentEntries.map((entry, index) => ({
+      entry: `Entry ${studentEntries.length - index}`,
+      score: entry.score,
+      timestamp: new Date(entry.timestamp).toLocaleString(),
+      status: entry.status,
+      fullTimestamp: entry.timestamp
+    })).reverse(); // Reverse to show chronological order
+
+    return (
+      <div className={`min-h-screen transition-all duration-500 ${themeClass}`}>
+        {/* Background Elements */}
+        <div className="fixed inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute -top-4 -right-4 w-96 h-96 bg-purple-500 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse"></div>
+          <div className="absolute -bottom-8 -left-4 w-96 h-96 bg-blue-500 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse animation-delay-2000"></div>
+        </div>
+
+        <div className="relative z-10 p-6">
+          {/* Header with Back Button */}
+          <div className="flex items-center mb-8">
+            <button
+              onClick={() => {
+                setViewMode('list');
+                setSelectedStudent(null);
+              }}
+              className={`mr-4 p-3 rounded-xl transition-all duration-300 hover:scale-105 ${cardClass}`}
+            >
+              <ArrowLeft className="h-6 w-6" />
+            </button>
+            <div className="flex items-center">
+              <div className="h-16 w-16 rounded-2xl bg-gradient-to-r from-purple-400 to-pink-400 flex items-center justify-center text-white font-bold text-2xl mr-4 shadow-xl">
+                {studentInfo.name?.charAt(0) || 'N'}
+              </div>
+              <div>
+                <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400 bg-clip-text text-transparent">
+                  {studentInfo.name}
+                </h1>
+                <p className="text-xl opacity-80">ERP ID: {studentInfo.erpid}</p>
+                <p className="text-sm opacity-60">{studentEntries.length} entries tracked</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Summary Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <div className={`p-6 rounded-2xl shadow-xl ${cardClass}`}>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm opacity-70">Latest Score</p>
+                  <p className="text-3xl font-bold text-purple-400">{studentInfo.latestEntry.score}%</p>
+                </div>
+                <Target className="h-10 w-10 text-purple-400" />
+              </div>
+            </div>
+
+            <div className={`p-6 rounded-2xl shadow-xl ${cardClass}`}>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm opacity-70">Current Status</p>
+                  <p className="text-xl font-bold" style={{ color: statusColors[studentInfo.latestEntry.status] }}>
+                    {studentInfo.latestEntry.status}
+                  </p>
+                </div>
+                <Activity className="h-10 w-10" style={{ color: statusColors[studentInfo.latestEntry.status] }} />
+              </div>
+            </div>
+
+            <div className={`p-6 rounded-2xl shadow-xl ${cardClass}`}>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm opacity-70">Total Entries</p>
+                  <p className="text-3xl font-bold text-green-400">{studentEntries.length}</p>
+                </div>
+                <BarChart3 className="h-10 w-10 text-green-400" />
+              </div>
+            </div>
+
+            <div className={`p-6 rounded-2xl shadow-xl ${cardClass}`}>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm opacity-70">Last Updated</p>
+                  <p className="text-lg font-bold text-blue-400">
+                    {formatTimestamp(studentInfo.latestEntry.timestamp)}
+                  </p>
+                </div>
+                <Clock className="h-10 w-10 text-blue-400" />
+              </div>
+            </div>
+          </div>
+
+          {/* Charts */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+            {/* Trend Chart */}
+            <div className={`p-8 rounded-2xl shadow-xl ${cardClass}`}>
+              <div className="flex items-center mb-6">
+                <TrendingUp className="h-6 w-6 text-purple-400 mr-3" />
+                <h3 className="text-xl font-semibold">Confidence Score Trend</h3>
+              </div>
+              <ResponsiveContainer width="100%" height={300}>
+                <LineChart data={chartData}>
+                  <XAxis 
+                    dataKey="entry" 
+                    tick={{ fill: isDarkMode ? "#E5E7EB" : "#374151", fontSize: 11 }}
+                  />
+                  <YAxis 
+                    tick={{ fill: isDarkMode ? "#E5E7EB" : "#374151" }}
+                    domain={[0, 100]}
+                  />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: isDarkMode ? "#1F2937" : "#FFFFFF",
+                      border: "none",
+                      borderRadius: "12px",
+                      boxShadow: "0 10px 25px rgba(0,0,0,0.1)"
+                    }}
+                    formatter={(value, name) => [`${value}%`, "Confidence"]}
+                    labelFormatter={(label, payload) => {
+                      if (payload && payload[0]) {
+                        return `${label} - ${payload[0].payload.timestamp}`;
+                      }
+                      return label;
+                    }}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="score"
+                    stroke="#8B5CF6"
+                    strokeWidth={3}
+                    dot={{ fill: '#8B5CF6', strokeWidth: 2, r: 6 }}
+                    activeDot={{ r: 8, stroke: '#8B5CF6', strokeWidth: 2 }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+
+            {/* Status Distribution */}
+            <div className={`p-8 rounded-2xl shadow-xl ${cardClass}`}>
+              <div className="flex items-center mb-6">
+                <Target className="h-6 w-6 text-blue-400 mr-3" />
+                <h3 className="text-xl font-semibold">Status History</h3>
+              </div>
+              <div className="space-y-4">
+                {Object.entries(
+                  studentEntries.reduce((acc, entry) => {
+                    acc[entry.status] = (acc[entry.status] || 0) + 1;
+                    return acc;
+                  }, {})
+                ).map(([status, count]) => (
+                  <div key={status} className="flex items-center justify-between">
+                    <div className="flex items-center">
+                      <div 
+                        className="w-4 h-4 rounded-full mr-3"
+                        style={{ backgroundColor: statusColors[status] || '#6B7280' }}
+                      ></div>
+                      <span>{status}</span>
+                    </div>
+                    <div className="flex items-center">
+                      <span className="text-sm opacity-70 mr-2">{count} times</span>
+                      <div className="w-20 bg-gray-200 rounded-full h-2">
+                        <div
+                          className="h-2 rounded-full"
+                          style={{
+                            backgroundColor: statusColors[status] || '#6B7280',
+                            width: `${(count / studentEntries.length) * 100}%`,
+                          }}
+                        ></div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Detailed Entries Table */}
+          <div className={`rounded-2xl shadow-xl overflow-hidden ${cardClass}`}>
+            <div className="p-6 border-b border-gray-200/20">
+              <h3 className="text-xl font-semibold">All Entries</h3>
+              <p className="text-sm opacity-70">Complete history of stress assessments</p>
+            </div>
+            
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className={`${isDarkMode ? 'bg-slate-700/50' : 'bg-gray-50/50'}`}>
+                  <tr>
+                    <th className="px-6 py-4 text-left text-xs font-medium uppercase tracking-wider">#</th>
+                    <th className="px-6 py-4 text-left text-xs font-medium uppercase tracking-wider">Timestamp</th>
+                    <th className="px-6 py-4 text-left text-xs font-medium uppercase tracking-wider">Confidence</th>
+                    <th className="px-6 py-4 text-left text-xs font-medium uppercase tracking-wider">Status</th>
+                    <th className="px-6 py-4 text-left text-xs font-medium uppercase tracking-wider">Time Ago</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200/20">
+                  {studentEntries.map((entry, index) => (
+                    <tr key={entry.id} className="hover:bg-purple-500/10 transition-colors">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        {index + 1}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm">
+                        {new Date(entry.timestamp).toLocaleString()}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center space-x-3">
+                          <span className="text-lg font-bold">{entry.score}%</span>
+                          <div className="w-16 bg-gray-200 rounded-full h-2">
+                            <div
+                              className="h-2 rounded-full"
+                              style={{
+                                backgroundColor: entry.score >= 70 ? '#10B981' : entry.score >= 50 ? '#F59E0B' : '#EF4444',
+                                width: `${entry.score}%`,
+                              }}
+                            ></div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span 
+                          className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium"
+                          style={{ 
+                            backgroundColor: `${statusColors[entry.status] || '#6B7280'}20`,
+                            color: statusColors[entry.status] || '#6B7280',
+                            border: `1px solid ${statusColors[entry.status] || '#6B7280'}40`
+                          }}
+                        >
+                          {entry.status}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm opacity-70">
+                        {formatTimestamp(entry.timestamp)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Main List View
   return (
     <div className={`min-h-screen transition-all duration-500 ${themeClass}`}>
       {/* Animated Background Elements */}
@@ -269,7 +549,7 @@ const StudentStressDashboard = () => {
       </div>
 
       <div className="relative z-10 p-6">
-        {/* Enhanced Header */}
+        {/* Header */}
         <div className="text-center mb-10 animate-fade-in">
           <div className="flex items-center justify-center mb-6">
             <div className="relative">
@@ -280,7 +560,7 @@ const StudentStressDashboard = () => {
               <h1 className="text-5xl font-bold bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400 bg-clip-text text-transparent">
                 Stress Analytics
               </h1>
-              <p className="text-xl opacity-80 mt-2">Real-time wellbeing monitoring system</p>
+              <p className="text-xl opacity-80 mt-2">Individual student monitoring system</p>
             </div>
           </div>
           <div className="flex items-center justify-center space-x-6 text-sm opacity-70">
@@ -290,12 +570,12 @@ const StudentStressDashboard = () => {
             </div>
             <div className="flex items-center">
               <Users className="h-4 w-4 mr-1" />
-              {stressData.length} individuals monitored
+              {uniqueStudents.length} students monitored
             </div>
           </div>
         </div>
 
-        {/* Enhanced Controls */}
+        {/* Controls */}
         <div className="flex flex-col lg:flex-row gap-4 mb-8 animate-slide-up">
           <div className="relative flex-1">
             <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
@@ -356,7 +636,7 @@ const StudentStressDashboard = () => {
           </div>
         </div>
 
-        {/* Status Cards */}
+        {/* Status Overview */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           {Object.entries(statusCounts).map(([status, count], index) => {
             const Icon = statusIcons[status] || Activity;
@@ -387,70 +667,135 @@ const StudentStressDashboard = () => {
                     className="h-3 rounded-full transition-all duration-1000"
                     style={{
                       backgroundColor: color,
-                      width: `${stressData.length > 0 ? (count / stressData.length) * 100 : 0}%`,
+                      width: `${uniqueStudents.length > 0 ? (count / uniqueStudents.length) * 100 : 0}%`,
                     }}
                   ></div>
                 </div>
                 <p className="text-sm opacity-70 mt-3">
-                  {stressData.length > 0 ? ((count / stressData.length) * 100).toFixed(1) : 0}% of total
+                  {uniqueStudents.length > 0 ? ((count / uniqueStudents.length) * 100).toFixed(1) : 0}% of students
                 </p>
               </div>
             );
           })}
         </div>
 
-        {/* Charts Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8 mb-8">
-          {/* Confidence Score Bar Chart */}
-          <div className={`p-8 rounded-2xl shadow-xl transition-all duration-500 hover:shadow-2xl ${cardClass}`}>
-            <div className="flex items-center mb-6">
-              <TrendingUp className="h-6 w-6 text-purple-400 mr-3" />
-              <h3 className="text-xl font-semibold">Confidence Scores</h3>
+        {/* Students List */}
+        <div className={`rounded-2xl shadow-xl overflow-hidden transition-all duration-500 ${cardClass}`}>
+          <div className="p-6 border-b border-gray-200/20">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-xl font-semibold">Student Stress Levels</h3>
+                <p className="text-sm opacity-70">Click on any student to view detailed analytics</p>
+              </div>
+              <div className="flex items-center space-x-2">
+                <span className="text-sm opacity-70">Showing {filteredStudents.length} of {uniqueStudents.length}</span>
+              </div>
             </div>
-            <ResponsiveContainer width="100%" height={350}>
-              <BarChart data={chartData.slice(0, 10)} key={animationKey}>
-                <XAxis 
-                  dataKey="name" 
-                  tick={{ fill: isDarkMode ? "#E5E7EB" : "#374151", fontSize: 11 }}
-                  angle={-45}
-                  textAnchor="end"
-                  height={80}
-                />
-                <YAxis 
-                  tick={{ fill: isDarkMode ? "#E5E7EB" : "#374151" }}
-                  domain={[0, 100]}
-                />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: isDarkMode ? "#1F2937" : "#FFFFFF",
-                    border: "none",
-                    borderRadius: "12px",
-                    boxShadow: "0 10px 25px rgba(0,0,0,0.1)"
-                  }}
-                  formatter={(value, name) => [`${value}%`, "Confidence"]}
-                />
-                <Bar 
-                  dataKey="score" 
-                  fill="url(#barGradient)" 
-                  radius={[8, 8, 0, 0]}
-                  animationDuration={1000}
-                />
-                <defs>
-                  <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#8B5CF6" />
-                    <stop offset="100%" stopColor="#EC4899" />
-                  </linearGradient>
-                </defs>
-              </BarChart>
-            </ResponsiveContainer>
           </div>
+          
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className={`${isDarkMode ? 'bg-slate-700/50' : 'bg-gray-50/50'}`}>
+                <tr>
+                  <th className="px-6 py-4 text-left text-xs font-medium uppercase tracking-wider">Student</th>
+                  <th className="px-6 py-4 text-left text-xs font-medium uppercase tracking-wider">ERP ID</th>
+                  <th className="px-6 py-4 text-left text-xs font-medium uppercase tracking-wider">Latest Score</th>
+                  <th className="px-6 py-4 text-left text-xs font-medium uppercase tracking-wider">Status</th>
+                  <th className="px-6 py-4 text-left text-xs font-medium uppercase tracking-wider">Last Updated</th>
+                  <th className="px-6 py-4 text-left text-xs font-medium uppercase tracking-wider">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200/20">
+                {filteredStudents.map((student, index) => (
+                  <tr 
+                    key={student.erpid} 
+                    className="hover:bg-purple-500/10 transition-colors cursor-pointer"
+                    onClick={() => {
+                      setSelectedStudent(student.erpid);
+                      setViewMode('detail');
+                    }}
+                  >
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <div className="h-10 w-10 rounded-xl bg-gradient-to-r from-purple-400 to-pink-400 flex items-center justify-center text-white font-bold text-sm mr-4">
+                          {student.name?.charAt(0) || 'N'}
+                        </div>
+                        <div>
+                          <div className="text-sm font-medium">{student.name}</div>
+                          <div className="text-sm opacity-70">{student.totalEntries} entries</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      {student.erpid}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center space-x-3">
+                        <span className="text-lg font-bold">{student.latestEntry.score}%</span>
+                        <div className="w-16 bg-gray-200 rounded-full h-2">
+                          <div
+                            className="h-2 rounded-full"
+                            style={{
+                              backgroundColor: student.latestEntry.score >= 70 ? '#10B981' : student.latestEntry.score >= 50 ? '#F59E0B' : '#EF4444',
+                              width: `${student.latestEntry.score}%`,
+                            }}
+                          ></div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span 
+                        className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium"
+                        style={{ 
+                          backgroundColor: `${statusColors[student.latestEntry.status] || '#6B7280'}20`,
+                          color: statusColors[student.latestEntry.status] || '#6B7280',
+                          border: `1px solid ${statusColors[student.latestEntry.status] || '#6B7280'}40`
+                        }}
+                      >
+                        {student.latestEntry.status}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm opacity-70">
+                      {formatTimestamp(student.latestEntry.timestamp)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedStudent(student.erpid);
+                          setViewMode('detail');
+                        }}
+                        className="p-2 rounded-lg hover:bg-purple-500/20 transition-colors"
+                      >
+                        <Eye className="h-5 w-5" />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          
+          {filteredStudents.length === 0 && (
+            <div className="p-12 text-center">
+              <Users className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-medium mb-2">No students found</h3>
+              <p className="text-sm opacity-70">
+                {searchTerm ? 'Try adjusting your search terms' : 'No students match the current filter'}
+              </p>
+            </div>
+          )}
+        </div>
 
-          <div className={`p-8 rounded-2xl shadow-xl transition-all duration-500 hover:shadow-2xl ${cardClass}`}>
+        {/* Charts Section */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8">
+          {/* Pie Chart */}
+          <div className={`p-8 rounded-2xl shadow-xl ${cardClass}`}>
             <div className="flex items-center mb-6">
-              <Target className="h-6 w-6 text-blue-400 mr-3" />
+              <Target className="h-6 w-6 text-purple-400 mr-3" />
               <h3 className="text-xl font-semibold">Status Distribution</h3>
             </div>
-            <ResponsiveContainer width="100%" height={350}>
+            <ResponsiveContainer width="100%" height={300}>
               <PieChart>
                 <Pie
                   data={pieData}
@@ -458,9 +803,9 @@ const StudentStressDashboard = () => {
                   cy="50%"
                   labelLine={false}
                   label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                  outerRadius={120}
+                  outerRadius={80}
+                  fill="#8884d8"
                   dataKey="value"
-                  animationDuration={1000}
                 >
                   {pieData.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={statusColors[entry.name] || "#6B7280"} />
@@ -478,21 +823,20 @@ const StudentStressDashboard = () => {
             </ResponsiveContainer>
           </div>
 
-          {/* Trend Analysis Area Chart */}
-          <div className={`p-8 rounded-2xl shadow-xl transition-all duration-500 hover:shadow-2xl ${cardClass}`}>
+          {/* Bar Chart */}
+          <div className={`p-8 rounded-2xl shadow-xl ${cardClass}`}>
             <div className="flex items-center mb-6">
-              <Activity className="h-6 w-6 text-green-400 mr-3" />
-              <h3 className="text-xl font-semibold">Confidence Trends</h3>
+              <BarChart3 className="h-6 w-6 text-blue-400 mr-3" />
+              <h3 className="text-xl font-semibold">Score Distribution</h3>
             </div>
-            <ResponsiveContainer width="100%" height={350}>
-              <AreaChart data={chartData}>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={pieData}>
                 <XAxis 
                   dataKey="name" 
                   tick={{ fill: isDarkMode ? "#E5E7EB" : "#374151", fontSize: 11 }}
                 />
                 <YAxis 
                   tick={{ fill: isDarkMode ? "#E5E7EB" : "#374151" }}
-                  domain={[0, 100]}
                 />
                 <Tooltip 
                   contentStyle={{ 
@@ -501,330 +845,13 @@ const StudentStressDashboard = () => {
                     borderRadius: "12px",
                     boxShadow: "0 10px 25px rgba(0,0,0,0.1)"
                   }}
-                  formatter={(value, name) => [`${value}%`, "Confidence"]}
                 />
-                <Area
-                  type="monotone"
-                  dataKey="score"
-                  stroke="#8B5CF6"
-                  fill="url(#areaGradient)"
-                  strokeWidth={3}
-                  animationDuration={1500}
-                />
-                <defs>
-                  <linearGradient id="areaGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#8B5CF6" stopOpacity={0.8} />
-                    <stop offset="100%" stopColor="#8B5CF6" stopOpacity={0.1} />
-                  </linearGradient>
-                </defs>
-              </AreaChart>
+                <Bar dataKey="value" fill="#8B5CF6" radius={[4, 4, 0, 0]} />
+              </BarChart>
             </ResponsiveContainer>
           </div>
         </div>
-
-        {/* Enhanced Student Table */}
-        <div className={`rounded-2xl shadow-xl overflow-hidden transition-all duration-500 ${cardClass}`}>
-          <div className="p-8 border-b border-gray-200/20">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
-                <Users className="h-6 w-6 text-purple-400 mr-3" />
-                <h3 className="text-2xl font-semibold">Individual Analysis</h3>
-              </div>
-              <div className="flex items-center space-x-4">
-                <span className="text-sm opacity-70">
-                  Showing {filteredStudents.length} of {stressData.length} individuals
-                </span>
-                <button className="p-2 rounded-lg hover:bg-purple-500/20 transition-colors">
-                  <Download className="h-5 w-5" />
-                </button>
-              </div>
-            </div>
-          </div>
-          
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className={`${isDarkMode ? 'bg-slate-700/50' : 'bg-gray-50/50'}`}>
-                <tr>
-                  <th className="px-8 py-6 text-left text-xs font-medium uppercase tracking-wider">ID</th>
-                  <th className="px-8 py-6 text-left text-xs font-medium uppercase tracking-wider">Name</th>
-                  <th className="px-8 py-6 text-left text-xs font-medium uppercase tracking-wider">ERP ID</th>
-                  <th className="px-8 py-6 text-left text-xs font-medium uppercase tracking-wider">Confidence</th>
-                  <th className="px-8 py-6 text-left text-xs font-medium uppercase tracking-wider">Status</th>
-                  <th className="px-8 py-6 text-left text-xs font-medium uppercase tracking-wider">Last Update</th>
-                  <th className="px-8 py-6 text-left text-xs font-medium uppercase tracking-wider">Action</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200/20">
-                {filteredStudents.map((student, index) => (
-                  <tr 
-                    key={student.id} 
-                    className={`transition-all duration-300 hover:bg-purple-500/10 animate-fade-in`}
-                    style={{ animationDelay: `${index * 50}ms` }}
-                  >
-                    <td className="px-8 py-6 whitespace-nowrap text-sm font-medium">
-                      #{student.id}
-                    </td>
-                    <td className="px-8 py-6 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <div className="h-12 w-12 rounded-full bg-gradient-to-r from-purple-400 to-pink-400 flex items-center justify-center text-white font-semibold text-lg mr-4 shadow-lg">
-                          {student.name?.charAt(0) || 'N'}
-                        </div>
-                        <div>
-                          <div className="text-sm font-medium">{student.name || 'Unknown'}</div>
-                          <div className="text-xs opacity-60">ID: {student.id}</div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-8 py-6 whitespace-nowrap">
-                      <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-500/20 text-blue-400 border border-blue-500/30">
-                        {student.erpid || student.rollNo}
-                      </span>
-                    </td>
-                    <td className="px-8 py-6 whitespace-nowrap">
-                      <div className="flex items-center space-x-3">
-                        <div className="text-lg font-bold">{student.score}%</div>
-                        <div className="w-20 bg-gray-200 rounded-full h-3">
-                          <div
-                            className="h-3 rounded-full transition-all duration-1000"
-                            style={{
-                              backgroundColor: student.score >= 70 ? '#10B981' : student.score >= 50 ? '#F59E0B' : '#EF4444',
-                              width: `${student.score}%`,
-                            }}
-                          ></div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-8 py-6 whitespace-nowrap">
-                      <span 
-                        className="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium"
-                        style={{ 
-                          backgroundColor: `${statusColors[student.status] || '#6B7280'}20`,
-                          color: statusColors[student.status] || '#6B7280',
-                          border: `1px solid ${statusColors[student.status] || '#6B7280'}40`
-                        }}
-                      >
-                        <div 
-                          className="w-2 h-2 rounded-full mr-2 animate-pulse"
-                          style={{ backgroundColor: statusColors[student.status] || '#6B7280' }}
-                        ></div>
-                        {student.status}
-                      </span>
-                    </td>
-                    <td className="px-8 py-6 whitespace-nowrap text-sm opacity-70">
-                      <div className="flex items-center">
-                        <Clock className="h-4 w-4 mr-1" />
-                        {formatTimestamp(student.timestamp)}
-                      </div>
-                    </td>
-                    <td className="px-8 py-6 whitespace-nowrap text-sm">
-                      <button
-                        onClick={() => setSelectedStudent(selectedStudent === student.id ? null : student.id)}
-                        className="text-purple-400 hover:text-purple-300 transition-all duration-200 hover:scale-110 transform p-2 rounded-lg hover:bg-purple-500/20"
-                      >
-                        <Eye className="h-5 w-5" />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          
-          {filteredStudents.length === 0 && (
-            <div className="text-center py-12">
-              <Users className="h-16 w-16 text-gray-400 mx-auto mb-4 opacity-50" />
-              <div className="text-xl text-gray-400 mb-2">No data found</div>
-              <div className="text-sm opacity-60">
-                {stressData.length === 0 ? 'No stress data available' : 'Try adjusting your search or filter criteria'}
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Enhanced Student Detail Modal */}
-        {selectedStudent && (
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
-            <div className={`max-w-3xl w-full rounded-3xl shadow-2xl p-8 transform transition-all duration-300 scale-100 ${cardClass}`}>
-              {(() => {
-                const student = stressData.find(s => s.id === selectedStudent);
-                if (!student) return null;
-                
-                return (
-                  <div>
-                    <div className="flex items-center justify-between mb-8">
-                      <div className="flex items-center">
-                        <div className="h-20 w-20 rounded-2xl bg-gradient-to-r from-purple-400 to-pink-400 flex items-center justify-center text-white font-bold text-2xl mr-6 shadow-xl">
-                          {student.name?.charAt(0) || 'N'}
-                        </div>
-                        <div>
-                          <h3 className="text-3xl font-bold mb-1">{student.name || 'Unknown'}</h3>
-                          <p className="text-lg opacity-70">ERP ID: {student.erpid}</p>
-                          <p className="text-sm opacity-50">ID: #{student.id}</p>
-                        </div>
-                      </div>
-                      <button
-                        onClick={() => setSelectedStudent(null)}
-                        className="text-gray-400 hover:text-white transition-all duration-200 hover:scale-110 transform p-3 rounded-full hover:bg-red-500/20"
-                      >
-                        <X className="h-8 w-8" />
-                      </button>
-                    </div>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                      <div className="text-center p-6 rounded-2xl bg-gradient-to-r from-blue-500/20 to-purple-500/20 border border-blue-500/30">
-                        <Target className="h-10 w-10 mx-auto mb-3 text-blue-400" />
-                        <div className="text-sm opacity-70 mb-1">Confidence Score</div>
-                        <div className="text-3xl font-bold text-blue-400">
-                          {student.score}%
-                        </div>
-                      </div>
-                      
-                      <div className="text-center p-6 rounded-2xl bg-gradient-to-r from-purple-500/20 to-pink-500/20 border border-purple-500/30">
-                        <Activity className="h-10 w-10 mx-auto mb-3 text-purple-400" />
-                        <div className="text-sm opacity-70 mb-1">Current Status</div>
-                        <div className="text-xl font-bold" style={{ color: statusColors[student.status] || '#6B7280' }}>
-                          {student.status}
-                        </div>
-                      </div>
-                      
-                      <div className="text-center p-6 rounded-2xl bg-gradient-to-r from-green-500/20 to-blue-500/20 border border-green-500/30">
-                        <Clock className="h-10 w-10 mx-auto mb-3 text-green-400" />
-                        <div className="text-sm opacity-70 mb-1">Last Updated</div>
-                        <div className="text-lg font-bold text-green-400">
-                          {formatTimestamp(student.timestamp)}
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div className="mb-8">
-                      <div className="flex items-center justify-between mb-4">
-                        <span className="text-lg opacity-70">Stress Assessment</span>
-                        <span className="text-3xl font-bold">{student.score}/100</span>
-                      </div>
-                      <div className="w-full bg-gray-200 rounded-full h-4 mb-2">
-                        <div
-                          className="h-4 rounded-full transition-all duration-1000 shadow-lg"
-                          style={{
-                            backgroundColor: student.score >= 70 ? '#10B981' : student.score >= 50 ? '#F59E0B' : '#EF4444',
-                            width: `${student.score}%`,
-                          }}
-                        ></div>
-                      </div>
-                      <div className="flex justify-between text-xs opacity-60">
-                        <span>Low Risk</span>
-                        <span>Moderate</span>
-                        <span>High Risk</span>
-                      </div>
-                    </div>
-                    
-                    <div className="text-center">
-                      <span 
-                        className="inline-flex items-center px-8 py-4 rounded-2xl text-xl font-medium border-2"
-                        style={{ 
-                          backgroundColor: `${statusColors[student.status] || '#6B7280'}20`,
-                          color: statusColors[student.status] || '#6B7280',
-                          borderColor: `${statusColors[student.status] || '#6B7280'}40`
-                        }}
-                      >
-                        <div 
-                          className="w-4 h-4 rounded-full mr-3 animate-pulse"
-                          style={{ backgroundColor: statusColors[student.status] || '#6B7280' }}
-                        ></div>
-                        Current Status: {student.status}
-                      </span>
-                    </div>
-                  </div>
-                );
-              })()}
-            </div>
-          </div>
-        )}
-
-        {/* Enhanced Footer */}
-        <div className="mt-16 text-center opacity-70">
-          <div className="flex items-center justify-center space-x-8 text-sm">
-            <div className="flex items-center">
-              <Calendar className="h-4 w-4 mr-1" />
-              Last updated: {new Date().toLocaleString()}
-            </div>
-            <div className="flex items-center">
-              <Users className="h-4 w-4 mr-1" />
-              Monitoring {stressData.length} individuals
-            </div>
-            <div className="flex items-center">
-              <Activity className="h-4 w-4 mr-1" />
-              System Status: Active
-            </div>
-          </div>
-        </div>
       </div>
-
-      <style jsx>{`
-        @keyframes fade-in {
-          from { opacity: 0; transform: translateY(20px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-
-        @keyframes slide-up {
-          from { opacity: 0; transform: translateY(30px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-
-        .animate-fade-in {
-          animation: fade-in 0.6s ease-out forwards;
-        }
-
-        .animate-slide-up {
-          animation: slide-up 0.8s ease-out forwards;
-        }
-
-        .animation-delay-1000 {
-          animation-delay: 1s;
-        }
-
-        .animation-delay-2000 {
-          animation-delay: 2s;
-        }
-
-        .animation-delay-4000 {
-          animation-delay: 4s;
-        }
-
-        /* Smooth transitions for all interactive elements */
-        * {
-          transition: all 0.2s ease-in-out;
-        }
-
-        /* Custom scrollbar */
-        ::-webkit-scrollbar {
-          width: 8px;
-        }
-
-        ::-webkit-scrollbar-track {
-          background: rgba(255, 255, 255, 0.1);
-          border-radius: 4px;
-        }
-
-        ::-webkit-scrollbar-thumb {
-          background: rgba(139, 92, 246, 0.5);
-          border-radius: 4px;
-        }
-
-        ::-webkit-scrollbar-thumb:hover {
-          background: rgba(139, 92, 246, 0.7);
-        }
-
-        /* Hover effects */
-        .hover-glow:hover {
-          box-shadow: 0 0 20px rgba(139, 92, 246, 0.3);
-        }
-        
-        /* Loading animation for refresh button */
-        @keyframes spin {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-      `}</style>
     </div>
   );
 };

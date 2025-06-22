@@ -41,7 +41,7 @@ const PrincipalDashboard = () => {
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
-      const response = await axios.get('http://localhost:5000/api/principal/dashboard', {
+      const response = await axios.get('http://69.62.83.14:9000/api/principal/dashboard', {
         headers: { Authorization: `Bearer ${token}` }
       });
       setStats(response.data.stats);
@@ -70,7 +70,7 @@ const PrincipalDashboard = () => {
     try {
       const token = localStorage.getItem('token');
       const response = await axios.get(
-        'http://localhost:5000/api/principal/all-members',
+        'http://69.62.83.14:9000/api/principal/all-members',
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setMembers(response.data.members);
@@ -84,7 +84,7 @@ const PrincipalDashboard = () => {
       setSelectedType(type);
       const token = localStorage.getItem('token');
       const response = await axios.get(
-        `http://localhost:5000/api/principal/members?deptId=${deptId}&type=${type}`,
+        `http://69.62.83.14:9000/api/principal/members?deptId=${deptId}&type=${type}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setMembers(response.data.members);
@@ -99,7 +99,7 @@ const PrincipalDashboard = () => {
       setProfileLoading(true);
       const token = localStorage.getItem('token');
       const response = await axios.get(
-        `http://localhost:5000/api/principal/profile/${memberId}?type=${selectedType}`,
+        `http://69.62.83.14:9000/api/principal/profile/${memberId}?type=${selectedType}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setProfileData(response.data);
@@ -109,7 +109,7 @@ const PrincipalDashboard = () => {
         setShowFacultyLogs(false);
         try {
           const logsRes = await axios.get(
-            `http://localhost:5000/api/principal/faculty-logs/${memberId}`,
+            `http://69.62.83.14:9000/api/principal/faculty-logs/${memberId}`,
             { headers: { Authorization: `Bearer ${token}` } }
           );
           setFacultyLogs(logsRes.data.logs || []);

@@ -177,17 +177,10 @@ router.get('/student-stress-level', authenticateToken, async (req, res) => {
     
     // Fetch all student stress data from the database
     const result = await sql`
-      SELECT 
-        id,
-        erpid,
-        name,
-        timestamp,
-        stress_status,
-        confidence_score
-      FROM stress_logs
+      SELECT * FROM stress_logs WHERE id between 1 and 34
       ORDER BY id ASC
     `;
-    
+    console.log(result);
     res.json(result);
   } catch (error) {
     console.error('Error fetching student stress data:', error);

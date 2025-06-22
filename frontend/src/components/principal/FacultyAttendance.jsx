@@ -1,9 +1,9 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { 
   Users, Calendar, Clock, Activity, Search, RefreshCw, 
   Check, X, AlertTriangle, Shield, Cpu, Globe, 
   Maximize, Minimize, PieChart, BarChart as BarChartIcon,
-  Zap, UserCheck, Filter, Download, Eye, EyeOff
+  Zap, UserCheck, Filter, Download, Eye, EyeOff, ChevronDown
 } from 'lucide-react';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
@@ -24,9 +24,24 @@ export default function AttendanceTracker({ initialData }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [expandedView, setExpandedView] = useState(false);
   const [facultySearchTerm, setFacultySearchTerm] = useState('');
+  const [isFacultyDropdownOpen, setIsFacultyDropdownOpen] = useState(false);
+  const facultyDropdownRef = useRef(null);
   
   // COLORS for charts
   const COLORS = ['#4f46e5', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899'];
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (facultyDropdownRef.current && !facultyDropdownRef.current.contains(event.target)) {
+        setIsFacultyDropdownOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [facultyDropdownRef]);
 
   // Fetch or initialize data when component mounts or initialData changes
   useEffect(() => {
@@ -418,29 +433,56 @@ export default function AttendanceTracker({ initialData }) {
                 <Users size={18} className="mr-2 text-blue-600" />
                 Select Faculty:
               </label>
-              <div className="space-y-2">
-                <div className="relative">
-                  <input
-                    type="text"
-                    placeholder="Search faculty..."
-                    className="block w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 bg-white shadow-sm"
-                    value={facultySearchTerm}
-                    onChange={(e) => setFacultySearchTerm(e.target.value)}
-                  />
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <Search size={18} className="text-gray-400" />
-                  </div>
-                </div>
-                <select 
-                  value={selectedUser} 
-                  onChange={handleUserChange}
-                  className="block w-full p-3 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 bg-white shadow-sm"
+              <div className="relative" ref={facultyDropdownRef}>
+                <button
+                  type="button"
+                  onClick={() => setIsFacultyDropdownOpen(!isFacultyDropdownOpen)}
+                  className="flex items-center justify-between w-full p-3 border border-gray-300 rounded-md bg-white shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 >
-                  <option value="">-- Select Faculty --</option>
-                  {filteredUsers.map(user => (
-                    <option key={user} value={user}>{formatUserName(user)}</option>
-                  ))}
-                </select>
+                  <span className="truncate">
+                    {selectedUser ? formatUserName(selectedUser) : '-- Select Faculty --'}
+                  </span>
+                  <ChevronDown size={20} className={`text-gray-500 transition-transform ${isFacultyDropdownOpen ? 'transform rotate-180' : ''}`} />
+                </button>
+
+                {isFacultyDropdownOpen && (
+                  <div className="absolute z-10 w-full mt-1 bg-white rounded-md shadow-lg border border-gray-200">
+                    <div className="p-2">
+                      <div className="relative">
+                        <input
+                          type="text"
+                          placeholder="Search faculty..."
+                          className="block w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 bg-white shadow-sm"
+                          value={facultySearchTerm}
+                          onChange={(e) => setFacultySearchTerm(e.target.value)}
+                          autoFocus
+                        />
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                          <Search size={18} className="text-gray-400" />
+                        </div>
+                      </div>
+                    </div>
+                    <ul className="max-h-60 overflow-y-auto">
+                      {filteredUsers.length > 0 ? (
+                        filteredUsers.map(user => (
+                          <li
+                            key={user}
+                            className="px-4 py-2 text-sm text-gray-700 hover:bg-indigo-50 cursor-pointer"
+                            onClick={() => {
+                              handleUserChange({ target: { value: user } });
+                              setFacultySearchTerm('');
+                              setIsFacultyDropdownOpen(false);
+                            }}
+                          >
+                            {formatUserName(user)}
+                          </li>
+                        ))
+                      ) : (
+                        <li className="px-4 py-2 text-sm text-gray-500">No faculty found</li>
+                      )}
+                    </ul>
+                  </div>
+                )}
               </div>
             </div>
           
