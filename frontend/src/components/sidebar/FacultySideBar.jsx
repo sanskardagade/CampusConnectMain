@@ -27,25 +27,27 @@ import SidebarMenu from "./SideBarMenu";
     //   name: "Take Attendance",
     //   icon: <FaUser />,
     // },
-    {
-      path: "/faculty/divisions",
-      name: "Divisions",
-      icon: <AiOutlinePlus />,
-    },
-    {
-      path: "/faculty/add-notes",
-      name: "Add Notes",
-      icon: <AiTwotoneFileExclamation />,
-    },
-    {
-      path: "/faculty/leave-apply",
-      name: "Leave Application",
-      icon: <AiFillContainer />,
-    },
+    // {
+    //   path: "/faculty/divisions",
+    //   name: "Divisions",
+    //   icon: <AiOutlinePlus />,
+    // },
+    // {
+    //   path: "/faculty/add-notes",
+    //   name: "Add Notes",
+    //   icon: <AiTwotoneFileExclamation />,
+    // },
+    
     {
       path: "/faculty/student-stress-level",
       name: "Student Stress Level",
       icon: <BiAnalyse />,
+    },
+
+    {
+      path: "/faculty/leave-apply",
+      name: "Leave Application",
+      icon: <AiFillContainer />,
     },
     // {
     //   path: "/faculty/location",
@@ -79,8 +81,8 @@ import SidebarMenu from "./SideBarMenu";
   
 
 const FacultySideBar = ({ children }) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const toggle = () => setIsOpen(!isOpen);
+  // Sidebar should always be open
+  const isOpen = true;
 
   const inputAnimation = {
     hidden: { width: 0, padding: 0, transition: { duration: 0.2 } },
@@ -104,7 +106,7 @@ const FacultySideBar = ({ children }) => {
     <div className="flex w-screen h-screen overflow-hidden">
       <motion.div
         animate={{
-          width: isOpen ? "200px" : "45px",
+          width: "200px",
           transition: { duration: 0.5, type: "spring", damping: 10 },
         }}
         className="bg-red-950 text-white h-full overflow-y-auto shadow-lg"
@@ -123,7 +125,6 @@ const FacultySideBar = ({ children }) => {
               </motion.h1>
             )}
           </AnimatePresence>
-          <FaBars onClick={toggle} className="cursor-pointer text-xl" />
         </div>
 
         {/* Search box */}
@@ -154,7 +155,6 @@ const FacultySideBar = ({ children }) => {
                   route={route}
                   showAnimation={showAnimation}
                   isOpen={isOpen}
-                  setIsOpen={setIsOpen}
                 />
               );
             }

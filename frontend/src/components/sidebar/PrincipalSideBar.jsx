@@ -32,16 +32,17 @@ import SidebarMenu from "./SideBarMenu";
       icon: <AiOutlinePlus />,
     },
     {
+      path: "/principal/view-stress-level",
+      name: "View Faculty Stress Level",
+      icon: <AiTwotoneFileExclamation />,
+    },
+    {
       path: "/principal/faculty-leave-approval",
       name: "Faculty Leave Approval",
       icon: <AiFillBell />,
     
     },
-    {
-      path: "/principal/view-stress-level",
-      name: "View Student Stress Level",
-      icon: <AiTwotoneFileExclamation />,
-    },
+    
     // {
     //     path: "/principal/view-student-location",
     //     name: "View Student Location",
@@ -80,8 +81,8 @@ import SidebarMenu from "./SideBarMenu";
   
 
 const PrincipalSideBar = ({ children }) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const toggle = () => setIsOpen(!isOpen);
+  // Sidebar should always be open
+  const isOpen = true;
 
   const inputAnimation = {
     hidden: { width: 0, padding: 0, transition: { duration: 0.2 } },
@@ -105,7 +106,7 @@ const PrincipalSideBar = ({ children }) => {
     <div className="flex w-screen h-screen overflow-hidden">
       <motion.div
         animate={{
-          width: isOpen ? "200px" : "45px",
+          width: "200px",
           transition: { duration: 0.5, type: "spring", damping: 10 },
         }}
         className="bg-red-950 text-white h-full overflow-y-auto shadow-lg"
@@ -124,7 +125,6 @@ const PrincipalSideBar = ({ children }) => {
               </motion.h1>
             )}
           </AnimatePresence>
-          <FaBars onClick={toggle} className="cursor-pointer text-xl" />
         </div>
 
         {/* Search box */}
@@ -155,7 +155,6 @@ const PrincipalSideBar = ({ children }) => {
                   route={route}
                   showAnimation={showAnimation}
                   isOpen={isOpen}
-                  setIsOpen={setIsOpen}
                 />
               );
             }

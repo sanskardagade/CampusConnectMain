@@ -21,10 +21,20 @@ import SidebarMenu from "./SideBarMenu";
       name: "Dashboard",
       icon: <FaHome />,
     },
+    // {
+    //   path: "/hod/view-student",
+    //   name: "View Faculty Attendance",
+    //   icon: <FaUser />,
+    // },
     {
-      path: "/hod/view-student",
-      name: "View Student Attendance",
-      icon: <FaUser />,
+      path: "/hod/faculty-log",
+      name: "Faculty Attendance",
+      icon: <BiAnalyse />,
+    },
+    {
+      path: "/hod/view-stress-level",
+      name: "View Faculty Stress Level",
+      icon: <AiTwotoneFileExclamation />,
     },
     // {
     //   path: "/hod/view-faculty",
@@ -36,21 +46,13 @@ import SidebarMenu from "./SideBarMenu";
       name: "Faculty Leave Approval",
       icon: <AiFillBell />,
     },
-    {
-      path: "/hod/view-stress-level",
-      name: "View Student Stress Level",
-      icon: <AiTwotoneFileExclamation />,
-    },
+    
     // {
     //     path: "/hod/view-student-location",
     //     name: "View Student Location",
     //     icon: <BiAnalyse />,
     //   },
-    {
-      path: "/hod/faculty-log",
-      name: "Faculty Logger ",
-      icon: <BiAnalyse />,
-    },
+    
     
     {
       path: "/hod/hod-profile",
@@ -79,8 +81,8 @@ import SidebarMenu from "./SideBarMenu";
   
 
 const HODSideBar = ({ children }) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const toggle = () => setIsOpen(!isOpen);
+  // Sidebar should always be open
+  const isOpen = true;
 
   const inputAnimation = {
     hidden: { width: 0, padding: 0, transition: { duration: 0.2 } },
@@ -104,7 +106,7 @@ const HODSideBar = ({ children }) => {
     <div className="flex w-screen h-screen overflow-hidden">
       <motion.div
         animate={{
-          width: isOpen ? "200px" : "45px",
+          width: "200px",
           transition: { duration: 0.5, type: "spring", damping: 10 },
         }}
         className="bg-red-950 text-white h-full overflow-y-auto shadow-lg"
@@ -123,7 +125,6 @@ const HODSideBar = ({ children }) => {
               </motion.h1>
             )}
           </AnimatePresence>
-          <FaBars onClick={toggle} className="cursor-pointer text-xl" />
         </div>
 
         {/* Search box */}
@@ -154,7 +155,6 @@ const HODSideBar = ({ children }) => {
                   route={route}
                   showAnimation={showAnimation}
                   isOpen={isOpen}
-                  setIsOpen={setIsOpen}
                 />
               );
             }
