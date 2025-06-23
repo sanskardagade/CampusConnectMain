@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 import { 
@@ -27,11 +27,13 @@ const PrincipalDashboard = () => {
   const [profileLoading, setProfileLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [isSearching, setIsSearching] = useState(false);
-  const [showMemberTypes, setShowMemberTypes] = useState(false);
   const [showMembersList, setShowMembersList] = useState(false);
   const [facultyLogs, setFacultyLogs] = useState([]);
   const [showFacultyLogs, setShowFacultyLogs] = useState(false);
   const [facultyLogsLoading, setFacultyLogsLoading] = useState(false);
+  const departmentsRef = useRef(null);
+  const memberTypeRef = useRef(null);
+  const [showStudentUnavailable, setShowStudentUnavailable] = useState(false);
 
   useEffect(() => {
     fetchDashboardData();
@@ -62,7 +64,6 @@ const PrincipalDashboard = () => {
     setProfileData(null);
     setSearchTerm('');
     setIsSearching(false);
-    setShowMemberTypes(false);
     setShowMembersList(false);
   };
 
@@ -133,8 +134,12 @@ const PrincipalDashboard = () => {
     setMembers([]);
     setSelectedMember(null);
     setProfileData(null);
-    setShowMemberTypes(true);
     setShowMembersList(false);
+    setTimeout(() => {
+      if (memberTypeRef.current) {
+        memberTypeRef.current.scrollIntoView({ behavior: 'smooth' });
+      }
+    }, 100);
   };
 
   const handleSearch = (e) => {
@@ -151,6 +156,32 @@ const PrincipalDashboard = () => {
     member.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     (member.erpid && member.erpid.toString().includes(searchTerm))
   );
+
+  const handleScrollToDepartments = () => {
+    if (departmentsRef.current) {
+      departmentsRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
+  const handleScrollToMemberType = () => {
+    if (!selectedDept && departments.length > 0) {
+      handleDepartmentSelect(departments[0].id);
+      setTimeout(() => {
+        if (memberTypeRef.current) {
+          memberTypeRef.current.scrollIntoView({ behavior: 'smooth' });
+        }
+      }, 200);
+    } else {
+      if (memberTypeRef.current) {
+        memberTypeRef.current.scrollIntoView({ behavior: 'smooth' });
+      }
+    }
+  };
+
+  const handleShowStudentUnavailable = () => {
+    setShowStudentUnavailable(true);
+    setTimeout(() => setShowStudentUnavailable(false), 3000);
+  };
 
   if (loading) {
     return (
@@ -182,9 +213,9 @@ const PrincipalDashboard = () => {
             transition={{ delay: 0.1 }}
           >
             <h1 className="text-2xl font-bold text-gray-900 bg-gradient-to-r from-red-600 to-red-800 bg-clip-text text-transparent">
-              Principal Dashboard
+              Dashboard
             </h1>
-            <p className="text-gray-600">Institutional Overview and Management</p>
+            <p className="text-gray-600">Dr. D. Y. Patil Institute of Technology, Pimpri, Pune</p>
           </motion.div>
           
           <motion.button
@@ -206,37 +237,63 @@ const PrincipalDashboard = () => {
         transition={{ delay: 0.2 }}
         className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8"
       >
-        <StatCard 
-          icon={<FiBook size={20} />}
-          title="Departments"
-          value={stats.departments}
-          color="from-blue-500 to-blue-600"
-          delay={0.1}
-        />
-        <StatCard 
-          icon={<FiUsers size={20} />}
-          title="Students"
-          value={stats.students}
-          color="from-green-500 to-green-600"
-          delay={0.2}
-        />
-        <StatCard 
-          icon={<FiUser size={20} />}
-          title="Faculty"
-          value={stats.faculty}
-          color="from-red-500 to-red-600"
-          delay={0.3}
-        />
-        <StatCard 
-          icon={<FiBriefcase size={20} />}
-          title="Staff"
-          value={stats.staff}
-          color="from-purple-500 to-purple-600"
-          delay={0.4}
-        />
+        <button
+          onClick={handleScrollToDepartments}
+          style={{ background: 'none', border: 'none', padding: 0, margin: 0, width: '100%', textAlign: 'left', cursor: 'pointer' }}
+        >
+          <StatCard 
+            icon={<FiBook size={20} />}
+            title="Departments"
+            value={stats.departments}
+            color="from-blue-500 to-blue-600"
+            delay={0.1}
+          />
+        </button>
+        <button
+          onClick={handleShowStudentUnavailable}
+          style={{ background: 'none', border: 'none', padding: 0, margin: 0, width: '100%', textAlign: 'left', cursor: 'pointer' }}
+        >
+          <StatCard 
+            icon={<FiUsers size={20} />}
+            title="Students"
+            value="3000+"
+            color="from-green-500 to-green-600"
+            delay={0.2}
+          />
+        </button>
+        <button
+          onClick={handleScrollToMemberType}
+          style={{ background: 'none', border: 'none', padding: 0, margin: 0, width: '100%', textAlign: 'left', cursor: 'pointer' }}
+        >
+          <StatCard 
+            icon={<FiUser size={20} />}
+            title="Faculty"
+            value={stats.faculty}
+            color="from-red-500 to-red-600"
+            delay={0.3}
+          />
+        </button>
+        <button
+          onClick={handleScrollToMemberType}
+          style={{ background: 'none', border: 'none', padding: 0, margin: 0, width: '100%', textAlign: 'left', cursor: 'pointer' }}
+        >
+          <StatCard 
+            icon={<FiBriefcase size={20} />}
+            title="Non-Teaching Staff"
+            value={stats.staff}
+            color="from-purple-500 to-purple-600"
+            delay={0.4}
+          />
+        </button>
       </motion.div>
 
-      {/* Search Bar */}
+      {showStudentUnavailable && (
+        <div className="mb-4 text-center text-red-700 font-semibold bg-red-50 border border-red-200 rounded p-3 animate-fadeIn">
+          Currently the students data is unavailable
+        </div>
+      )}
+
+      {/* Search Bar
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -265,10 +322,11 @@ const PrincipalDashboard = () => {
             <FiX className="text-gray-400 hover:text-gray-600" />
           </button>
         )}
-      </motion.div>
+      </motion.div> */}
 
       {/* Department Selection - Vertical */}
       <motion.div 
+        ref={departmentsRef}
         className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden mb-4"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -311,59 +369,69 @@ const PrincipalDashboard = () => {
       {/* Member Type Selection */}
       {selectedDept && (
         <motion.div 
+          ref={memberTypeRef}
           initial={{ opacity: 0, height: 0 }}
           animate={{ opacity: 1, height: 'auto' }}
           exit={{ opacity: 0, height: 0 }}
           transition={{ duration: 0.3 }}
           className="bg-white rounded-xl shadow-lg border border-gray-200 mb-4 overflow-hidden"
         >
-          <button
-            onClick={() => setShowMemberTypes(!showMemberTypes)}
-            className="w-full p-4 border-b border-gray-200 flex justify-between items-center hover:bg-gray-50"
-          >
+          <div className="w-full p-4 border-b border-gray-200 flex justify-between items-center bg-gray-50">
             <h3 className="font-bold text-gray-900">Member Type</h3>
-            <motion.div
-              animate={{ rotate: showMemberTypes ? 180 : 0 }}
-              transition={{ duration: 0.2 }}
-            >
-              <FiChevronDown className="text-gray-500" />
-            </motion.div>
-          </button>
-          
-          <AnimatePresence>
-            {showMemberTypes && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-                transition={{ duration: 0.3 }}
+          </div>
+          <div className="grid grid-cols-3 gap-2 p-3">
+            <MemberTypeButton
+              active={selectedType === 'students'}
+              onClick={() => fetchDepartmentMembers(selectedDept, 'students')}
+              icon={<FiUsers size={16} />}
+              label="Students"
+              color="bg-blue-600"
+            />
+            <MemberTypeButton
+              active={selectedType === 'faculty'}
+              onClick={() => fetchDepartmentMembers(selectedDept, 'faculty')}
+              icon={<FiUser size={16} />}
+              label="Faculty"
+              color="bg-red-600"
+            />
+            <MemberTypeButton
+              active={selectedType === 'staff'}
+              onClick={() => fetchDepartmentMembers(selectedDept, 'staff')}
+              icon={<FiBriefcase size={16} />}
+              label="Non-Teaching Staff"
+              color="bg-purple-600"
+            />
+          </div>
+          {/* Search Bar inside Member Type */}
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="relative mb-6 px-3"
+          >
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <FiSearch className="text-gray-400" />
+            </div>
+            <input
+              type="text"
+              placeholder="Search by name or ERP ID (works without department selection)"
+              className="pl-10 pr-4 py-3 w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 shadow-sm"
+              value={searchTerm}
+              onChange={handleSearch}
+            />
+            {searchTerm && (
+              <button
+                onClick={() => {
+                  setSearchTerm('');
+                  setIsSearching(false);
+                  if (!selectedDept) setMembers([]);
+                }}
+                className="absolute inset-y-0 right-0 pr-3 flex items-center"
               >
-                <div className="grid grid-cols-3 gap-2 p-3">
-                  <MemberTypeButton
-                    active={selectedType === 'students'}
-                    onClick={() => fetchDepartmentMembers(selectedDept, 'students')}
-                    icon={<FiUsers size={16} />}
-                    label="Students"
-                    color="bg-blue-600"
-                  />
-                  <MemberTypeButton
-                    active={selectedType === 'faculty'}
-                    onClick={() => fetchDepartmentMembers(selectedDept, 'faculty')}
-                    icon={<FiUser size={16} />}
-                    label="Faculty"
-                    color="bg-red-600"
-                  />
-                  <MemberTypeButton
-                    active={selectedType === 'staff'}
-                    onClick={() => fetchDepartmentMembers(selectedDept, 'staff')}
-                    icon={<FiBriefcase size={16} />}
-                    label="Staff"
-                    color="bg-purple-600"
-                  />
-                </div>
-              </motion.div>
+                <FiX className="text-gray-400 hover:text-gray-600" />
+              </button>
             )}
-          </AnimatePresence>
+          </motion.div>
         </motion.div>
       )}
 
@@ -386,7 +454,7 @@ const PrincipalDashboard = () => {
                   : 'Search Results'}
               </h3>
               <span className="text-xs bg-gray-100 px-2 py-1 rounded-full">
-                {filteredMembers.length} {filteredMembers.length === 1 ? 'item' : 'items'}
+                {filteredMembers.length} {filteredMembers.length === 1 ? 'item' : 'Strength'}
               </span>
             </div>
             <motion.div
@@ -573,3 +641,13 @@ const MemberTypeButton = ({ active, onClick, icon, label, color }) => (
 );
 
 export default PrincipalDashboard;
+
+<style>{`
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.animate-fadeIn {
+  animation: fadeIn 0.5s;
+}
+`}</style>
