@@ -26,11 +26,11 @@ import SidebarMenu from "./SideBarMenu";
     //   name: "View Student Attendance",
     //   icon: <FaUser />,
     //},
-    {
-      path: "/principal/view-faculty",
-      name: "View Faculty Attendance",
-      icon: <AiOutlinePlus />,
-    },
+    // {
+    //   path: "/principal/view-faculty",
+    //   name: "View Faculty Attendance",
+    //   icon: <AiOutlinePlus />,
+    // },
     {
       path: "/principal/view-stress-level",
       name: "View Faculty Stress Level",

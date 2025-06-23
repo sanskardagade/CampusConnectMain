@@ -3,7 +3,8 @@ import {
   Users, Calendar, Clock, Activity, Search, RefreshCw, 
   Check, X, AlertTriangle, Shield, Cpu, Globe, 
   Maximize, Minimize, PieChart, BarChart as BarChartIcon,
-  Zap, UserCheck, Filter, Download, Eye, EyeOff, ChevronDown
+  Zap, UserCheck, Filter, Download, Eye, EyeOff, ChevronDown,
+  ArrowDown, ArrowUp
 } from 'lucide-react';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
@@ -26,6 +27,10 @@ export default function AttendanceTracker({ initialData }) {
   const [facultySearchTerm, setFacultySearchTerm] = useState('');
   const [isFacultyDropdownOpen, setIsFacultyDropdownOpen] = useState(false);
   const facultyDropdownRef = useRef(null);
+  const [showGraphModal, setShowGraphModal] = useState(false);
+  const [selectedBarUser, setSelectedBarUser] = useState(null);
+  const [sortDesc, setSortDesc] = useState(true);
+  const [selectedBranch, setSelectedBranch] = useState('');
   
   // COLORS for charts
   const COLORS = ['#4f46e5', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899'];
@@ -297,6 +302,79 @@ export default function AttendanceTracker({ initialData }) {
     setExpandedView(!expandedView);
   };
 
+  // Extract unique branches from data
+  const branches = useMemo(() => {
+    if (!data || !Array.isArray(data)) return [];
+    const branchSet = new Set();
+    data.forEach(log => {
+      if (log.branch) branchSet.add(log.branch);
+      else if (log.department) branchSet.add(log.department);
+    });
+    return Array.from(branchSet).sort();
+  }, [data]);
+
+  // Filter data by selected branch
+  const branchFilteredData = useMemo(() => {
+    if (!selectedBranch) return data;
+    if (!data || !Array.isArray(data)) return [];
+    return data.filter(log => (log.branch || log.department) === selectedBranch);
+  }, [data, selectedBranch]);
+
+  // Get summary data for branch-filtered data
+  const branchSummaryData = useMemo(() => {
+    if (!branchFilteredData || !Array.isArray(branchFilteredData)) return null;
+    // Reuse generateSummaryData logic for filtered data
+    const summary = {
+      totalLogs: branchFilteredData.length,
+      totalUsers: new Set(branchFilteredData.map(log => log.person_name)).size,
+      totalIPs: new Set(branchFilteredData.map(log => log.camera_ip)).size,
+      totalDates: new Set(branchFilteredData.map(log => new Date(log.timestamp).toDateString())).size,
+      userActivity: [],
+      mostActiveUser: { name: '', logins: 0 },
+      ipDistribution: {},
+      timeDistribution: {}
+    };
+    // Group by user
+    const userGroups = branchFilteredData.reduce((acc, log) => {
+      const userName = log.person_name;
+      if (!acc[userName]) acc[userName] = [];
+      acc[userName].push(log);
+      return acc;
+    }, {});
+    Object.entries(userGroups).forEach(([userName, logs]) => {
+      const logins = logs.length;
+      summary.userActivity.push({ name: userName, logins });
+      if (logins > summary.mostActiveUser.logins) {
+        summary.mostActiveUser = { name: userName, logins };
+      }
+    });
+    branchFilteredData.forEach(log => {
+      const ip = log.camera_ip;
+      summary.ipDistribution[ip] = (summary.ipDistribution[ip] || 0) + 1;
+    });
+    branchFilteredData.forEach(log => {
+      const hour = new Date(log.timestamp).getHours();
+      const hourKey = `${hour}:00`;
+      summary.timeDistribution[hourKey] = (summary.timeDistribution[hourKey] || 0) + 1;
+    });
+    summary.userActivity.sort((a, b) => b.logins - a.logins);
+    summary.totalIPs = summary.totalIPs;
+    summary.totalDates = summary.totalDates;
+    summary.mostActiveUser.name = formatUserName(summary.mostActiveUser.name);
+    return summary;
+  }, [branchFilteredData]);
+
+  // Get all entries for the selected user, sorted by date, and filtered by branch
+  const selectedUserEntries = useMemo(() => {
+    if (!selectedBarUser || !branchFilteredData || !Array.isArray(branchFilteredData)) return [];
+    const entries = branchFilteredData.filter(log => log.person_name === selectedBarUser);
+    return entries.sort((a, b) => {
+      const dateA = new Date(a.timestamp);
+      const dateB = new Date(b.timestamp);
+      return sortDesc ? dateB - dateA : dateA - dateB;
+    });
+  }, [selectedBarUser, branchFilteredData, sortDesc]);
+
   return (
     <div className={`p-6 ${expandedView ? 'max-w-full' : 'max-w-6xl'} mx-auto bg-white rounded-lg shadow-lg transition-all duration-300`}>
       <div className="flex items-center justify-between mb-8">
@@ -340,18 +418,52 @@ export default function AttendanceTracker({ initialData }) {
       
       {data && !loading && (
         <div className="space-y-8">
+          {/* Branch Filter Dropdown */}
+          <div className="mb-6 flex items-center gap-4">
+            <label className="font-medium text-gray-700">Branch:</label>
+            <select
+              value={selectedBranch}
+              onChange={e => setSelectedBranch(e.target.value)}
+              className="p-2 border rounded-md"
+            >
+              <option value="">All Branches</option>
+              {branches.map(branch => (
+                <option key={branch} value={branch}>{branch}</option>
+              ))}
+            </select>
+          </div>
           {/* Summary Cards */}
           {summaryData && (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="bg-blue-50 p-4 rounded-lg border border-blue-100 shadow-sm">
                 <div className="flex justify-between items-center">
-                  <h3 className="text-sm font-medium text-blue-700">Users</h3>
+                  <h3 className="text-sm font-medium text-blue-700">Faculties</h3>
                   <Users size={18} className="text-blue-500" />
                 </div>
                 <p className="text-2xl font-bold text-blue-900 mt-2">{summaryData.totalUsers}</p>
                 <p className="text-xs text-blue-700 mt-1">Most active: {summaryData.mostActiveUser.name}</p>
               </div>
+
+              <div className="bg-blue-50 p-4 rounded-lg border border-blue-100 shadow-sm">
+                <div className="flex justify-between items-center">
+                  <h3 className="text-sm font-medium text-blue-700">Students</h3>
+                  <Users size={18} className="text-blue-500" />
+                </div>
+                <p className="text-2xl font-bold text-blue-900 mt-2">0</p>
+                {/* <p className="text-xs text-blue-700 mt-1">Most active: {summaryData.mostActiveUser.name}</p> */}
+              </div>
               
+              
+              
+              {/* <div className="bg-purple-50 p-4 rounded-lg border border-purple-100 shadow-sm">
+                <div className="flex justify-between items-center">
+                  <h3 className="text-sm font-medium text-purple-700">Login Sessions</h3>
+                  <Shield size={18} className="text-purple-500" />
+                </div>
+                <p className="text-2xl font-bold text-purple-900 mt-2">{summaryData.totalLogs}</p>
+                <p className="text-xs text-purple-700 mt-1">Over {summaryData.totalDates} days</p>
+              </div> */}
+
               <div className="bg-green-50 p-4 rounded-lg border border-green-100 shadow-sm">
                 <div className="flex justify-between items-center">
                   <h3 className="text-sm font-medium text-green-700">IP Addresses</h3>
@@ -359,15 +471,6 @@ export default function AttendanceTracker({ initialData }) {
                 </div>
                 <p className="text-2xl font-bold text-green-900 mt-2">{summaryData.totalIPs}</p>
                 <p className="text-xs text-green-700 mt-1">Most active: {summaryData.mostActiveUser.name}</p>
-              </div>
-              
-              <div className="bg-purple-50 p-4 rounded-lg border border-purple-100 shadow-sm">
-                <div className="flex justify-between items-center">
-                  <h3 className="text-sm font-medium text-purple-700">Login Sessions</h3>
-                  <Shield size={18} className="text-purple-500" />
-                </div>
-                <p className="text-2xl font-bold text-purple-900 mt-2">{summaryData.totalLogs}</p>
-                <p className="text-xs text-purple-700 mt-1">Over {summaryData.totalDates} days</p>
               </div>
               
               <div className="bg-orange-50 p-4 rounded-lg border border-orange-100 shadow-sm">
@@ -382,21 +485,33 @@ export default function AttendanceTracker({ initialData }) {
           )}
           
           {/* Overall Activity Chart */}
-          {summaryData && summaryData.userActivity.length > 0 && (
-            <div className="bg-white p-5 rounded-lg border border-gray-200 shadow-sm">
+          {branchSummaryData && branchSummaryData.userActivity && branchSummaryData.userActivity.length > 0 && (
+            <div className="bg-white p-5 rounded-lg border border-gray-200 shadow-sm relative">
               <h2 className="text-lg font-semibold mb-4 flex items-center">
                 <Activity size={18} className="mr-2 text-indigo-600" />
                 Overall User Activity
+                <button
+                  onClick={() => setShowGraphModal(true)}
+                  className="ml-2 p-1 rounded hover:bg-gray-100"
+                  title="Expand Graph"
+                >
+                  <Maximize size={18} />
+                </button>
               </h2>
               <div className="h-64">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart
-                    data={summaryData.userActivity.slice(0, 10)} // Show top 10 users
+                    data={branchSummaryData.userActivity.slice(0, 10)}
                     margin={{
                       top: 5,
                       right: 30,
                       left: 20,
                       bottom: 60,
+                    }}
+                    onClick={(state) => {
+                      if (state && state.activeLabel) {
+                        setSelectedBarUser(state.activeLabel);
+                      }
                     }}
                   >
                     <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
@@ -421,6 +536,53 @@ export default function AttendanceTracker({ initialData }) {
                     />
                   </BarChart>
                 </ResponsiveContainer>
+              </div>
+            </div>
+          )}
+          
+          {/* Show table of entries for selected user */}
+          {selectedBarUser && (
+            <div className="mt-6 bg-gray-50 p-4 rounded-lg border border-gray-200">
+              <div className="flex justify-between items-center mb-2">
+                <h3 className="font-bold text-lg">{selectedBarUser} - All Activity Instances</h3>
+                <button
+                  onClick={() => setSelectedBarUser(null)}
+                  className="text-red-600 hover:underline text-sm"
+                >
+                  Close
+                </button>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-100">
+                    <tr>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Faculty</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">ERP ID</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Camera IP</th>
+                      <th
+                        className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer select-none"
+                        onClick={() => setSortDesc((prev) => !prev)}
+                      >
+                        Timestamp
+                        {sortDesc ? (
+                          <ArrowDown className="inline ml-1 w-3 h-3" />
+                        ) : (
+                          <ArrowUp className="inline ml-1 w-3 h-3" />
+                        )}
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {selectedUserEntries.map((entry, idx) => (
+                      <tr key={idx}>
+                        <td className="px-4 py-2 whitespace-nowrap">{entry.person_name}</td>
+                        <td className="px-4 py-2 whitespace-nowrap">{entry.erp_id}</td>
+                        <td className="px-4 py-2 whitespace-nowrap">{entry.camera_ip}</td>
+                        <td className="px-4 py-2 whitespace-nowrap">{new Date(entry.timestamp).toLocaleString()}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             </div>
           )}
@@ -607,6 +769,110 @@ export default function AttendanceTracker({ initialData }) {
                 <p>No logs found for the selected criteria</p>
               </div>
             )}
+          </div>
+        </div>
+      )}
+      {/* Modal for selected user entries (table popup) */}
+      {selectedBarUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+          <div className="bg-white rounded-xl shadow-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto relative p-6">
+            <button
+              className="absolute top-2 right-2 text-gray-500 hover:text-red-600 text-2xl font-bold"
+              onClick={() => setSelectedBarUser(null)}
+              title="Close"
+            >
+              &times;
+            </button>
+            <h3 className="font-bold text-lg mb-4">{selectedBarUser} - All Activity Instances</h3>
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-100">
+                  <tr>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Faculty</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">ERP ID</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Camera IP</th>
+                    <th
+                      className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer select-none"
+                      onClick={() => setSortDesc((prev) => !prev)}
+                    >
+                      Timestamp
+                      {sortDesc ? (
+                        <ArrowDown className="inline ml-1 w-3 h-3" />
+                      ) : (
+                        <ArrowUp className="inline ml-1 w-3 h-3" />
+                      )}
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {selectedUserEntries.map((entry, idx) => (
+                    <tr key={idx}>
+                      <td className="px-4 py-2 whitespace-nowrap">{entry.person_name}</td>
+                      <td className="px-4 py-2 whitespace-nowrap">{entry.erp_id}</td>
+                      <td className="px-4 py-2 whitespace-nowrap">{entry.camera_ip}</td>
+                      <td className="px-4 py-2 whitespace-nowrap">{new Date(entry.timestamp).toLocaleString()}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Modal for expanded graph */}
+      {showGraphModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+          <div className="bg-white rounded-xl shadow-lg max-w-3xl w-full max-h-[90vh] overflow-y-auto relative p-6">
+            <button
+              className="absolute top-2 right-2 text-gray-500 hover:text-red-600 text-2xl font-bold"
+              onClick={() => setShowGraphModal(false)}
+              title="Close"
+            >
+              <Minimize size={24} />
+            </button>
+            <h2 className="text-lg font-semibold mb-4 flex items-center">
+              <Activity size={18} className="mr-2 text-indigo-600" />
+              Overall User Activity (Expanded)
+            </h2>
+            <div className="h-[60vh] min-h-[300px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={branchSummaryData.userActivity.slice(0, 10)}
+                  margin={{
+                    top: 5,
+                    right: 30,
+                    left: 20,
+                    bottom: 60,
+                  }}
+                  onClick={(state) => {
+                    if (state && state.activeLabel) {
+                      setSelectedBarUser(state.activeLabel);
+                    }
+                  }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                  <XAxis 
+                    dataKey="name" 
+                    tick={{ fontSize: 12 }}
+                    angle={-45}
+                    textAnchor="end"
+                    height={60}
+                  />
+                  <YAxis />
+                  <Tooltip 
+                    formatter={(value, name) => [`${value} logins`, 'Count']}
+                    contentStyle={{ borderRadius: '6px', boxShadow: '0 2px 5px rgba(0,0,0,0.1)' }}
+                  />
+                  <Legend wrapperStyle={{ paddingTop: 10 }} />
+                  <Bar 
+                    dataKey="logins" 
+                    name="Login Count" 
+                    fill="#6366f1" 
+                    radius={[4, 4, 0, 0]}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
           </div>
         </div>
       )}
