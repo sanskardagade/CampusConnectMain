@@ -5,7 +5,7 @@ import {
   FiUsers, FiUser, FiBook, FiBriefcase, 
   FiChevronDown, FiChevronRight, FiRefreshCw,
   FiMail, FiCalendar, FiActivity, FiBarChart2,
-  FiSearch, FiX
+  FiSearch, FiX, FiDownload
 } from 'react-icons/fi';
 import ProfileView from './ProfileView';
 import FacultyLogDisplay from '../components/faculty/FacultyLogDisplay';
@@ -31,9 +31,17 @@ const PrincipalDashboard = () => {
   const [facultyLogs, setFacultyLogs] = useState([]);
   const [showFacultyLogs, setShowFacultyLogs] = useState(false);
   const [facultyLogsLoading, setFacultyLogsLoading] = useState(false);
+  const [staffLogs, setStaffLogs] = useState([]);
+  const [showStaffLogs, setShowStaffLogs] = useState(false);
+  const [staffLogsLoading, setStaffLogsLoading] = useState(false);
   const departmentsRef = useRef(null);
   const memberTypeRef = useRef(null);
   const [showStudentUnavailable, setShowStudentUnavailable] = useState(false);
+  const [reportDept, setReportDept] = useState('all');
+  const [downloading, setDownloading] = useState(false);
+  const [fromDate, setFromDate] = useState('');
+  const [toDate, setToDate] = useState('');
+  const [downloadFormat, setDownloadFormat] = useState('csv');
 
   useEffect(() => {
     fetchDashboardData();
@@ -120,6 +128,21 @@ const PrincipalDashboard = () => {
         } finally {
           setFacultyLogsLoading(false);
         }
+      } else if (selectedType === 'staff') {
+        setStaffLogsLoading(true);
+        setShowStaffLogs(false);
+        try {
+          const logsRes = await axios.get(
+            `http://69.62.83.14:9000/api/principal/staff-logs/${memberId}`,
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
+          setStaffLogs(logsRes.data.logs || []);
+          setShowStaffLogs(true);
+        } catch (e) {
+          setStaffLogs([]);
+        } finally {
+          setStaffLogsLoading(false);
+        }
       }
     } catch (err) {
       console.error('Error fetching profile:', err);
@@ -181,6 +204,35 @@ const PrincipalDashboard = () => {
   const handleShowStudentUnavailable = () => {
     setShowStudentUnavailable(true);
     setTimeout(() => setShowStudentUnavailable(false), 3000);
+  };
+
+  const handleDownloadAttendance = async (format) => {
+    setDownloading(true);
+    try {
+        const token = localStorage.getItem('token');
+        const response = await axios.get('http://69.62.83.14:9000/api/principal/faculty-attendance-report', {
+            headers: { Authorization: `Bearer ${token}` },
+            params: { departmentId: reportDept, fromDate, toDate, format },
+            responseType: 'blob',
+        });
+
+        const url = window.URL.createObjectURL(new Blob([response.data]));
+        const link = document.createElement('a');
+        link.href = url;
+        const departmentName = reportDept === 'all' ? 'all' : departments.find(d => d.id === parseInt(reportDept, 10))?.name.replace(/\s+/g, '_');
+        const ext = format === 'pdf' ? 'pdf' : 'csv';
+        const filename = `faculty_attendance_report_${departmentName}_${new Date().toISOString().split('T')[0]}.${ext}`;
+        link.setAttribute('download', filename);
+
+        document.body.appendChild(link);
+        link.click();
+        link.parentNode.removeChild(link);
+
+    } catch (err) {
+        console.error('Error downloading attendance report:', err);
+    } finally {
+        setDownloading(false);
+    }
   };
 
   if (loading) {
@@ -560,6 +612,24 @@ const PrincipalDashboard = () => {
                 </div>
               </div>
             )}
+            {selectedType === 'staff' && showStaffLogs && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+                <div className="bg-white rounded-xl shadow-lg max-w-6xl w-full max-h-[100vh] overflow-y-auto relative p-6">
+                  <button
+                    className="absolute top-2 right-2 text-gray-500 hover:text-red-600 text-2xl font-bold"
+                    onClick={() => setShowStaffLogs(false)}
+                  >
+                    &times;
+                  </button>
+                  <h2 className="text-xl font-bold mb-4 text-purple-700">Staff Activity Logs</h2>
+                  {staffLogsLoading ? (
+                    <div className="text-center py-8 text-gray-400">Loading logs...</div>
+                  ) : (
+                    <FacultyLogDisplay logs={staffLogs} />
+                  )}
+                </div>
+              </div>
+            )}
           </motion.div>
         ) : (
           <motion.div
@@ -590,6 +660,75 @@ const PrincipalDashboard = () => {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.5 }}
+        className="bg-white rounded-xl shadow-lg p-6 mb-6 border border-gray-200"
+      >
+        <h2 className="text-xl font-bold text-gray-800 mb-4">Download Reports</h2>
+        <div className="flex flex-col sm:flex-row items-center gap-4">
+          <div className="w-full sm:w-1/2">
+            <label htmlFor="report-dept" className="block text-sm font-medium text-gray-700 mb-1">
+              Select Department
+            </label>
+            <select
+              id="report-dept"
+              value={reportDept}
+              onChange={(e) => setReportDept(e.target.value)}
+              className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
+            >
+              <option value="all">All Departments</option>
+              {departments.map((dept) => (
+                <option key={dept.id} value={dept.id}>
+                  {dept.name}
+                </option>
+              ))}
+            </select>
+            <div className="flex gap-2 mt-4">
+              <div className="flex-1">
+                <label className="block text-xs text-gray-600 mb-1">From Date</label>
+                <input
+                  type="date"
+                  value={fromDate}
+                  onChange={e => setFromDate(e.target.value)}
+                  className="w-full p-2 border border-gray-300 rounded-lg"
+                  max={toDate || undefined}
+                />
+              </div>
+              <div className="flex-1">
+                <label className="block text-xs text-gray-600 mb-1">To Date</label>
+                <input
+                  type="date"
+                  value={toDate}
+                  onChange={e => setToDate(e.target.value)}
+                  className="w-full p-2 border border-gray-300 rounded-lg"
+                  min={fromDate || undefined}
+                />
+              </div>
+            </div>
+          </div>
+          <div className="w-full sm:w-auto mt-auto flex gap-2">
+            <button
+              onClick={() => handleDownloadAttendance('csv')}
+              disabled={downloading}
+              className="w-full px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center justify-center gap-2 disabled:bg-gray-400"
+            >
+              <FiDownload />
+              <span>{downloading ? 'Downloading CSV...' : 'Download CSV'}</span>
+            </button>
+            <button
+              onClick={() => handleDownloadAttendance('pdf')}
+              disabled={downloading}
+              className="w-full px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center justify-center gap-2 disabled:bg-gray-400"
+            >
+              <FiDownload />
+              <span>{downloading ? 'Downloading PDF...' : 'Download PDF'}</span>
+            </button>
+          </div>
+        </div>
+      </motion.div> */}
     </div>
   );
 };

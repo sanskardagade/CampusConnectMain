@@ -4,6 +4,7 @@ const authenticateToken = require('../middleware/auth');
 const sql = require('../config/neonsetup');
 const PrincipalModel = require('../models/Principal.js');
 const { verifyPrincipal } = require('../middleware/roleVerification');
+const PDFDocument = require('pdfkit');
 
 // Protect all principal routes
 router.use(authenticateToken);
@@ -382,6 +383,224 @@ router.get('/faculty-logs/:id', async (req, res) => {
   } catch (error) {
     console.error('Error fetching faculty logs:', error);
     res.status(500).json({ message: 'Failed to fetch faculty logs' });
+  }
+});
+
+// Add this route for staff logs
+router.get('/staff-logs/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    // Get ERP ID for the staff
+    const [staff] = await sql`
+      SELECT erpid FROM non_teaching_staff WHERE id = ${id}
+    `;
+    if (!staff) {
+      return res.status(404).json({ message: 'Staff not found' });
+    }
+    // Get all logs for this staff from the 'faculty_logs' table
+    const logs = await sql`
+      SELECT * FROM faculty_logs WHERE erp_id = ${staff.erpid} ORDER BY timestamp DESC
+    `;
+    res.json({ logs });
+  } catch (error) {
+    console.error('Error fetching staff logs:', error);
+    res.status(500).json({ message: 'Failed to fetch staff logs' });
+  }
+});
+
+router.get('/faculty-attendance-report', async (req, res) => {
+  try {
+      const { departmentId, fromDate, toDate, format } = req.query;
+      console.log('Requested attendance report format:', format);
+
+      // Build date filter SQL
+      let dateFilter = '';
+      if (fromDate && toDate) {
+        dateFilter = sql` AND log_summary.attendance_date BETWEEN ${fromDate} AND ${toDate} `;
+      } else if (fromDate) {
+        dateFilter = sql` AND log_summary.attendance_date >= ${fromDate} `;
+      } else if (toDate) {
+        dateFilter = sql` AND log_summary.attendance_date <= ${toDate} `;
+      }
+
+      let records;
+      if (departmentId && departmentId !== 'all') {
+          records = await sql`
+              SELECT
+                  f.name AS faculty_name,
+                  f.erpid,
+                  d.name AS department_name,
+                  log_summary.attendance_date,
+                  log_summary.first_log,
+                  log_summary.last_log
+              FROM
+                  (
+                      SELECT
+                          erp_id,
+                          DATE(timestamp) AS attendance_date,
+                          MIN(timestamp) AS first_log,
+                          MAX(timestamp) AS last_log
+                      FROM
+                          faculty_logs
+                      GROUP BY
+                          erp_id,
+                          attendance_date
+                  ) AS log_summary
+              JOIN
+                  faculty f ON log_summary.erp_id = f.erpid
+              JOIN
+                  departments d ON f.department_id = d.id
+              WHERE f.department_id = ${departmentId}
+              ${dateFilter}
+              ORDER BY d.name, f.name, log_summary.attendance_date
+          `;
+      } else {
+          records = await sql`
+              SELECT
+                  f.name AS faculty_name,
+                  f.erpid,
+                  d.name AS department_name,
+                  log_summary.attendance_date,
+                  log_summary.first_log,
+                  log_summary.last_log
+              FROM
+                  (
+                      SELECT
+                          erp_id,
+                          DATE(timestamp) AS attendance_date,
+                          MIN(timestamp) AS first_log,
+                          MAX(timestamp) AS last_log
+                      FROM
+                          faculty_logs
+                      GROUP BY
+                          erp_id,
+                          attendance_date
+                  ) AS log_summary
+              JOIN
+                  faculty f ON log_summary.erp_id = f.erpid
+              JOIN
+                  departments d ON f.department_id = d.id
+              WHERE 1=1
+              ${dateFilter}
+              ORDER BY d.name, f.name, log_summary.attendance_date
+          `;
+      }
+
+      const rows = Array.isArray(records) ? records : (records.rows || []);
+      if (!rows || rows.length === 0) {
+          return res.status(404).send('No attendance data found for the selected criteria.');
+      }
+
+      if (format === 'pdf') {
+        // Generate PDF with table formatting
+        const doc = new PDFDocument({ margin: 30, size: 'A4' });
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', 'attachment; filename=faculty_attendance.pdf');
+        doc.pipe(res);
+
+        doc.fontSize(16).text('Faculty Attendance Report', { align: 'center' });
+        doc.moveDown();
+
+        // Table columns
+        const headers = ['Date', 'Faculty Name', 'ERP ID', 'Department', 'First Log', 'Last Log', 'Duration (HH:MM:SS)'];
+        const colWidths = [80, 120, 70, 110, 60, 60, 80];
+        const startX = doc.x;
+        let y = doc.y;
+
+        // Draw header row
+        doc.font('Helvetica-Bold').fontSize(10);
+        let x = startX;
+        headers.forEach((header, i) => {
+          doc.rect(x, y, colWidths[i], 20).stroke();
+          doc.text(header, x + 2, y + 6, { width: colWidths[i] - 4, align: 'center' });
+          x += colWidths[i];
+        });
+        y += 20;
+        doc.font('Helvetica').fontSize(9);
+
+        // Draw data rows
+        rows.forEach(r => {
+          const firstLog = new Date(r.first_log);
+          const lastLog = new Date(r.last_log);
+          let duration = '00:00:00';
+          const durationMs = lastLog - firstLog;
+          if (!isNaN(durationMs) && durationMs >= 0) {
+            const hours = Math.floor(durationMs / (1000 * 60 * 60));
+            const minutes = Math.floor((durationMs / (1000 * 60)) % 60);
+            const seconds = Math.floor((durationMs / 1000) % 60);
+            duration = `${hours.toString().padStart(2, '0')}:${minutes
+              .toString()
+              .padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+          }
+          const row = [
+            new Date(r.attendance_date).toISOString().split('T')[0],
+            r.faculty_name,
+            r.erpid,
+            r.department_name,
+            firstLog.toTimeString().split(' ')[0],
+            lastLog.toTimeString().split(' ')[0],
+            duration
+          ];
+          x = startX;
+          row.forEach((cell, i) => {
+            doc.rect(x, y, colWidths[i], 18).stroke();
+            doc.text(String(cell), x + 2, y + 5, { width: colWidths[i] - 4, align: 'center', ellipsis: true });
+            x += colWidths[i];
+          });
+          y += 18;
+          // Add new page if needed
+          if (y > doc.page.height - 40) {
+            doc.addPage();
+            y = doc.y;
+            x = startX;
+            doc.font('Helvetica-Bold').fontSize(10);
+            headers.forEach((header, i) => {
+              doc.rect(x, y, colWidths[i], 20).stroke();
+              doc.text(header, x + 2, y + 6, { width: colWidths[i] - 4, align: 'center' });
+              x += colWidths[i];
+            });
+            y += 20;
+            doc.font('Helvetica').fontSize(9);
+          }
+        });
+        doc.end();
+        return;
+      }
+
+      const csvHeader = 'Date,Faculty Name,ERP ID,Department,First Log,Last Log,Duration (HH:MM:SS)\n';
+      const csvRows = rows.map(r => {
+          const firstLog = new Date(r.first_log);
+          const lastLog = new Date(r.last_log);
+          let duration = '00:00:00';
+          const durationMs = lastLog - firstLog;
+          if (!isNaN(durationMs) && durationMs >= 0) {
+            const hours = Math.floor(durationMs / (1000 * 60 * 60));
+            const minutes = Math.floor((durationMs / (1000 * 60)) % 60);
+            const seconds = Math.floor((durationMs / 1000) % 60);
+            duration = `${hours.toString().padStart(2, '0')}:${minutes
+              .toString()
+              .padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+          }
+          return [
+              new Date(r.attendance_date).toISOString().split('T')[0],
+              `"${r.faculty_name}"`,
+              r.erpid,
+              `"${r.department_name}"`,
+              firstLog.toTimeString().split(' ')[0],
+              lastLog.toTimeString().split(' ')[0],
+              duration
+          ].join(',');
+      });
+
+      const csvData = csvHeader + csvRows.join('\n');
+
+      res.header('Content-Type', 'text/csv');
+      res.attachment('faculty_attendance.csv');
+      return res.send(csvData);
+
+  } catch (error) {
+      console.error('Error generating attendance report:', error);
+      res.status(500).json({ message: 'Failed to generate attendance report' });
   }
 });
 

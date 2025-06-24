@@ -9,6 +9,7 @@ import {
   AiOutlineLogout,
   AiFillBell,
   AiTwotoneFileExclamation,
+  AiOutlineFilePdf,
 } from "react-icons/ai";
 import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
@@ -54,6 +55,11 @@ import { useLocation } from "react-router-dom";
     //   name: "View Department Statistics",
     //   icon: <BiAnalyse />,
     // },
+    {
+      path: "/principal/faculty-report",
+      name: "Faculty Attendance Report",
+      icon: <AiOutlineFilePdf />,
+    },
     
     {
       path: "/principal/principal-profile",
@@ -77,6 +83,7 @@ import { useLocation } from "react-router-dom";
         },
       ],
     },
+    
     { path: "/", name: "Logout", icon: <AiOutlineLogout /> },
   ];
   
