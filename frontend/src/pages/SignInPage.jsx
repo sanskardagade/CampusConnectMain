@@ -18,10 +18,6 @@ const SignInPage = () => {
   });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [showAdminLogin, setShowAdminLogin] = useState(false);
-  const [adminForm, setAdminForm] = useState({ username: "", password: "" });
-  const [adminError, setAdminError] = useState("");
-  const [adminLoading, setAdminLoading] = useState(false);
 
   // Get backend URL from environment variable
   const backendUrl = import.meta.env.VITE_BACKEND_URL;
@@ -39,12 +35,6 @@ const SignInPage = () => {
       const endpoint = formData.role === 'student' 
         ? "http://69.62.83.14:9000/api/student/login"
         : "http://69.62.83.14:9000/api/auth/login";
-
-      console.log('Attempting login with:', {
-        endpoint,
-        erpstaffid: formData.erpstaffid,
-        role: formData.role
-      });
 
       const response = await fetch(endpoint, {
         method: "POST",
@@ -76,47 +66,9 @@ const SignInPage = () => {
 
       navigate(rolePath[data.user.role] || '/');
     } catch (err) {
-      console.error("Login error:", err);
       setError(err.message || "An error occurred during login");
     } finally {
       setLoading(false);
-    }
-  };
-
-  // Admin quick login handler
-  const handleAdminChange = (e) => {
-    setAdminForm({ ...adminForm, [e.target.name]: e.target.value });
-  };
-
-  const handleAdminLogin = async (e) => {
-    e.preventDefault();
-    setAdminError("");
-    setAdminLoading(true);
-    try {
-      // Use principal login endpoint
-      const endpoint = "http://69.62.83.14:9000/api/auth/login";
-      const response = await fetch(endpoint, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          erpstaffid: adminForm.username,
-          password: adminForm.password,
-          role: "principal"
-        })
-      });
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.details || data.message || "Login failed");
-      }
-      localStorage.setItem("token", data.token);
-      localStorage.setItem("user", JSON.stringify(data.user));
-      localStorage.setItem("role", data.user.role);
-      updateUser(data.user);
-      navigate("/principal");
-    } catch (err) {
-      setAdminError(err.message || "An error occurred during login");
-    } finally {
-      setAdminLoading(false);
     }
   };
 
@@ -166,18 +118,9 @@ const SignInPage = () => {
                   <span>Events, circulars & announcements</span>
                 </div>
               </div>
-
-              {/* <button
-                onClick={() => navigate("/signin")}
-                className="mt-8 px-6 py-2 bg-white text-red-800 rounded-full hover:bg-gray-100 transition font-semibold"
-              >
-                Already have an account? Login
-              </button> */}
             </div>
           </div>
         </motion.div>
-
-        
 
         {/* Right Section - Login Form */}
         <div className="w-full lg:w-1/2 flex justify-center items-center p-10">
@@ -249,61 +192,6 @@ const SignInPage = () => {
                 Forgot Password?
               </a>
             </p>
-
-            {/* Admin Quick Login Button */}
-            <div className="mt-6 text-center">
-              <button
-                className="text-sm text-white bg-blue-600 px-4 py-2 rounded hover:bg-blue-700 transition"
-                onClick={() => setShowAdminLogin((prev) => !prev)}
-                type="button"
-              >
-                {showAdminLogin ? "Hide Admin Quick Login" : "Admin Quick Login"}
-              </button>
-            </div>
-
-            {/* Admin Quick Login Form */}
-            {showAdminLogin && (
-              <form onSubmit={handleAdminLogin} className="mt-4 flex flex-col gap-3 border-t pt-4">
-                <input
-                  type="text"
-                  name="username"
-                  placeholder="Principal Username"
-                  value={adminForm.username}
-                  onChange={handleAdminChange}
-                  required
-                  className="p-3 text-sm border rounded-md"
-                />
-                <input
-                  type="password"
-                  name="password"
-                  placeholder="Password"
-                  value={adminForm.password}
-                  onChange={handleAdminChange}
-                  required
-                  className="p-3 text-sm border rounded-md"
-                />
-                <button
-                  type="submit"
-                  disabled={adminLoading}
-                  className="bg-green-700 text-white p-3 rounded-md hover:bg-green-800 transition-colors flex items-center justify-center gap-2"
-                >
-                  {adminLoading ? (
-                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                  ) : (
-                    <>
-                      <FiLogIn />
-                      Admin Login
-                    </>
-                  )}
-                </button>
-                {adminError && (
-                  <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-2 rounded flex items-center mt-2">
-                    <FiAlertCircle className="mr-2" />
-                    {adminError}
-                  </div>
-                )}
-              </form>
-            )}
           </div>
         </div>
       </div>

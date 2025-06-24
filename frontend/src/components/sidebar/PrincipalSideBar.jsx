@@ -13,6 +13,7 @@ import {
 import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import SidebarMenu from "./SideBarMenu";
+import { useLocation } from "react-router-dom";
 
 
   const routes = [
@@ -83,6 +84,7 @@ import SidebarMenu from "./SideBarMenu";
 const PrincipalSideBar = ({ children }) => {
   // Sidebar should always be open
   const isOpen = true;
+  const location = useLocation();
 
   const inputAnimation = {
     hidden: { width: 0, padding: 0, transition: { duration: 0.2 } },
@@ -128,7 +130,7 @@ const PrincipalSideBar = ({ children }) => {
         </div>
 
         {/* Search box */}
-        <div className="flex items-center px-2 py-2">
+        {/* <div className="flex items-center px-2 py-2">
           <BiSearch />
           <AnimatePresence>
             {isOpen && (
@@ -143,7 +145,7 @@ const PrincipalSideBar = ({ children }) => {
               />
             )}
           </AnimatePresence>
-        </div>
+        </div> */}
 
         {/* Routes */}
         <nav className="flex flex-col gap-1 px-2">
@@ -168,6 +170,11 @@ const PrincipalSideBar = ({ children }) => {
                     isActive ? "bg-gray-800" : ""
                   }`
                 }
+                onClick={() => {
+                  if (location.pathname === route.path) {
+                    window.location.reload();
+                  }
+                }}
               >
                 <div className="text-xl">{route.icon}</div>
                 <AnimatePresence>

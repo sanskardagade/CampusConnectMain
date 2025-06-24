@@ -560,7 +560,7 @@ const StudentStressDashboard = () => {
               <h1 className="text-5xl font-bold bg-gradient-to-r from-red-600 via-pink-600 to-red-400 bg-clip-text text-transparent">
                 Stress Analytics
               </h1>
-              <p className="text-xl text-gray-700 mt-2">Individual student monitoring system</p>
+              <p className="text-xl text-gray-700 mt-2">Individual faculty monitoring system</p>
             </div>
           </div>
           <div className="flex items-center justify-center space-x-6 text-sm text-gray-500">
@@ -672,7 +672,7 @@ const StudentStressDashboard = () => {
                   ></div>
                 </div>
                 <p className="text-sm text-gray-500 mt-3">
-                  {uniqueStudents.length > 0 ? ((count / uniqueStudents.length) * 100).toFixed(1) : 0}% of students
+                  {uniqueStudents.length > 0 ? ((count / uniqueStudents.length) * 100).toFixed(1) : 0}% of faculty
                 </p>
               </div>
             );
@@ -685,7 +685,7 @@ const StudentStressDashboard = () => {
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-xl font-semibold text-gray-800">Faculty Stress Levels</h3>
-                <p className="text-sm text-gray-500">Click on any student to view detailed analytics</p>
+                <p className="text-sm text-gray-500">Click on any faculty to view detailed analytics</p>
               </div>
               <div className="flex items-center space-x-2">
                 <span className="text-sm text-gray-500">Showing {filteredStudents.length} of {uniqueStudents.length}</span>
@@ -697,7 +697,7 @@ const StudentStressDashboard = () => {
             <table className="w-full">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Student</th>
+                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Faculty</th>
                   <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ERP ID</th>
                   <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Latest Score</th>
                   <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
@@ -922,7 +922,7 @@ export default StudentStressDashboard;
 
 //     const fetchStressData = async () => {
 //       try {
-//         const response = await fetch('http://localhost:5000/api/faculty/student-stress-level', {
+//         const response = await fetch('http://69.62.83.14:9000/api/faculty/student-stress-level', {
 //           headers: {
 //             'Authorization': `Bearer ${localStorage.getItem('token')}`,
 //             'Content-Type': 'application/json'
@@ -966,7 +966,7 @@ export default StudentStressDashboard;
 //   const handleRefresh = async () => {
 //     setIsRefreshing(true);
 //     try {
-//       const response = await fetch('http://localhost:5000/api/faculty/student-stress-level', {
+//       const response = await fetch('http://69.62.83.14:9000/api/faculty/student-stress-level', {
 //         headers: {
 //           'Authorization': `Bearer ${localStorage.getItem('token')}`,
 //           'Content-Type': 'application/json'

@@ -88,7 +88,7 @@ const PrincipalProfile = () => {
     <div className="p-6 max-w-xl mx-auto bg-white rounded-2xl shadow-lg border border-red-100">
       <div className="flex flex-col items-center mb-6">
         <FaUserCircle className="text-[80px] text-red-700 mb-2" />
-        <h1 className="text-3xl font-extrabold text-red-800">Principal Profile</h1>
+        <h1 className="text-3xl font-extrabold text-red-800">Profile</h1>
         <p className="text-gray-500">Welcome back, {principal.name || 'Principal'}!</p>
               </div>
               

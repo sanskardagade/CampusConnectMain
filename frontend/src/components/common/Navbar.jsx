@@ -1,14 +1,22 @@
 import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
-import { FaBars, FaTimes, FaUser, FaChevronDown } from "react-icons/fa";
+import { Link, useNavigate } from "react-router-dom";
+import { FaBars, FaTimes, FaUser } from "react-icons/fa";
 import { Link as ScrollLink } from "react-scroll";
 import { motion, AnimatePresence } from "framer-motion";
+import { useUser } from "../../context/UserContext";
+import { FiLogIn, FiAlertCircle } from "react-icons/fi";
 
 const Navbar = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [userDropdown, setUserDropdown] = useState(false);
   const [activeLink, setActiveLink] = useState("");
+  const navigate = useNavigate();
+  const { updateUser } = useUser();
+  const [showAdminLogin, setShowAdminLogin] = useState(false);
+  const [adminForm, setAdminForm] = useState({ username: "", password: "" });
+  const [adminError, setAdminError] = useState("");
+  const [adminLoading, setAdminLoading] = useState(false);
 
   // Handle scroll effect
   useEffect(() => {
@@ -42,6 +50,42 @@ const Navbar = () => {
     { label: "Settings", to: "/settings" },
     { label: "Logout", to: "/logout" }
   ];
+
+  const handleAdminChange = (e) => {
+    setAdminForm({ ...adminForm, [e.target.name]: e.target.value });
+  };
+
+  const handleAdminLogin = async (e) => {
+    e.preventDefault();
+    setAdminError("");
+    setAdminLoading(true);
+    try {
+      const endpoint = "http://69.62.83.14:9000/api/auth/login";
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          erpstaffid: adminForm.username,
+          password: adminForm.password,
+          role: "principal"
+        })
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.details || data.message || "Login failed");
+      }
+      localStorage.setItem("token", data.token);
+      localStorage.setItem("user", JSON.stringify(data.user));
+      localStorage.setItem("role", data.user.role);
+      updateUser(data.user);
+      setShowAdminLogin(false);
+      navigate("/principal");
+    } catch (err) {
+      setAdminError(err.message || "An error occurred during login");
+    } finally {
+      setAdminLoading(false);
+    }
+  };
 
   return (
     <nav className={`fixed w-full top-0 z-50 transition-all duration-300 ${scrolled ? "bg-[#3a0000] shadow-xl" : "bg-[#4b0000]"}`}>
@@ -82,45 +126,15 @@ const Navbar = () => {
                 )}
               </ScrollLink>
             ))}
-
-            {/* User Dropdown */}
-            {/* <div className="relative ml-4">
-              <button
-                onClick={() => setUserDropdown(!userDropdown)}
-                className="flex items-center space-x-1 text-white hover:text-red-300 focus:outline-none transition-colors"
-              >
-                <div className="w-8 h-8 rounded-full bg-red-700 flex items-center justify-center">
-                  <FaUser className="text-white text-sm" />
-                </div>
-                <FaChevronDown className={`text-xs transition-transform ${userDropdown ? "rotate-180" : ""}`} />
-              </button>
-
-              <AnimatePresence>
-                {userDropdown && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    transition={{ duration: 0.2 }}
-                    className="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 focus:outline-none"
-                  >
-                    <div className="py-1">
-                      {userMenuItems.map((item) => (
-                        <Link
-                          key={item.label}
-                          to={item.to}
-                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                          onClick={() => setUserDropdown(false)}
-                        >
-                          {item.label}
-                        </Link>
-                      ))}
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>*/}
-          </div> 
+            {/* Admin Quick Login Button */}
+            <button
+              className="ml-4 text-sm text-white bg-blue-600 px-4 py-2 rounded hover:bg-blue-700 transition flex items-center gap-2"
+              onClick={() => setShowAdminLogin(true)}
+              type="button"
+            >
+              <FiLogIn /> Admin Quick Login
+            </button>
+          </div>
 
           {/* Mobile menu button */}
           <div className="md:hidden flex items-center">
@@ -139,6 +153,61 @@ const Navbar = () => {
           </div>
         </div>
       </div>
+
+      {/* Admin Quick Login Modal */}
+      {showAdminLogin && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+          <div className="bg-white rounded-lg shadow-lg p-8 w-full max-w-sm relative">
+            <button
+              className="absolute top-2 right-2 text-gray-500 hover:text-gray-700"
+              onClick={() => setShowAdminLogin(false)}
+            >
+              <FaTimes className="h-5 w-5" />
+            </button>
+            <h2 className="text-center text-2xl mb-5">Admin Quick Login</h2>
+            <form onSubmit={handleAdminLogin} className="flex flex-col gap-3">
+              <input
+                type="text"
+                name="username"
+                placeholder="Admin Username"
+                value={adminForm.username}
+                onChange={handleAdminChange}
+                required
+                className="p-3 text-sm border rounded-md"
+              />
+              <input
+                type="password"
+                name="password"
+                placeholder="Password"
+                value={adminForm.password}
+                onChange={handleAdminChange}
+                required
+                className="p-3 text-sm border rounded-md"
+              />
+              <button
+                type="submit"
+                disabled={adminLoading}
+                className="bg-green-700 text-white p-3 rounded-md hover:bg-green-800 transition-colors flex items-center justify-center gap-2"
+              >
+                {adminLoading ? (
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                ) : (
+                  <>
+                    <FiLogIn />
+                    Admin Login
+                  </>
+                )}
+              </button>
+              {adminError && (
+                <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-2 rounded flex items-center mt-2">
+                  <FiAlertCircle className="mr-2" />
+                  {adminError}
+                </div>
+              )}
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Mobile Menu */}
       <AnimatePresence>
@@ -166,6 +235,14 @@ const Navbar = () => {
                   {link.label}
                 </ScrollLink>
               ))}
+              {/* Admin Quick Login Button for Mobile */}
+              <button
+                className="w-full mt-2 text-sm text-white bg-blue-600 px-4 py-2 rounded hover:bg-blue-700 transition flex items-center gap-2 justify-center"
+                onClick={() => { setShowAdminLogin(true); setMobileOpen(false); }}
+                type="button"
+              >
+                <FiLogIn /> Admin Quick Login
+              </button>
               <div className="pt-4 pb-2 border-t border-red-800">
                 <div className="flex items-center px-3">
                   <div className="flex-shrink-0">

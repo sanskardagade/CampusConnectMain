@@ -288,7 +288,7 @@ const FacultyLogDisplay = ({ logs = [] }) => {
               </div>
             </div>
             <div className="flex items-center space-x-3">
-              <button className="flex items-center space-x-2 px-4 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors">
+              <button className="flex items-center space-x-2 px-4 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors" onClick={() => window.location.reload()}>
                 <RefreshCw size={16} />
                 <span>Refresh</span>
               </button>

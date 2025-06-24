@@ -544,7 +544,7 @@ const PrincipalDashboard = () => {
             />
             {selectedType === 'faculty' && showFacultyLogs && (
               <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-                <div className="bg-white rounded-xl shadow-lg max-w-3xl w-full max-h-[90vh] overflow-y-auto relative p-6">
+                <div className="bg-white rounded-xl shadow-lg max-w-6xl w-full max-h-[100vh] overflow-y-auto relative p-6">
                   <button
                     className="absolute top-2 right-2 text-gray-500 hover:text-red-600 text-2xl font-bold"
                     onClick={() => setShowFacultyLogs(false)}

@@ -67,6 +67,22 @@ const Chatbot = () => {
 
   return (
     <>
+      {/* Show 'How may I help you?' above the chat button when chat is closed */}
+      <AnimatePresence>
+        {!isOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 10 }}
+            className="fixed bottom-20 right-6 z-50 flex justify-center w-60"
+          >
+            <div className="bg-red-100 text-red-700 px-4 py-2 rounded-t-lg font-semibold shadow text-center w-full">
+              How may I help you?
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Chat Button */}
       <motion.button
         className="fixed bottom-6 right-6 bg-red-700 text-white p-4 rounded-full shadow-lg hover:bg-red-800 transition-colors z-50"
@@ -178,4 +194,4 @@ const Chatbot = () => {
   );
 };
 
-export default Chatbot; 
+export default Chatbot;
