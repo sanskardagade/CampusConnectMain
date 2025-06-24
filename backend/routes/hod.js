@@ -30,7 +30,7 @@ router.get('/dashboard', authenticateToken, async (req, res) => {
     try {
       const deptResult = await sql`
         SELECT name 
-        FROM department 
+        FROM departments
         WHERE id = ${hod.department_id}
       `;
       if (deptResult && deptResult.length > 0) {
@@ -143,7 +143,6 @@ router.get('/faculty', authenticateToken, async (req, res) => {
       ORDER BY f.name ASC
     `;
 
-    console.log('Query result:', result);
     res.json(result);
   } catch (error) {
     console.error('Error fetching faculty members:', error);
@@ -195,6 +194,94 @@ router.put('/profile', authenticateToken, async (req, res) => {
   } catch (error) {
     console.error('Error updating HOD profile:', error);
     res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+router.get('/faculty-log', authenticateToken, async (req, res) => {
+  try {
+    const departmentId = req.user.departmentId;
+    console.log('Fetching faculty for department ID:', departmentId);
+    console.log('User data:', req.user);
+
+    //fetching faculty logs
+    const rows = await sql`
+      SELECT fl.*
+      FROM faculty_logs fl
+      JOIN faculty f ON fl.erp_id = f.erpid
+      WHERE f.department_id = ${departmentId}
+    `;
+
+    //fetching faculties from department table with help of department id
+    const result = await sql`
+      SELECT 
+        f.id,
+        f.erpid,
+        f.name,
+        f.email,
+        f.department_id,
+        f.is_active,
+        f.created_at,
+        f.updated_at,
+        d.name as department_name
+      FROM faculty f
+      JOIN departments d ON f.department_id = d.id
+      WHERE f.department_id = ${departmentId}
+      AND f.is_active = true
+      ORDER BY f.name ASC
+    `;
+    res.json({ logs: rows, faculty: result });
+  } catch (error) {
+    console.error("Error fetching faculty log:", error);
+    res.status(500).json({ message: "Error fetching faculty log" });
+  }
+});
+
+//HOD Leave Approval
+router.get('/leave-approval', async (req, res) => {
+  try {
+    const rows = await sql`
+      SELECT * FROM faculty_leave
+      WHERE "HodApproval" = 'Pending'
+    `;
+    console.log(rows);
+    res.json(rows);
+  } catch (error) {
+    console.error("Detailed error in /leave-approval route:", error);
+    res.status(500).json({ message: "Error fetching all leave applications" });
+  }
+});
+
+router.put('/leave-approval/:erpStaffId', async (req, res) => {
+  const { erpStaffId } = req.params;
+  const { HodApproval } = req.body;
+
+  try {
+    // Validate the approval status
+    if (!['Approved', 'Rejected'].includes(HodApproval)) {
+      return res.status(400).json({ error: 'Invalid approval status' });
+    }
+
+    if (HodApproval === 'Rejected') {
+      // If rejected, update all status fields to Rejected
+      await sql`
+        UPDATE faculty_leave 
+        SET "HodApproval" = ${HodApproval},
+            "PrincipalApproval" = 'Rejected',
+            "FinalStatus" = 'Rejected'
+        WHERE "ErpStaffId" = ${erpStaffId}
+      `;
+    } else {
+      // If approved, only update HOD approval
+      await sql`
+        UPDATE faculty_leave 
+        SET "HodApproval" = ${HodApproval}
+        WHERE "ErpStaffId" = ${erpStaffId}
+      `;
+    }
+    res.json({ message: 'Leave approval updated successfully' });
+  } catch (error) {
+    console.error('Error updating leave approval:', error);
+    res.status(500).json({ error: 'Error updating leave approval' });
   }
 });
 

@@ -1,9 +1,9 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { 
   Users, Calendar, Clock, Activity, Search, RefreshCw, 
   Check, X, AlertTriangle, Shield, Cpu, Globe, 
   Maximize, Minimize, PieChart, BarChart as BarChartIcon,
-  Zap, UserCheck, Filter, Download, Eye, EyeOff
+  Zap, UserCheck, Filter, Download, Eye, EyeOff, ChevronDown, ChevronUp
 } from 'lucide-react';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
@@ -23,10 +23,38 @@ export default function AttendanceTracker({ initialData }) {
   const [summaryData, setSummaryData] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [expandedView, setExpandedView] = useState(false);
-  const [facultySearchTerm, setFacultySearchTerm] = useState('');
+  const [facultySearch, setFacultySearch] = useState('');
+  const [faculty, setFaculty] = useState([]);
+  const [showFacultySearch, setShowFacultySearch] = useState(false);
+  const facultySearchContainerRef = useRef(null);
+  const [selectedFaculty, setSelectedFaculty] = useState(null);
+  const logsSectionRef = useRef(null);
+  const [hodDetails, setHodDetails] = useState(null);
+  const [departmentId, setDepartmentId] = useState(null);
   
   // COLORS for charts
   const COLORS = ['#4f46e5', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899'];
+
+  // Helper to decode JWT and extract departmentId
+  function getDepartmentIdFromToken() {
+    const token = localStorage.getItem('token');
+    if (!token) return null;
+    try {
+      const base64Url = token.split('.')[1];
+      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+      const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+      }).join(''));
+      const payload = JSON.parse(jsonPayload);
+      return payload.departmentId || null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  useEffect(() => {
+    setDepartmentId(getDepartmentIdFromToken());
+  }, []);
 
   // Fetch or initialize data when component mounts or initialData changes
   useEffect(() => {
@@ -50,9 +78,11 @@ export default function AttendanceTracker({ initialData }) {
           return res.json();
         })
         .then(data => {
-          setData(data);
+          console.log('Received faculty-log response:', data);
+          setData(data.logs);
+          setFaculty(data.faculty);
           setLoading(false);
-          generateSummaryData(data);
+          generateSummaryData(data.logs);
         })
         .catch(err => {
           console.error(err);
@@ -61,6 +91,39 @@ export default function AttendanceTracker({ initialData }) {
         });
     }
   }, [initialData]);
+
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (facultySearchContainerRef.current && !facultySearchContainerRef.current.contains(event.target)) {
+        setShowFacultySearch(false);
+      }
+    }
+    if (showFacultySearch) {
+      document.addEventListener('mousedown', handleClickOutside);
+    } else {
+      document.removeEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showFacultySearch]);
+
+  // Fetch HOD details on mount
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    fetch('http://69.62.83.14:9000/api/hod/dashboard', {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    })
+      .then(res => {
+        if (!res.ok) throw new Error('Failed to fetch HOD details');
+        return res.json();
+      })
+      .then(data => setHodDetails(data))
+      .catch(err => console.error('Error fetching HOD details:', err));
+  }, []);
 
   // Generate summary data from complete dataset
   const generateSummaryData = (data) => {
@@ -124,30 +187,31 @@ export default function AttendanceTracker({ initialData }) {
   };
 
   // Get unique users for dropdown and filter based on search
-  const filteredUsers = useMemo(() => {
-    if (!data || !Array.isArray(data)) return [];
-    const users = [...new Set(data.map(log => log.person_name))].sort();
-    return users.filter(user => 
-      user.toLowerCase().includes(facultySearchTerm.toLowerCase())
+  const filteredFacultyList = useMemo(() => {
+    if (!faculty || !Array.isArray(faculty)) return [];
+    return faculty.filter(f =>
+      (f.name?.toLowerCase() || '').includes(facultySearch.toLowerCase()) ||
+      (f.erpid?.toLowerCase() || '').includes(facultySearch.toLowerCase()) ||
+      (f.email?.toLowerCase() || '').includes(facultySearch.toLowerCase())
     );
-  }, [data, facultySearchTerm]);
+  }, [faculty, facultySearch]);
 
-  // Get dates available for selected user
-  const getDatesForUser = (user) => {
-    if (!user || !data || !Array.isArray(data)) return [];
-    
-    const userLogs = data.filter(log => log.person_name === user);
-    const dates = [...new Set(userLogs.map(log => 
+  // Get dates available for selected faculty
+  const getDatesForFaculty = (facultyObj) => {
+    if (!facultyObj || !data || !Array.isArray(data)) return [];
+    const userLogs = data.filter(log => log.erp_id === facultyObj.erpid);
+    const dates = [...new Set(userLogs.map(log =>
       new Date(log.timestamp).toDateString()
     ))];
-    
     return dates.sort();
   };
 
-  // Handle user selection
-  const handleUserChange = (e) => {
-    const user = e.target.value;
-    setSelectedUser(user);
+  // Handle faculty selection
+  const handleFacultyChange = (e) => {
+    const erpid = e.target.value;
+    setSelectedUser(erpid);
+    const facultyObj = faculty.find(f => f.erpid === erpid);
+    setSelectedFaculty(facultyObj || null);
     setSelectedDate('');
     setIpLogs([]);
     setChartData([]);
@@ -157,19 +221,16 @@ export default function AttendanceTracker({ initialData }) {
   const handleDateChange = (e) => {
     const date = e.target.value;
     setSelectedDate(date);
-    
-    if (!selectedUser || !date || !data || !Array.isArray(data)) {
+    if (!selectedFaculty || !date || !data || !Array.isArray(data)) {
       setIpLogs([]);
       setChartData([]);
       return;
     }
-
-    // Filter logs for selected user and date
+    // Filter logs for selected faculty and date
     const userLogs = data.filter(log => {
       const logDate = new Date(log.timestamp).toDateString();
-      return log.person_name === selectedUser && logDate === date;
+      return log.erp_id === selectedFaculty.erpid && logDate === date;
     });
-
     // Transform logs to the format expected by the component
     const transformedLogs = userLogs.map(log => ({
       ip: log.camera_ip,
@@ -178,9 +239,7 @@ export default function AttendanceTracker({ initialData }) {
       classroom: log.classroom,
       erpId: log.erp_id
     }));
-
     setIpLogs(transformedLogs);
-
     // Generate chart data
     const ipChartData = Object.entries(
       transformedLogs.reduce((acc, log) => {
@@ -188,7 +247,6 @@ export default function AttendanceTracker({ initialData }) {
         return acc;
       }, {})
     ).map(([ip, count]) => ({ ip, count }));
-
     const timeChartData = Object.entries(
       transformedLogs.reduce((acc, log) => {
         const hour = new Date(log.timestamp).getHours();
@@ -197,7 +255,6 @@ export default function AttendanceTracker({ initialData }) {
         return acc;
       }, {})
     ).map(([hour, count]) => ({ hour, count }));
-
     setChartData({
       ipDistribution: ipChartData,
       timeDistribution: timeChartData
@@ -209,13 +266,32 @@ export default function AttendanceTracker({ initialData }) {
     return name.replace(/_/g, ' ');
   };
 
-  // Filter logs based on search term
-  const filteredLogs = ipLogs.filter(log => {
+  // Filter logs based on search term and selection
+  const getLogsToDisplay = () => {
+    if (!selectedFaculty) return [];
+    if (selectedDate) {
+      // Show logs for selected faculty and date
+      return ipLogs;
+    } else {
+      // Show all logs for selected faculty (across all dates)
+      if (!data || !Array.isArray(data)) return [];
+      const userLogs = data.filter(log => log.erp_id === selectedFaculty.erpid);
+      return userLogs.map(log => ({
+        ip: log.camera_ip,
+        logId: `log_${log.id}`,
+        time: new Date(log.timestamp).toLocaleTimeString(),
+        classroom: log.classroom,
+        erpId: log.erp_id
+      }));
+    }
+  };
+
+  const filteredLogs = getLogsToDisplay().filter(log => {
     return (
-      log.ip.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      log.logId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      log.time.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      log.classroom.toLowerCase().includes(searchTerm.toLowerCase())
+      (log.ip?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+      (log.logId?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+      (log.time?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+      (log.classroom?.toLowerCase() || '').includes(searchTerm.toLowerCase())
     );
   });
 
@@ -236,9 +312,11 @@ export default function AttendanceTracker({ initialData }) {
         return res.json();
       })
       .then(data => {
-        setData(data);
+        console.log('Received faculty-log response (refresh):', data);
+        setData(data.logs);
+        setFaculty(data.faculty);
         setLoading(false);
-        generateSummaryData(data);
+        generateSummaryData(data.logs);
         
         // Re-apply current selections to refresh the view
         if (selectedUser && selectedDate) {
@@ -280,6 +358,54 @@ export default function AttendanceTracker({ initialData }) {
   // Toggle expanded view
   const toggleExpandedView = () => {
     setExpandedView(!expandedView);
+  };
+
+  // Handle bar click in user activity chart
+  const handleBarClick = (data, index) => {
+    if (!data || !faculty) return;
+    // Find faculty by name (case-insensitive, ignoring underscores)
+    const facultyObj = faculty.find(f => (f.name || '').replace(/_/g, ' ').toLowerCase() === data.name.toLowerCase());
+    if (facultyObj) {
+      setSelectedUser(facultyObj.erpid);
+      setSelectedFaculty(facultyObj);
+      setSelectedDate(''); // Reset date to show all logs for user
+      // Set ipLogs to all logs for this faculty (across all dates)
+      if (data && Array.isArray(data)) {
+        // Defensive, but not needed here
+      }
+      if (facultyObj && Array.isArray(data)) {
+        // Defensive, but not needed here
+      }
+      if (facultyObj && Array.isArray(data)) {
+        // Defensive, but not needed here
+      }
+      if (facultyObj && Array.isArray(data)) {
+        // Defensive, but not needed here
+      }
+      if (facultyObj && Array.isArray(data)) {
+        // Defensive, but not needed here
+      }
+      if (facultyObj && Array.isArray(data)) {
+        // Defensive, but not needed here
+      }
+      // Set ipLogs to all logs for this faculty
+      if (data && Array.isArray(data)) {
+        const userLogs = data.filter(log => log.erp_id === facultyObj.erpid);
+        const transformedLogs = userLogs.map(log => ({
+          ip: log.camera_ip,
+          logId: `log_${log.id}`,
+          time: new Date(log.timestamp).toLocaleTimeString(),
+          classroom: log.classroom,
+          erpId: log.erp_id
+        }));
+        setIpLogs(transformedLogs);
+      }
+      setTimeout(() => {
+        if (logsSectionRef.current) {
+          logsSectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 200);
+    }
   };
 
   return (
@@ -325,6 +451,21 @@ export default function AttendanceTracker({ initialData }) {
       
       {data && !loading && (
         <div className="space-y-8">
+          {/* HOD Details Section */}
+          {hodDetails && (
+            <div className="mb-6 p-4 rounded-lg border border-blue-200 bg-blue-50 flex flex-col md:flex-row md:items-center md:space-x-8">
+              <div className="mb-2 md:mb-0">
+                <span className="font-semibold text-blue-900">HOD Name:</span> {hodDetails.name}
+              </div>
+              <div className="mb-2 md:mb-0">
+                <span className="font-semibold text-blue-900">Department ID:</span> {departmentId || 'N/A'}
+              </div>
+              <div>
+                <span className="font-semibold text-blue-900">Department Name:</span> {hodDetails.department?.replace(/Department ID: ?\d+/, '').trim() || hodDetails.department}
+              </div>
+            </div>
+          )}
+          
           {/* Summary Cards */}
           {summaryData && (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -403,6 +544,8 @@ export default function AttendanceTracker({ initialData }) {
                       name="Login Count" 
                       fill="#6366f1" 
                       radius={[4, 4, 0, 0]}
+                      onClick={handleBarClick}
+                      cursor="pointer"
                     />
                   </BarChart>
                 </ResponsiveContainer>
@@ -418,30 +561,28 @@ export default function AttendanceTracker({ initialData }) {
                 <Users size={18} className="mr-2 text-blue-600" />
                 Select Faculty:
               </label>
-              <div className="space-y-2">
-                <div className="relative">
-                  <input
-                    type="text"
-                    placeholder="Search faculty..."
-                    className="block w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 bg-white shadow-sm"
-                    value={facultySearchTerm}
-                    onChange={(e) => setFacultySearchTerm(e.target.value)}
-                  />
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <Search size={18} className="text-gray-400" />
-                  </div>
+              <div className="mb-2 relative">
+                <input
+                  type="text"
+                  placeholder="Search faculty..."
+                  className="block w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 bg-white shadow-sm"
+                  value={facultySearch}
+                  onChange={e => setFacultySearch(e.target.value)}
+                />
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Search size={18} className="text-gray-400" />
                 </div>
-                <select 
-                  value={selectedUser} 
-                  onChange={handleUserChange}
-                  className="block w-full p-3 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 bg-white shadow-sm"
-                >
-                  <option value="">-- Select Faculty --</option>
-                  {filteredUsers.map(user => (
-                    <option key={user} value={user}>{formatUserName(user)}</option>
-                  ))}
-                </select>
               </div>
+              <select
+                value={selectedUser}
+                onChange={handleFacultyChange}
+                className="block w-full p-3 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 bg-white shadow-sm"
+              >
+                <option value="">-- Select Faculty --</option>
+                {filteredFacultyList.map(f => (
+                  <option key={f.erpid} value={f.erpid}>{f.name} ({f.erpid})</option>
+                ))}
+              </select>
             </div>
           
             {/* Date Selection */}
@@ -450,14 +591,14 @@ export default function AttendanceTracker({ initialData }) {
                 <Calendar size={18} className="mr-2 text-green-600" />
                 Select Date:
               </label>
-              <select 
-                value={selectedDate} 
+              <select
+                value={selectedDate}
                 onChange={handleDateChange}
                 className="block w-full p-3 border border-gray-300 rounded-md focus:ring-green-500 focus:border-green-500 bg-white shadow-sm"
-                disabled={!selectedUser}
+                disabled={!selectedFaculty}
               >
                 <option value="">-- Select Date --</option>
-                {getDatesForUser(selectedUser).map(date => (
+                {getDatesForFaculty(selectedFaculty).map(date => (
                   <option key={date} value={date}>{date}</option>
                 ))}
               </select>
@@ -465,7 +606,7 @@ export default function AttendanceTracker({ initialData }) {
           </div>
           
           {/* Logs Display */}
-          <div className="bg-white rounded-lg shadow-md p-6">
+          <div ref={logsSectionRef} className="bg-white rounded-lg shadow-md p-6">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold text-gray-900">Faculty Logs</h3>
               <div className="flex items-center space-x-2">
@@ -479,21 +620,23 @@ export default function AttendanceTracker({ initialData }) {
               </div>
             </div>
 
-            {/* Search Bar */}
-            <div className="mb-4">
-              <div className="relative">
-                <input
-                  type="text"
-                  placeholder="Search logs..."
-                  className="block w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Search size={18} className="text-gray-400" />
+            {/* Show log search only if a faculty is selected */}
+            {selectedUser && (
+              <div className="mb-4">
+                <div className="relative">
+                  <input
+                    type="text"
+                    placeholder="Search logs..."
+                    className="block w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Search size={18} className="text-gray-400" />
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
 
             {/* Logs Table */}
             <div className="overflow-x-auto">
@@ -530,7 +673,7 @@ export default function AttendanceTracker({ initialData }) {
                           </div>
                           <div>
                             <div className="text-sm font-medium text-gray-900">
-                              {selectedUser}
+                              {selectedFaculty?.name}
                             </div>
                           </div>
                         </div>
