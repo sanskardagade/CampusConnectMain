@@ -1,13 +1,23 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { FiDownload, FiFileText, FiCalendar } from 'react-icons/fi';
 import axios from 'axios';
-import { FiDownload } from 'react-icons/fi';
+
+const formats = [
+  { value: 'xlsx', label: 'Excel (.xlsx)' },
+  { value: 'csv', label: 'CSV (.csv)' },
+  { value: 'pdf', label: 'PDF (.pdf)' },
+];
 
 const FacultyReport = () => {
   const [departments, setDepartments] = useState([]);
-  const [reportDept, setReportDept] = useState('all');
+  const [reportDept, setReportDept] = useState(['all']);
+  const [format, setFormat] = useState('csv');
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
   const [downloading, setDownloading] = useState(false);
+  const [error, setError] = useState(null);
+  const [deptDropdownOpen, setDeptDropdownOpen] = useState(false);
+  const deptDropdownRef = useRef(null);
 
   useEffect(() => {
     // Fetch departments for dropdown
@@ -25,93 +35,189 @@ const FacultyReport = () => {
     fetchDepartments();
   }, []);
 
-  const handleDownloadAttendance = async (format) => {
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (deptDropdownRef.current && !deptDropdownRef.current.contains(event.target)) {
+        setDeptDropdownOpen(false);
+      }
+    }
+    if (deptDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    } else {
+      document.removeEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [deptDropdownOpen]);
+
+  const handleDownload = async () => {
     setDownloading(true);
+    setError(null);
     try {
       const token = localStorage.getItem('token');
+      const params = {
+        departmentId: reportDept.includes('all') ? 'all' : reportDept.join(','),
+        fromDate,
+        toDate,
+        format,
+      };
       const response = await axios.get('http://69.62.83.14:9000/api/principal/faculty-attendance-report', {
+        params,
         headers: { Authorization: `Bearer ${token}` },
-        params: { departmentId: reportDept, fromDate, toDate, format },
         responseType: 'blob',
       });
+      // Get filename from content-disposition or fallback
+      const disposition = response.headers['content-disposition'];
+      let filename = `faculty_attendance_report.${format}`;
+      if (disposition) {
+        const match = disposition.match(/filename="(.+)"/);
+        if (match) filename = match[1];
+      }
+      // Download file
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
-      const departmentName = reportDept === 'all' ? 'all' : departments.find(d => d.id === parseInt(reportDept, 10))?.name.replace(/\s+/g, '_');
-      const ext = format === 'pdf' ? 'pdf' : 'csv';
-      const filename = `faculty_attendance_report_${departmentName}_${new Date().toISOString().split('T')[0]}.${ext}`;
       link.setAttribute('download', filename);
       document.body.appendChild(link);
       link.click();
       link.parentNode.removeChild(link);
     } catch (err) {
-      console.error('Error downloading attendance report:', err);
+      setError('Failed to download report.');
     } finally {
       setDownloading(false);
     }
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-lg p-6 mb-6 border border-gray-200 max-w-2xl mx-auto mt-8">
-      <h2 className="text-xl font-bold text-gray-800 mb-4">Download Faculty Attendance Reports</h2>
-      <div className="flex flex-col sm:flex-row items-center gap-4">
-        <div className="w-full sm:w-1/2">
-          <label htmlFor="report-dept" className="block text-sm font-medium text-gray-700 mb-1">
-            Select Department
-          </label>
-          <select
-            id="report-dept"
-            value={reportDept}
-            onChange={(e) => setReportDept(e.target.value)}
-            className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
-          >
-            <option value="all">All Departments</option>
-            {departments.map((dept) => (
-              <option key={dept.id} value={dept.id}>
-                {dept.name}
-              </option>
-            ))}
-          </select>
-          <div className="flex gap-2 mt-4">
-            <div className="flex-1">
-              <label className="block text-xs text-gray-600 mb-1">From Date</label>
-              <input
-                type="date"
-                value={fromDate}
-                onChange={e => setFromDate(e.target.value)}
-                className="w-full p-2 border border-gray-300 rounded-lg"
-                max={toDate || undefined}
-              />
+    <div className="max-w-4xl mx-auto bg-white rounded-xl shadow-lg p-10 my-8 border border-gray-200 transition-all duration-300 hover:shadow-xl">
+      <div className="flex flex-col h-full">
+        <div className="flex-grow">
+          <h2 className="text-3xl font-bold mb-10 flex items-center text-gray-800">
+            <FiFileText className="mr-4 text-red-800 text-4xl" />
+            <span className="bg-gradient-to-r from-red-800 to-red-600 bg-clip-text text-transparent">
+              Generate Faculty Attendance Report
+            </span>
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-10 mb-10">
+            <div className="space-y-3">
+              <label className="block text-lg font-medium text-gray-700 mb-3">Department</label>
+              <div className="relative" ref={deptDropdownRef}>
+                <button
+                  type="button"
+                  className="w-full border-2 border-gray-300 rounded-xl px-5 py-4 text-lg bg-white text-left flex justify-between items-center focus:ring-2 focus:ring-red-600 focus:border-transparent transition-all duration-200 hover:border-red-400"
+                  onClick={() => setDeptDropdownOpen((open) => !open)}
+                >
+                  <span>
+                    {reportDept.includes('all')
+                      ? 'All Departments'
+                      : reportDept.length === 0
+                        ? 'Select Departments'
+                        : reportDept.length === 1
+                          ? departments.find(d => d.id === reportDept[0])?.name || 'Select Departments'
+                          : `${reportDept.length} selected`}
+                  </span>
+                  <svg className={`w-5 h-5 ml-2 transition-transform ${deptDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
+                </button>
+                {deptDropdownOpen && (
+                  <div className="absolute z-10 mt-2 w-full bg-white border border-gray-200 rounded-xl shadow-lg p-4 max-h-72 overflow-y-auto">
+                    <label className="flex items-center gap-3 cursor-pointer mb-2">
+                      <input
+                        type="checkbox"
+                        className="form-checkbox h-5 w-5 text-red-600 rounded focus:ring-red-600 border-gray-300"
+                        checked={reportDept.includes('all')}
+                        onChange={e => {
+                          if (e.target.checked) {
+                            setReportDept(['all']);
+                          } else {
+                            setReportDept([]);
+                          }
+                        }}
+                      />
+                      <span className="text-lg">All Departments</span>
+                    </label>
+                    {departments.map(dept => (
+                      <label key={dept.id} className="flex items-center gap-3 cursor-pointer mb-2">
+                        <input
+                          type="checkbox"
+                          className="form-checkbox h-5 w-5 text-red-600 rounded focus:ring-red-600 border-gray-300"
+                          checked={reportDept.includes(dept.id)}
+                          disabled={reportDept.includes('all')}
+                          onChange={e => {
+                            if (e.target.checked) {
+                              setReportDept(prev => prev.filter(v => v !== 'all').concat(dept.id));
+                            } else {
+                              setReportDept(prev => prev.filter(v => v !== dept.id));
+                            }
+                          }}
+                        />
+                        <span className="text-lg">{dept.name}</span>
+                      </label>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <p className="text-gray-500 text-sm mt-2">Tick to select branches. Selecting 'All Departments' disables others.</p>
             </div>
-            <div className="flex-1">
-              <label className="block text-xs text-gray-600 mb-1">To Date</label>
-              <input
-                type="date"
-                value={toDate}
-                onChange={e => setToDate(e.target.value)}
-                className="w-full p-2 border border-gray-300 rounded-lg"
-                min={fromDate || undefined}
-              />
+            <div className="space-y-3">
+              <label className="block text-lg font-medium text-gray-700 mb-3">Format</label>
+              <select
+                className="w-full border-2 border-gray-300 rounded-xl px-5 py-4 text-lg focus:ring-2 focus:ring-red-600 focus:border-transparent transition-all duration-200 hover:border-red-400"
+                value={format}
+                onChange={e => setFormat(e.target.value)}
+              >
+                {formats.map(f => (
+                  <option key={f.value} value={f.value} className="text-lg">{f.label}</option>
+                ))}
+              </select>
+            </div>
+            
+            <div className="space-y-3">
+              <label className="block text-lg font-medium text-gray-700 mb-3">From Date</label>
+              <div className="relative">
+                <FiCalendar className="absolute left-4 top-4 text-red-700 text-2xl" />
+                <input
+                  type="date"
+                  className="w-full border-2 border-gray-300 rounded-xl pl-14 pr-5 py-4 text-lg focus:ring-2 focus:ring-red-600 focus:border-transparent transition-all duration-200 hover:border-red-400"
+                  value={fromDate}
+                  onChange={e => setFromDate(e.target.value)}
+                />
+              </div>
+            </div>
+            <div className="space-y-3">
+              <label className="block text-lg font-medium text-gray-700 mb-3">To Date</label>
+              <div className="relative">
+                <FiCalendar className="absolute left-4 top-4 text-red-700 text-2xl" />
+                <input
+                  type="date"
+                  className="w-full border-2 border-gray-300 rounded-xl pl-14 pr-5 py-4 text-lg focus:ring-2 focus:ring-red-600 focus:border-transparent transition-all duration-200 hover:border-red-400"
+                  value={toDate}
+                  onChange={e => setToDate(e.target.value)}
+                />
+              </div>
             </div>
           </div>
-        </div>
-        <div className="w-full sm:w-auto mt-auto flex gap-2">
-          <button
-            onClick={() => handleDownloadAttendance('csv')}
-            disabled={downloading}
-            className="w-full px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center justify-center gap-2 disabled:bg-gray-400"
-          >
-            <FiDownload />
-            <span>{downloading ? 'Downloading CSV...' : 'Download CSV'}</span>
-          </button>
-          <button
-            onClick={() => handleDownloadAttendance('pdf')}
-            disabled={downloading}
-            className="w-full px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center justify-center gap-2 disabled:bg-gray-400"
-          >
-            <FiDownload />
-            <span>{downloading ? 'Downloading PDF...' : 'Download PDF'}</span>
-          </button>
+          {error && (
+            <div className="mb-8 p-5 bg-red-100 border-l-4 border-red-800 text-red-700 text-lg rounded-lg animate-pulse">
+              {error}
+            </div>
+          )}
+          <div className="mt-10 flex items-center justify-center">
+            <button
+              className={`flex items-center px-10 py-5 text-xl bg-gradient-to-r from-red-800 to-red-600 text-white rounded-xl hover:from-red-700 hover:to-red-800 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1 focus:outline-none focus:ring-4 focus:ring-red-700 focus:ring-opacity-50 ${downloading ? 'opacity-75 cursor-not-allowed' : ''}`}
+              onClick={handleDownload}
+              disabled={downloading}
+            >
+              <FiDownload className="mr-4 text-2xl animate-bounce" />
+              {downloading ? 'Generating Report...' : 'Download Report'}
+              {downloading && (
+                <svg className="animate-spin ml-4 h-7 w-7 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+              )}
+            </button>
+          </div>
         </div>
       </div>
     </div>

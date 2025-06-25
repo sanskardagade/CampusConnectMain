@@ -413,47 +413,49 @@ router.get('/faculty-attendance-report', async (req, res) => {
       const { departmentId, fromDate, toDate, format } = req.query;
       console.log('Requested attendance report format:', format);
 
-      // Build date filter SQL
-      let dateFilter = '';
-      if (fromDate && toDate) {
-        dateFilter = sql` AND log_summary.attendance_date BETWEEN ${fromDate} AND ${toDate} `;
-      } else if (fromDate) {
-        dateFilter = sql` AND log_summary.attendance_date >= ${fromDate} `;
-      } else if (toDate) {
-        dateFilter = sql` AND log_summary.attendance_date <= ${toDate} `;
-      }
+      // Set default values to avoid undefined parameter errors
+      const from = fromDate || '1900-01-01';
+      const to = toDate || '2100-12-31';
 
       let records;
       if (departmentId && departmentId !== 'all') {
-          records = await sql`
-              SELECT
-                  f.name AS faculty_name,
-                  f.erpid,
-                  d.name AS department_name,
-                  log_summary.attendance_date,
-                  log_summary.first_log,
-                  log_summary.last_log
-              FROM
-                  (
-                      SELECT
-                          erp_id,
-                          DATE(timestamp) AS attendance_date,
-                          MIN(timestamp) AS first_log,
-                          MAX(timestamp) AS last_log
-                      FROM
-                          faculty_logs
-                      GROUP BY
-                          erp_id,
-                          attendance_date
-                  ) AS log_summary
-              JOIN
-                  faculty f ON log_summary.erp_id = f.erpid
-              JOIN
-                  departments d ON f.department_id = d.id
-              WHERE f.department_id = ${departmentId}
-              ${dateFilter}
-              ORDER BY d.name, f.name, log_summary.attendance_date
-          `;
+        let deptIds;
+        if (departmentId.includes(',')) {
+          deptIds = departmentId.split(',').map(id => Number(id));
+        } else {
+          deptIds = [Number(departmentId)];
+        }
+        records = await sql`
+            SELECT
+                f.name AS faculty_name,
+                f.erpid,
+                d.name AS department_name,
+                log_summary.attendance_date,
+                log_summary.first_log,
+                log_summary.last_log
+            FROM
+                (
+                    SELECT
+                        erp_id,
+                        DATE(timestamp AT TIME ZONE 'Asia/Kolkata') AS attendance_date,
+                        MIN(timestamp) AS first_log,
+                        MAX(timestamp) AS last_log
+                    FROM
+                        faculty_logs
+                    WHERE
+                        DATE(timestamp AT TIME ZONE 'Asia/Kolkata') >= ${from}::date AND
+                        DATE(timestamp AT TIME ZONE 'Asia/Kolkata') <= ${to}::date
+                    GROUP BY
+                        erp_id,
+                        attendance_date
+                ) AS log_summary
+            JOIN
+                faculty f ON log_summary.erp_id = f.erpid
+            JOIN
+                departments d ON f.department_id = d.id
+            WHERE f.department_id = ANY(${deptIds})
+            ORDER BY d.name, f.name, log_summary.attendance_date
+        `;
       } else {
           records = await sql`
               SELECT
@@ -467,11 +469,14 @@ router.get('/faculty-attendance-report', async (req, res) => {
                   (
                       SELECT
                           erp_id,
-                          DATE(timestamp) AS attendance_date,
+                          DATE(timestamp AT TIME ZONE 'Asia/Kolkata') AS attendance_date,
                           MIN(timestamp) AS first_log,
                           MAX(timestamp) AS last_log
                       FROM
                           faculty_logs
+                      WHERE
+                          DATE(timestamp AT TIME ZONE 'Asia/Kolkata') >= ${from}::date AND
+                          DATE(timestamp AT TIME ZONE 'Asia/Kolkata') <= ${to}::date
                       GROUP BY
                           erp_id,
                           attendance_date
@@ -480,8 +485,6 @@ router.get('/faculty-attendance-report', async (req, res) => {
                   faculty f ON log_summary.erp_id = f.erpid
               JOIN
                   departments d ON f.department_id = d.id
-              WHERE 1=1
-              ${dateFilter}
               ORDER BY d.name, f.name, log_summary.attendance_date
           `;
       }
@@ -518,6 +521,14 @@ router.get('/faculty-attendance-report', async (req, res) => {
         y += 20;
         doc.font('Helvetica').fontSize(9);
 
+        // Helper to convert UTC timestamp to IST date string
+        function toISTDateString(utcDateString) {
+          const date = new Date(utcDateString);
+          const istOffset = 5.5 * 60 * 60 * 1000;
+          const istDate = new Date(date.getTime() + istOffset);
+          return istDate.toISOString().split('T')[0];
+        }
+
         // Draw data rows
         rows.forEach(r => {
           const firstLog = new Date(r.first_log);
@@ -533,7 +544,7 @@ router.get('/faculty-attendance-report', async (req, res) => {
               .padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
           }
           const row = [
-            new Date(r.attendance_date).toISOString().split('T')[0],
+            toISTDateString(r.first_log),
             r.faculty_name,
             r.erpid,
             r.department_name,
@@ -567,6 +578,66 @@ router.get('/faculty-attendance-report', async (req, res) => {
         return;
       }
 
+      if (format === 'xlsx') {
+        // Generate Excel file using exceljs
+        const ExcelJS = require('exceljs');
+        const workbook = new ExcelJS.Workbook();
+        const worksheet = workbook.addWorksheet('Faculty Attendance');
+        worksheet.columns = [
+          { header: 'Date', key: 'date', width: 15 },
+          { header: 'Faculty Name', key: 'faculty_name', width: 25 },
+          { header: 'ERP ID', key: 'erpid', width: 15 },
+          { header: 'Department', key: 'department_name', width: 25 },
+          { header: 'First Log', key: 'first_log', width: 15 },
+          { header: 'Last Log', key: 'last_log', width: 15 },
+          { header: 'Duration (HH:MM:SS)', key: 'duration', width: 18 },
+        ];
+        // Helper to convert UTC timestamp to IST date string
+        function toISTDateString(utcDateString) {
+          const date = new Date(utcDateString);
+          const istOffset = 5.5 * 60 * 60 * 1000;
+          const istDate = new Date(date.getTime() + istOffset);
+          return istDate.toISOString().split('T')[0];
+        }
+        rows.forEach(r => {
+          const firstLog = new Date(r.first_log);
+          const lastLog = new Date(r.last_log);
+          let duration = '00:00:00';
+          const durationMs = lastLog - firstLog;
+          if (!isNaN(durationMs) && durationMs >= 0) {
+            const hours = Math.floor(durationMs / (1000 * 60 * 60));
+            const minutes = Math.floor((durationMs / (1000 * 60)) % 60);
+            const seconds = Math.floor((durationMs / 1000) % 60);
+            duration = `${hours.toString().padStart(2, '0')}:${minutes
+              .toString()
+              .padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+          }
+          worksheet.addRow({
+            date: toISTDateString(r.first_log),
+            faculty_name: r.faculty_name,
+            erpid: r.erpid,
+            department_name: r.department_name,
+            first_log: firstLog.toTimeString().split(' ')[0],
+            last_log: lastLog.toTimeString().split(' ')[0],
+            duration,
+          });
+        });
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        res.setHeader('Content-Disposition', 'attachment; filename=faculty_attendance.xlsx');
+        await workbook.xlsx.write(res);
+        res.end();
+        return;
+      }
+
+      // CSV generation
+      // Helper to convert UTC timestamp to IST date string
+      function toISTDateString(utcDateString) {
+        const date = new Date(utcDateString);
+        const istOffset = 5.5 * 60 * 60 * 1000;
+        const istDate = new Date(date.getTime() + istOffset);
+        return istDate.toISOString().split('T')[0];
+      }
+
       const csvHeader = 'Date,Faculty Name,ERP ID,Department,First Log,Last Log,Duration (HH:MM:SS)\n';
       const csvRows = rows.map(r => {
           const firstLog = new Date(r.first_log);
@@ -582,7 +653,7 @@ router.get('/faculty-attendance-report', async (req, res) => {
               .padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
           }
           return [
-              new Date(r.attendance_date).toISOString().split('T')[0],
+              toISTDateString(r.first_log),
               `"${r.faculty_name}"`,
               r.erpid,
               `"${r.department_name}"`,

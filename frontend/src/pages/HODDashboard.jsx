@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Navigate, useNavigate } from "react-router-dom";
 import { 
@@ -20,6 +20,9 @@ import {
   FiMapPin,
   FiX
 } from 'react-icons/fi';
+import { Check, X } from 'lucide-react';
+import axios from 'axios';
+import FacultyLogDisplay from '../components/faculty/FacultyLogDisplay';
 
 const HODDashboard = () => {
   const [loading, setLoading] = useState(true);
@@ -27,12 +30,18 @@ const HODDashboard = () => {
   const [expandedCard, setExpandedCard] = useState(null);
   const [facultyMembers, setFacultyMembers] = useState([]);
   const [showFacultyModal, setShowFacultyModal] = useState(false);
+  const [facultyLogs, setFacultyLogs] = useState([]);
+  const [facultyStressData, setFacultyStressData] = useState([]);
+  const [facultyStressLoading, setFacultyStressLoading] = useState(true);
+  const [facultyStressError, setFacultyStressError] = useState(null);
   
   // State for all data with proper initialization
   const [dashboardData, setDashboardData] = useState({
     studentAttendance: [],
     facultyAttendance: [],
     researchProjects: [],
+    staffCount: 0,
+    attendanceLogsCount: 0,
     stressLevels: {
       students: {
         high: 0,
@@ -63,7 +72,16 @@ const HODDashboard = () => {
     facultyWorkload: []
   });
 
+  const [nonTeachingStaff, setNonTeachingStaff] = useState([]);
+  const [selectedPerson, setSelectedPerson] = useState(null); // { type, id, name }
+  const [profileLogs, setProfileLogs] = useState([]);
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const [profileLoading, setProfileLoading] = useState(false);
+
   const navigate = useNavigate();
+
+  // Add a ref for the non-teaching staff section
+  const nonTeachingStaffRef = useRef(null);
 
   // Fetch dashboard data and faculty members
   useEffect(() => {
@@ -102,6 +120,22 @@ const HODDashboard = () => {
         console.log('Faculty data received:', facultyData);
         setFacultyMembers(facultyData || []); // Ensure facultyData is an array
 
+        // Fetch faculty logs for last active location
+        const logsResponse = await fetch('http://69.62.83.14:9000/api/hod/faculty-log', {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+        });
+        let logsData = [];
+        if (logsResponse.ok) {
+          const logsJson = await logsResponse.json();
+          // logsJson can be { logs, faculty } or just logs array
+          logsData = Array.isArray(logsJson.logs) ? logsJson.logs : logsJson;
+        }
+        setFacultyLogs(logsData);
+
         // Fetch dashboard data
         const dashboardResponse = await fetch('http://69.62.83.14:9000/api/hod/dashboard', {
           method: 'GET',
@@ -118,9 +152,45 @@ const HODDashboard = () => {
         const dashboardData = await dashboardResponse.json();
         console.log('Dashboard data received:', dashboardData);
 
+        // Fetch non-teaching staff list for department
+        let staffList = [];
+        try {
+          const staffRes = await fetch('http://69.62.83.14:9000/api/hod/nonteaching', {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+          });
+          if (staffRes.ok) {
+            staffList = await staffRes.json();
+          }
+        } catch (e) { staffList = []; }
+        setNonTeachingStaff(staffList);
+
+        // Fetch attendance logs count for department
+        let attendanceLogsCount = 0;
+        try {
+          const logsRes = await fetch('http://69.62.83.14:9000/api/hod/faculty-log', {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+          });
+          if (logsRes.ok) {
+            const logsJson = await logsRes.json();
+            attendanceLogsCount = Array.isArray(logsJson.logs) ? logsJson.logs.length : 0;
+          }
+        } catch (e) {
+          attendanceLogsCount = 0;
+        }
+
         // Update state with safeguards for all arrays
         setDashboardData(prevData => ({
           ...dashboardData,
+          staffCount: staffList.length,
+          attendanceLogsCount,
           departmentStats: {
             ...(dashboardData.departmentStats || {}),
             totalFaculty: facultyData.length // Ensure faculty count is preserved
@@ -165,6 +235,48 @@ const HODDashboard = () => {
     };
 
     fetchData();
+  }, []);
+
+  // Fetch faculty stress data
+  useEffect(() => {
+    const fetchFacultyStress = async () => {
+      setFacultyStressLoading(true);
+      try {
+        const response = await fetch('http://69.62.83.14:9000/api/faculty/student-stress-level', {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        if (!response.ok) throw new Error('Failed to fetch faculty stress data');
+        const data = await response.json();
+        // Filter for faculty only (assuming faculty have a property or by exclusion)
+        // If all are faculty, just use as is
+        const transformed = data.map(item => ({
+          id: item.id,
+          name: item.name,
+          erpid: item.erpid,
+          score: Math.round(parseFloat(item.confidence_score) * 100),
+          status: item.stress_status,
+          timestamp: item.timestamp
+        }));
+        // Group by ERP ID, keep latest entry
+        const facultyMap = new Map();
+        transformed.forEach(entry => {
+          if (!facultyMap.has(entry.erpid) || new Date(entry.timestamp) > new Date(facultyMap.get(entry.erpid).timestamp)) {
+            facultyMap.set(entry.erpid, entry);
+          }
+        });
+        setFacultyStressData(Array.from(facultyMap.values()));
+        setFacultyStressError(null);
+      } catch (err) {
+        setFacultyStressError(err.message);
+        setFacultyStressData([]);
+      } finally {
+        setFacultyStressLoading(false);
+      }
+    };
+    fetchFacultyStress();
   }, []);
 
   // Calculate percentages
@@ -220,6 +332,26 @@ const HODDashboard = () => {
     e.preventDefault();
     e.stopPropagation();
     setShowFacultyModal(true);
+  };
+
+  const handlePersonClick = (type, id, name) => {
+    setSelectedPerson({ type, id, name });
+    setShowProfileModal(true);
+    setProfileLoading(true);
+    setProfileLogs([]);
+    const url = type === 'faculty'
+      ? `http://69.62.83.14:9000/api/hod/faculty-profile/${id}`
+      : `http://69.62.83.14:9000/api/hod/staff-profile/${id}`;
+    fetch(url, {
+      headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+    })
+      .then(res => res.json())
+      .then(data => {
+        // Use all logs returned from the backend for this person
+        setProfileLogs(Array.isArray(data.logs) ? data.logs : []);
+        setProfileLoading(false);
+      })
+      .catch(() => setProfileLoading(false));
   };
 
   if (loading) {
@@ -281,28 +413,21 @@ const HODDashboard = () => {
             transition={{ delay: 0.3 }}
             className="mt-4 md:mt-0"
           >
-            <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg shadow-inner">
-              {['overview', 'students', 'faculty', 'research', 'stress'].map((tab) => (
+            <div className="flex space-x-2 mb-6">
+              {['overview', 'faculty', 'nonteaching', 'students'].map((tab) => (
                 <motion.button
                   key={tab}
-                  onClick={() => {
-                    setActiveTab(tab);
-                    setExpandedCard(null);
-                  }}
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${
-                    activeTab === tab 
-                      ? `${theme.primary} text-white shadow-md` 
-                      : 'text-gray-700 hover:bg-gray-200'
+                  className={`px-4 py-2 rounded-lg font-semibold transition-colors duration-200 ${
+                    activeTab === tab ? theme.primary + ' text-white' : 'bg-white text-gray-700 border border-gray-200'
                   }`}
+                  onClick={() => setActiveTab(tab)}
+                  whileHover={{ scale: 1.05 }}
                 >
                   {tab === 'overview' ? <FiHome className="inline mr-1" /> : 
-                   tab === 'students' ? <FiUsers className="inline mr-1" /> : 
                    tab === 'faculty' ? <FiUserCheck className="inline mr-1" /> : 
-                   tab === 'research' ? <FiAward className="inline mr-1" /> : 
-                   <FiActivity className="inline mr-1" />}
-                  {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                   tab === 'students' ? <FiUsers className="inline mr-1" /> :
+                   tab === 'nonteaching' ? <FiUsers className="inline mr-1" /> : null}
+                  {tab === 'nonteaching' ? 'Non-Teaching Staff' : tab.charAt(0).toUpperCase() + tab.slice(1)}
                 </motion.button>
               ))}
             </div>
@@ -328,45 +453,46 @@ const HODDashboard = () => {
                   value: dashboardData.departmentStats?.totalStudents || 0, 
                   icon: <FiUsers className="text-white" size={24} />, 
                   trend: 'up',
-                  change: '+5% from last year'
                 },
                 { 
                   title: 'Faculty Members', 
                   value: dashboardData.departmentStats?.totalFaculty || 0, 
                   icon: <FiUserCheck className="text-white" size={24} />, 
                   trend: 'neutral',
-                  change: 'No change',
                   onClick: () => setActiveTab('faculty')
                 },
                 { 
-                  title: 'Ongoing Projects', 
-                  value: dashboardData.departmentStats?.ongoingProjects || 0, 
-                  icon: <FiAward className="text-white" size={24} />, 
-                  trend: 'up',
-                  change: '+2 new projects'
+                  title: 'Non-Teaching Staff',
+                  value: dashboardData.staffCount || 0,
+                  icon: <FiUsers className="text-white" size={24} />,
+                  trend: 'neutral',
+                  onClick: () => {
+                    setActiveTab('faculty');
+                    setTimeout(() => {
+                      if (nonTeachingStaffRef.current) {
+                        nonTeachingStaffRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                      }
+                    }, 100);
+                  }
                 },
                 { 
-                  title: 'Avg Attendance', 
-                  value: `${dashboardData.departmentStats?.avgAttendance || 0}%`, 
-                  icon: <FiBook className="text-white" size={24} />, 
-                  trend: 'down',
-                  change: '-2% from last month'
+                  title: 'Attendance Logs',
+                  value: dashboardData.attendanceLogsCount || 0,
+                  icon: <FiClock className="text-white" size={24} />,
+                  trend: 'neutral',
                 }
               ].map((stat, index) => (
                 <motion.div
                   key={stat.title}
                   variants={itemVariants}
                   whileHover="hover"
-                  className={`${theme.primary} text-white rounded-xl p-5 shadow-lg ${stat.title === 'Faculty Members' ? 'cursor-pointer' : ''}`}
+                  className={`${theme.primary} text-white rounded-xl p-5 shadow-lg ${stat.onClick ? 'cursor-pointer' : ''}`}
                   onClick={stat.onClick}
                 >
                   <div className="flex justify-between items-start">
                     <div className="w-12 h-12 rounded-lg bg-white bg-opacity-20 flex items-center justify-center mb-4">
                       {stat.icon}
                     </div>
-                    <span className="text-xs bg-white bg-opacity-20 px-2 py-1 rounded-full">
-                      {stat.change}
-                    </span>
                   </div>
                   <h3 className="text-2xl font-bold mb-1">{stat.value}</h3>
                   <p className="text-sm opacity-90">{stat.title}</p>
@@ -374,289 +500,56 @@ const HODDashboard = () => {
               ))}
             </motion.div>
 
-            {/* Quick Sections */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Student Attendance Summary */}
-              <motion.div
-                variants={itemVariants}
-                className="bg-white rounded-xl shadow-sm p-6 border border-gray-100"
-              >
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-lg font-bold flex items-center">
-                    <FiUsers className={`mr-2 ${theme.text}`} />
-                    Student Attendance
-                  </h3>
-                  <span className={`text-xs ${theme.accent} ${theme.text} px-2 py-1 rounded-full`}>
-                    Today
-                  </span>
-                </div>
-                <div className="space-y-4">
-                  {(dashboardData.studentAttendance || []).slice(0, 3).map((course, index) => {
-                    const total = (course.present || 0) + (course.absent || 0);
-                    const percentage = calculatePercentage(course.present || 0, total);
-                    
-                    return (
-                      <motion.div
-                        key={index}
-                        variants={itemVariants}
-                        className="group"
-                      >
-                        <div className="flex justify-between mb-1">
-                          <span className="font-medium">{course.course || 'Unknown Course'}</span>
-                          <span className="font-medium">{percentage}%</span>
-                        </div>
-                        <div className="w-full bg-gray-200 rounded-full h-2">
-                          <motion.div
-                            initial={{ width: 0 }}
-                            animate={{ width: `${percentage}%` }}
-                            transition={{ delay: index * 0.1, duration: 0.8 }}
-                            className={`h-2 rounded-full ${
-                              percentage >= 90 ? 'bg-green-500' :
-                              percentage >= 75 ? 'bg-yellow-500' : 'bg-red-500'
-                            } group-hover:shadow-md group-hover:shadow-red-100`}
-                          ></motion.div>
-                        </div>
-                        <div className="flex justify-between text-xs text-gray-500 mt-1">
-                          <span>Prof: {course.professor || 'Unknown'}</span>
-                          <span>Room: {course.room || 'Unknown'}</span>
-                        </div>
-                      </motion.div>
-                    );
-                  })}
-                </div>
-                <motion.button
-                  whileHover={{ x: 5 }}
-                  className={`mt-4 text-sm ${theme.text} font-medium flex items-center`}
-                >
-                  View Detailed Report <FiChevronRight className="ml-1" />
-                </motion.button>
-              </motion.div>
-
-              {/* Faculty Status */}
-              <motion.div
-                variants={itemVariants}
-                className="bg-white rounded-xl shadow-sm p-6 border border-gray-100"
-              >
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-lg font-bold flex items-center">
-                    <FiUserCheck className={`mr-2 ${theme.text}`} />
-                    Faculty Status
-                  </h3>
-                  <span className={`text-xs ${theme.accent} ${theme.text} px-2 py-1 rounded-full`}>
-                    This Month
-                  </span>
-                </div>
-                <div className="space-y-3">
-                  {(dashboardData.facultyAttendance || []).slice(0, 3).map((faculty, index) => {
-                    const totalDays = (faculty.presentDays || 0) + (faculty.absentDays || 0);
-                    const percentage = calculatePercentage(faculty.presentDays || 0, totalDays);
-                    
-                    return (
-                      <motion.div
-                        key={index}
-                        variants={itemVariants}
-                        className="flex items-start p-2 hover:bg-red-50 rounded-lg transition-colors group"
-                      >
-                        <div className="w-10 h-10 rounded-full overflow-hidden mr-3 border-2 border-red-200">
-                          <img 
-                            src={faculty.avatar || '/default-avatar.png'} 
-                            alt={faculty.name || 'Faculty'}
-                            className="w-full h-full object-cover"
-                            onError={(e) => {
-                              e.target.src = '/default-avatar.png';
-                            }}
-                          />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <h4 className="font-medium text-gray-900">{faculty.name || 'Unknown Faculty'}</h4>
-                          <p className="text-xs text-gray-500">{faculty.position || 'Unknown Position'}</p>
-                          <div className="flex items-center mt-1">
-                            <div className="w-16 bg-gray-200 rounded-full h-1.5 mr-2">
-                              <div 
-                                className={`h-1.5 rounded-full ${
-                                  percentage >= 90 ? 'bg-green-500' :
-                                  percentage >= 80 ? 'bg-yellow-500' : 'bg-red-500'
-                                }`}
-                                style={{ width: `${percentage}%` }}
-                              ></div>
-                            </div>
-                            <span className="text-xs text-gray-600">{percentage}%</span>
-                          </div>
-                        </div>
-                        {(faculty.absentDays || 0) > 0 && (
-                          <FiAlertTriangle className="text-red-500 ml-2" />
-                        )}
-                      </motion.div>
-                    );
-                  })}
-                </div>
-                <motion.button
-                  onClick={() => navigate("/hod/faculty-log")}
-                  whileHover={{ x: 5 }}
-                  className={`mt-4 text-sm ${theme.text} font-medium flex items-center`}
-                >
-                  View All Faculty <FiChevronRight className="ml-1" />
-                </motion.button>
-              </motion.div>
-
-              {/* Stress Levels Overview */}
-              <motion.div
-                variants={itemVariants}
-                className="bg-white rounded-xl shadow-sm p-6 border border-gray-100"
-              >
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-lg font-bold flex items-center">
-                    <FiActivity className={`mr-2 ${theme.text}`} />
-                    Stress Overview
-                  </h3>
-                  <span className={`text-xs bg-red-100 text-red-800 px-2 py-1 rounded-full`}>
-                    Alert
-                  </span>
-                </div>
-                <div className="grid grid-cols-2 gap-4 mb-6">
-                  <div className={`p-3 rounded-lg ${theme.light}`}>
-                    <div className="text-xs font-medium text-red-700 mb-1">Students</div>
-                    <div className="text-xl font-bold text-red-800">
-                      {dashboardData.stressLevels?.students?.high || 0} High
-                    </div>
-                    <div className="text-xs text-red-600">
-                      {dashboardData.stressLevels?.students?.trends?.weekly || '0%'} weekly
-                    </div>
-                  </div>
-                  <div className={`p-3 rounded-lg ${theme.light}`}>
-                    <div className="text-xs font-medium text-red-700 mb-1">Faculty</div>
-                    <div className="text-xl font-bold text-red-800">
-                      {dashboardData.stressLevels?.faculty?.high || 0} High
-                    </div>
-                    <div className="text-xs text-red-600">
-                      {dashboardData.stressLevels?.faculty?.trends?.weekly || '0%'} weekly
-                    </div>
-                  </div>
-                </div>
-                <div className="relative h-40">
-                  <svg className="w-full h-full" viewBox="0 0 100 100">
-                    {/* Student Stress */}
-                    <motion.path
-                      initial={{ strokeDasharray: "0 100" }}
-                      animate={{ 
-                        strokeDasharray: `${dashboardData.stressLevels?.students?.high || 0} ${100 - (dashboardData.stressLevels?.students?.high || 0)}`,
-                        opacity: [0, 1]
-                      }}
-                      transition={{ delay: 0.2, duration: 1 }}
-                      d="M50 10 A40 40 0 1 1 10 50"
-                      fill="none"
-                      stroke="#ef4444"
-                      strokeWidth="20"
-                      strokeLinecap="round"
-                    />
-                    {/* Faculty Stress */}
-                    <motion.path
-                      initial={{ strokeDasharray: "0 100" }}
-                      animate={{ 
-                        strokeDasharray: `${dashboardData.stressLevels?.faculty?.high || 0} ${100 - (dashboardData.stressLevels?.faculty?.high || 0)}`,
-                        opacity: [0, 1]
-                      }}
-                      transition={{ delay: 0.4, duration: 1 }}
-                      d="M50 10 A40 40 0 0 0 10 50"
-                      fill="none"
-                      stroke="#fca5a5"
-                      strokeWidth="10"
-                      strokeLinecap="round"
-                    />
-                  </svg>
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <FiActivity className="text-red-200" size={40} />
-                  </div>
-                </div>
-                <motion.button
-                  whileHover={{ x: 5 }}
-                  className={`mt-4 text-sm ${theme.text} font-medium flex items-center`}
-                >
-                  View Stress Analysis <FiChevronRight className="ml-1" />
-                </motion.button>
-              </motion.div>
+            {/* Custom Quick Sections: Top 5 Faculty Logs & Recent Leave Approvals */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Top 5 Recent Faculty Logs */}
+              <RecentFacultyLogs facultyMembers={facultyMembers} handlePersonClick={handlePersonClick} />
+              {/* Recent Leave Approvals */}
+              <RecentLeaveApprovals />
             </div>
 
-            {/* Recent Activity */}
+            {/* Faculty Stress Level Insights */}
             <motion.div
               variants={itemVariants}
-              className="bg-white rounded-xl shadow-sm p-6 border border-gray-100"
+              className="bg-white rounded-xl shadow-sm p-6 border border-gray-100 mt-6"
             >
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-bold flex items-center">
-                  <FiClock className={`mr-2 ${theme.text}`} />
-                  Recent Activity
-                </h3>
-                <button className={`text-sm ${theme.text} font-medium flex items-center`}>
-                  View All <FiChevronRight className="ml-1" />
-                </button>
-              </div>
-              <div className="space-y-4">
-                {[
-                  { 
-                    id: 1,
-                    title: "Faculty Meeting", 
-                    description: "Monthly department meeting", 
-                    time: "Today, 10:30 AM", 
-                    type: "meeting",
-                    icon: <FiUsers className="text-red-600" />
-                  },
-                  { 
-                    id: 2,
-                    title: "Research Proposal Submitted", 
-                    description: "New proposal on Quantum Computing", 
-                    time: "Yesterday, 2:15 PM", 
-                    type: "research",
-                    icon: <FiAward className="text-red-600" />
-                  },
-                  { 
-                    id: 3,
-                    title: "Student Concerns", 
-                    description: "Group of students raised concerns about course workload", 
-                    time: "2 days ago, 11:45 AM", 
-                    type: "alert",
-                    icon: <FiAlertTriangle className="text-red-600" />
-                  }
-                ].map((activity, index) => (
-                  <motion.div
-                    key={activity.id}
-                    variants={itemVariants}
-                    transition={{ delay: index * 0.1 }}
-                    className="flex items-start p-3 hover:bg-red-50 rounded-lg transition-colors group cursor-pointer"
-                    onClick={() => setExpandedCard(expandedCard === activity.id ? null : activity.id)}
-                  >
-                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center mr-3 ${theme.light}`}>
-                      {activity.icon}
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex justify-between items-start">
-                        <h4 className="font-medium text-gray-900">{activity.title}</h4>
-                        <span className="text-xs text-gray-500">{activity.time}</span>
-                      </div>
-                      <p className="text-sm text-gray-600">{activity.description}</p>
-                      <AnimatePresence>
-                        {expandedCard === activity.id && (
-                          <motion.div
-                            initial={{ opacity: 0, height: 0 }}
-                            animate={{ opacity: 1, height: "auto" }}
-                            exit={{ opacity: 0, height: 0 }}
-                            className="mt-2 text-xs text-gray-500"
-                          >
-                            <p>Additional details about this activity would appear here.</p>
-                            <p className="mt-1">Click again to collapse.</p>
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
-                    </div>
-                    <motion.div
-                      animate={{ rotate: expandedCard === activity.id ? 90 : 0 }}
-                      className="text-gray-400 group-hover:text-gray-600"
-                    >
-                      <FiChevronRight />
-                    </motion.div>
-                  </motion.div>
-                ))}
-              </div>
+              <h3 className="text-lg font-bold mb-4 flex items-center">
+                <FiActivity className="mr-2 text-red-800" /> Faculty Stress Level Insights
+              </h3>
+              {facultyStressLoading ? (
+                <div className="text-gray-500">Loading...</div>
+              ) : facultyStressError ? (
+                <div className="text-red-500">{facultyStressError}</div>
+              ) : facultyStressData.length === 0 ? (
+                <div className="text-gray-500">No faculty stress data found.</div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="text-left text-sm text-gray-500 border-b border-gray-200">
+                        <th className="pb-3">Name</th>
+                        <th className="pb-3">ERP ID</th>
+                        <th className="pb-3">Latest Score</th>
+                        <th className="pb-3">Status</th>
+                        <th className="pb-3">Last Updated</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {facultyStressData.map(faculty => (
+                        <tr key={faculty.erpid} className="border-b border-gray-100 hover:bg-red-50">
+                          <td className="py-3 font-medium cursor-pointer" onClick={() => handlePersonClick('faculty', faculty.id, faculty.name)}>{faculty.name}</td>
+                          <td className="py-3">{faculty.erpid}</td>
+                          <td className="py-3">{faculty.score}%</td>
+                          <td className="py-3">
+                            <span className={`px-2 py-1 text-xs rounded-full ${faculty.status === 'Stressed' || faculty.status === 'At Risk' ? 'bg-red-100 text-red-800' : faculty.status === 'Stable' || faculty.status === 'Normal' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>{faculty.status}</span>
+                          </td>
+                          <td className="py-3 text-xs text-gray-500">{faculty.timestamp ? new Date(faculty.timestamp).toLocaleString() : 'N/A'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </motion.div>
           </>
         )}
@@ -794,6 +687,7 @@ const HODDashboard = () => {
           >
             {/* Department Faculty List */}
             <motion.div
+              ref={nonTeachingStaffRef}
               variants={itemVariants}
               className="bg-white rounded-xl shadow-sm p-6 border border-gray-100 mb-6"
             >
@@ -803,7 +697,6 @@ const HODDashboard = () => {
                   Department Faculty ({facultyMembers.length})
                 </h2>
               </div>
-
               {facultyMembers.length === 0 ? (
                 <div className="text-center py-8">
                   <p className="text-gray-500">No faculty members found in your department.</p>
@@ -816,382 +709,90 @@ const HODDashboard = () => {
                         <th className="pb-3">ERP ID</th>
                         <th className="pb-3">Name</th>
                         <th className="pb-3">Email</th>
-                        <th className="pb-3">Status</th>
-                        <th className="pb-3">Joined Date</th>
+                        <th className="pb-3">Last Active Location</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {facultyMembers.map((faculty) => (
+                      {facultyMembers.map((faculty) => {
+                        const logsForFaculty = facultyLogs.filter(log => log.erp_id === faculty.erpid);
+                        let lastLocation = 'N/A';
+                        if (logsForFaculty.length > 0) {
+                          logsForFaculty.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+                          lastLocation = logsForFaculty[0].classroom || 'N/A';
+                        }
+                        return (
+                          <motion.tr
+                            key={faculty.id}
+                            variants={itemVariants}
+                            className="border-b border-gray-100 hover:bg-red-50 cursor-pointer"
+                            whileHover={{ x: 5 }}
+                            onClick={() => handlePersonClick('faculty', faculty.id, faculty.name)}
+                          >
+                            <td className="py-4 font-medium">{faculty.erpid || 'N/A'}</td>
+                            <td className="py-4">{faculty.name || 'Unknown'}</td>
+                            <td className="py-4">{faculty.email || 'N/A'}</td>
+                            <td className="py-4">{lastLocation}</td>
+                          </motion.tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </motion.div>
+          </motion.div>
+        )}
+
+        {/* Non-Teaching Staff Tab */}
+        {activeTab === 'nonteaching' && (
+          <motion.div
+            variants={containerVariants}
+            initial="hidden"
+            animate="visible"
+          >
+            <motion.div
+              ref={nonTeachingStaffRef}
+              variants={itemVariants}
+              className="bg-white rounded-xl shadow-sm p-6 border border-gray-100 mb-6"
+            >
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-xl font-bold flex items-center">
+                  <FiUsers className={`mr-2 ${theme.text}`} />
+                  Non-Teaching Staff ({nonTeachingStaff.length})
+                </h2>
+              </div>
+              {nonTeachingStaff.length === 0 ? (
+                <div className="text-center py-8">
+                  <p className="text-gray-500">No non-teaching staff found in your department.</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="text-left text-sm text-gray-500 border-b border-gray-200">
+                        <th className="pb-3">ERP ID</th>
+                        <th className="pb-3">Name</th>
+                        <th className="pb-3">Email</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {nonTeachingStaff.map((staff) => (
                         <motion.tr
-                          key={faculty.id}
+                          key={staff.id}
                           variants={itemVariants}
-                          className="border-b border-gray-100 hover:bg-red-50"
+                          className="border-b border-gray-100 hover:bg-red-50 cursor-pointer"
                           whileHover={{ x: 5 }}
+                          onClick={() => handlePersonClick('staff', staff.id, staff.name)}
                         >
-                          <td className="py-4 font-medium">{faculty.erpid || 'N/A'}</td>
-                          <td className="py-4">{faculty.name || 'Unknown'}</td>
-                          <td className="py-4">{faculty.email || 'N/A'}</td>
-                          <td className="py-4">
-                            <span className={`px-2 py-1 text-xs rounded-full ${
-                              faculty.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                            }`}>
-                              {faculty.is_active ? 'Active' : 'Inactive'}
-                            </span>
-                          </td>
-                          <td className="py-4 text-sm">
-                            {faculty.created_at ? new Date(faculty.created_at).toLocaleDateString() : 'N/A'}
-                          </td>
+                          <td className="py-4 font-medium">{staff.erpid || 'N/A'}</td>
+                          <td className="py-4">{staff.name || 'Unknown'}</td>
+                          <td className="py-4">{staff.email || 'N/A'}</td>
                         </motion.tr>
                       ))}
                     </tbody>
                   </table>
                 </div>
               )}
-            </motion.div>
-
-            {/* Faculty Attendance */}
-            <motion.div
-              variants={itemVariants}
-              className="bg-white rounded-xl shadow-sm p-6 border border-gray-100 mb-6"
-            >
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl font-bold flex items-center">
-                  <FiUserCheck className={`mr-2 ${theme.text}`} />
-                  Faculty Attendance
-                </h2>
-                <button className={`text-sm ${theme.text} font-medium flex items-center`}>
-                  View All <FiChevronRight className="ml-1" />
-                </button>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                {(dashboardData.facultyAttendance || []).map((faculty, index) => {
-                  const totalDays = (faculty.presentDays || 0) + (faculty.absentDays || 0);
-                  const percentage = calculatePercentage(faculty.presentDays || 0, totalDays);
-                  
-                  return (
-                    <motion.div
-                      key={index}
-                      variants={itemVariants}
-                      whileHover="hover"
-                      className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
-                    >
-                      <div className="flex items-center mb-3">
-                        <div className="w-12 h-12 rounded-full overflow-hidden mr-3 border-2 border-red-200">
-                          <img 
-                            src={faculty.avatar || '/default-avatar.png'} 
-                            alt={faculty.name || 'Faculty'}
-                            className="w-full h-full object-cover"
-                            onError={(e) => {
-                              e.target.src = '/default-avatar.png';
-                            }}
-                          />
-                        </div>
-                        <div>
-                          <h3 className="font-bold text-gray-900">{faculty.name || 'Unknown Faculty'}</h3>
-                          <p className="text-xs text-gray-600">{faculty.position || 'Unknown Position'}</p>
-                        </div>
-                      </div>
-                      <div className="flex justify-between text-sm mb-2">
-                        <span>Present:</span>
-                        <span className="font-medium">{faculty.presentDays || 0} days</span>
-                      </div>
-                      <div className="flex justify-between text-sm mb-2">
-                        <span>Absent:</span>
-                        <span className="font-medium text-red-600">{faculty.absentDays || 0} days</span>
-                      </div>
-                      <div className="w-full bg-gray-200 rounded-full h-2 mb-2">
-                        <div 
-                          className={`h-2 rounded-full ${
-                            percentage >= 90 ? 'bg-green-500' :
-                            percentage >= 80 ? 'bg-yellow-500' : 'bg-red-500'
-                          }`}
-                          style={{ width: `${percentage}%` }}
-                        ></div>
-                      </div>
-                      <div className="flex justify-between text-xs">
-                        <span>Last Active:</span>
-                        <span>{faculty.lastActive || 'Unknown'}</span>
-                      </div>
-                    </motion.div>
-                  );
-                })}
-              </div>
-            </motion.div>
-
-            {/* Faculty Workload */}
-            <motion.div
-              variants={itemVariants}
-              className="bg-white rounded-xl shadow-sm p-6 border border-gray-100"
-            >
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl font-bold flex items-center">
-                  <FiActivity className={`mr-2 ${theme.text}`} />
-                  Faculty Workload
-                </h2>
-                <button className={`text-sm ${theme.text} font-medium flex items-center`}>
-                  View All <FiChevronRight className="ml-1" />
-                </button>
-              </div>
-
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="text-left text-sm text-gray-500 border-b border-gray-200">
-                      <th className="pb-3">Faculty</th>
-                      <th className="pb-3">Courses</th>
-                      <th className="pb-3">Research</th>
-                      <th className="pb-3">Admin</th>
-                      <th className="pb-3">Total</th>
-                      <th className="pb-3">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {(dashboardData.facultyWorkload || []).map((faculty, index) => (
-                      <motion.tr
-                        key={index}
-                        variants={itemVariants}
-                        className="border-b border-gray-100 hover:bg-red-50"
-                        whileHover={{ x: 5 }}
-                      >
-                        <td className="py-4 font-medium">{faculty.name || 'Unknown Faculty'}</td>
-                        <td className="py-4">{faculty.courses || 0}</td>
-                        <td className="py-4">{faculty.research || 0}</td>
-                        <td className="py-4">{faculty.admin || 0}</td>
-                        <td className="py-4 font-bold">{faculty.total || 0}</td>
-                        <td className="py-4">
-                          <span className={`px-2 py-1 text-xs rounded-full ${
-                            (faculty.total || 0) <= 4 ? 'bg-green-100 text-green-800' :
-                            (faculty.total || 0) <= 6 ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'
-                          }`}>
-                            {(faculty.total || 0) <= 4 ? 'Light' :
-                             (faculty.total || 0) <= 6 ? 'Moderate' : 'Heavy'}
-                          </span>
-                        </td>
-                      </motion.tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-
-        {/* Research Tab */}
-        {activeTab === 'research' && (
-          <motion.div
-            variants={containerVariants}
-            initial="hidden"
-            animate="visible"
-          >
-            {/* Research Projects */}
-            <motion.div
-              variants={itemVariants}
-              className="bg-white rounded-xl shadow-sm p-6 border border-gray-100 mb-6"
-            >
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl font-bold flex items-center">
-                  <FiAward className={`mr-2 ${theme.text}`} />
-                  Research Projects
-                </h2>
-                <button className={`text-sm ${theme.text} font-medium flex items-center`}>
-                  View All <FiChevronRight className="ml-1" />
-                </button>
-              </div>
-
-              <div className="space-y-4">
-                {(dashboardData.researchProjects || []).map((project, index) => (
-                  <motion.div
-                    key={index}
-                    variants={itemVariants}
-                    whileHover="hover"
-                    className={`border rounded-lg p-4 hover:shadow-md transition-shadow ${
-                      project.status === 'completed' ? 'border-green-200 bg-green-50' : 'border-gray-200'
-                    }`}
-                  >
-                    <div className="flex justify-between items-start mb-3">
-                      <div>
-                        <h3 className="font-bold text-gray-900">{project.title || 'Untitled Project'}</h3>
-                        <p className="text-sm text-gray-600">Lead: {project.lead || 'Unknown'}</p>
-                      </div>
-                      <span className={`px-2 py-1 text-xs rounded-full ${
-                        project.status === 'active' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'
-                      }`}>
-                        {project.status || 'unknown'}
-                      </span>
-                    </div>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                      <div>
-                        <p className="text-xs text-gray-500">Funding</p>
-                        <p className="font-medium">{project.funding || 'Not specified'}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-gray-500">Team Size</p>
-                        <p className="font-medium">{project.team || 0} members</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-gray-500">Duration</p>
-                        <p className="font-medium">
-                          {project.startDate || 'Unknown'} to {project.endDate || 'Unknown'}
-                        </p>
-                      </div>
-                    </div>
-                    
-                    <div className="mb-3">
-                      <div className="flex justify-between text-sm mb-1">
-                        <span>Progress</span>
-                        <span>{project.progress || 0}%</span>
-                      </div>
-                      <div className="w-full bg-gray-200 rounded-full h-2">
-                        <div 
-                          className={`h-2 rounded-full ${
-                            (project.progress || 0) < 50 ? 'bg-red-500' :
-                            (project.progress || 0) < 80 ? 'bg-yellow-500' : 'bg-green-500'
-                          }`}
-                          style={{ width: `${project.progress || 0}%` }}
-                        ></div>
-                      </div>
-                    </div>
-                    
-                    <div>
-                      <p className="text-xs text-gray-500 mb-1">Milestones</p>
-                      <div className="flex flex-wrap gap-2">
-                        {(project.milestones || []).map((milestone, idx) => (
-                          <span 
-                            key={idx}
-                            className={`px-2 py-1 text-xs rounded-full ${
-                              milestone.completed ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
-                            }`}
-                          >
-                            {milestone.name || 'Milestone'}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-
-        {/* Stress Tab */}
-        {activeTab === 'stress' && (
-          <motion.div
-            variants={containerVariants}
-            initial="hidden"
-            animate="visible"
-          >
-            {/* Student Stress */}
-            <motion.div
-              variants={itemVariants}
-              className="bg-white rounded-xl shadow-sm p-6 border border-gray-100 mb-6"
-            >
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl font-bold flex items-center">
-                  <FiActivity className={`mr-2 ${theme.text}`} />
-                  Student Stress Levels
-                </h2>
-                <button className={`text-sm ${theme.text} font-medium flex items-center`}>
-                  View All <FiChevronRight className="ml-1" />
-                </button>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                <div className={`p-4 rounded-lg ${theme.light}`}>
-                  <div className="text-sm font-medium text-red-700 mb-1">High Stress</div>
-                  <div className="text-3xl font-bold text-red-800">
-                    {dashboardData.stressLevels?.students?.high || 0}
-                  </div>
-                  <div className="text-xs text-red-600">
-                    {dashboardData.stressLevels?.students?.trends?.weekly || '0%'} weekly change
-                  </div>
-                </div>
-                <div className={`p-4 rounded-lg bg-amber-50`}>
-                  <div className="text-sm font-medium text-amber-700 mb-1">Medium Stress</div>
-                  <div className="text-3xl font-bold text-amber-800">
-                    {dashboardData.stressLevels?.students?.medium || 0}
-                  </div>
-                  <div className="text-xs text-amber-600">
-                    {dashboardData.stressLevels?.students?.trends?.monthly || '0%'} monthly change
-                  </div>
-                </div>
-                <div className={`p-4 rounded-lg bg-green-50`}>
-                  <div className="text-sm font-medium text-green-700 mb-1">Low Stress</div>
-                  <div className="text-3xl font-bold text-green-800">
-                    {dashboardData.stressLevels?.students?.low || 0}
-                  </div>
-                  <div className="text-xs text-green-600">
-                    Baseline healthy students
-                  </div>
-                </div>
-              </div>
-
-              <div className="h-64 bg-gray-100 rounded-lg flex items-center justify-center">
-                <div className="text-center">
-                  <FiMapPin className="mx-auto text-red-600 mb-2" size={32} />
-                  <p className="text-gray-700">Stress level heatmap would appear here</p>
-                  <p className="text-sm text-gray-600">Showing distribution across campus</p>
-                </div>
-              </div>
-            </motion.div>
-
-            {/* Faculty Stress */}
-            <motion.div
-              variants={itemVariants}
-              className="bg-white rounded-xl shadow-sm p-6 border border-gray-100"
-            >
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl font-bold flex items-center">
-                  <FiUserCheck className={`mr-2 ${theme.text}`} />
-                  Faculty Stress Levels
-                </h2>
-                <button className={`text-sm ${theme.text} font-medium flex items-center`}>
-                  View All <FiChevronRight className="ml-1" />
-                </button>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                <div className={`p-4 rounded-lg ${theme.light}`}>
-                  <div className="text-sm font-medium text-red-700 mb-1">High Stress</div>
-                  <div className="text-3xl font-bold text-red-800">
-                    {dashboardData.stressLevels?.faculty?.high || 0}
-                  </div>
-                  <div className="text-xs text-red-600">
-                    {dashboardData.stressLevels?.faculty?.trends?.weekly || '0%'} weekly change
-                  </div>
-                </div>
-                <div className={`p-4 rounded-lg bg-amber-50`}>
-                  <div className="text-sm font-medium text-amber-700 mb-1">Medium Stress</div>
-                  <div className="text-3xl font-bold text-amber-800">
-                    {dashboardData.stressLevels?.faculty?.medium || 0}
-                  </div>
-                  <div className="text-xs text-amber-600">
-                    {dashboardData.stressLevels?.faculty?.trends?.monthly || '0%'} monthly change
-                  </div>
-                </div>
-                <div className={`p-4 rounded-lg bg-green-50`}>
-                  <div className="text-sm font-medium text-green-700 mb-1">Low Stress</div>
-                  <div className="text-3xl font-bold text-green-800">
-                    {dashboardData.stressLevels?.faculty?.low || 0}
-                  </div>
-                  <div className="text-xs text-green-600">
-                    Baseline healthy faculty
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-gray-100 rounded-lg p-4">
-                <h3 className="text-lg font-medium mb-3">Stress Trends</h3>
-                <div className="h-48 flex items-center justify-center">
-                  <div className="text-center">
-                    <FiActivity className="mx-auto text-red-600 mb-2" size={32} />
-                    <p className="text-gray-700">Stress trend analytics would appear here</p>
-                    <p className="text-sm text-gray-600">Weekly and monthly comparisons</p>
-                  </div>
-                </div>
-              </div>
             </motion.div>
           </motion.div>
         )}
@@ -1262,10 +863,198 @@ const HODDashboard = () => {
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* Profile Modal */}
+        <AnimatePresence>
+          {showProfileModal && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+              onClick={() => setShowProfileModal(false)}
+            >
+              <motion.div
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.9, opacity: 0 }}
+                className="bg-white rounded-xl shadow-lg w-full max-w-5xl max-h-[90vh] overflow-hidden"
+                onClick={e => e.stopPropagation()}
+              >
+                <div className="p-6 border-b border-gray-200 flex justify-between items-center">
+                  <h2 className="text-xl font-bold flex items-center">
+                    {selectedPerson?.name || (selectedPerson?.type === 'faculty' ? 'Faculty' : 'Non-Teaching Staff')} Logs
+                  </h2>
+                  <button
+                    onClick={() => setShowProfileModal(false)}
+                    className="text-gray-500 hover:text-gray-700 p-2 hover:bg-gray-100 rounded-full transition-colors"
+                  >
+                    <FiX size={24} />
+                  </button>
+                </div>
+                <div className="p-6 overflow-y-auto max-h-[calc(90vh-8rem)]">
+                  <FacultyLogDisplay logs={profileLogs || []} loading={profileLoading} />
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </motion.div>
     </div>
   );
 };
+
+function RecentFacultyLogs({ facultyMembers = [], handlePersonClick }) {
+  const [logs, setLogs] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    const fetchLogs = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const token = localStorage.getItem('token');
+        const res = await fetch('http://69.62.83.14:9000/api/hod/recent-faculty-logs', {
+          headers: { 'Authorization': `Bearer ${token}` },
+        });
+        if (!res.ok) throw new Error('Failed to fetch logs');
+        const data = await res.json();
+        if (isMounted) setLogs(data);
+      } catch (err) {
+        if (isMounted) setError('Failed to load logs');
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    };
+    fetchLogs();
+    const interval = setInterval(fetchLogs, 600000); // 10 minutes
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, []);
+
+  return (
+    <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100 h-full">
+      <h3 className="text-lg font-bold mb-4 flex items-center">
+        <FiUserCheck className="mr-2 text-red-800" /> Recent Faculty Logs
+      </h3>
+      {loading ? (
+        <div className="text-gray-500">Loading...</div>
+      ) : error ? (
+        <div className="text-red-500">{error}</div>
+      ) : logs.length === 0 ? (
+        <div className="text-gray-500">No logs found.</div>
+      ) : (
+        <ul className="divide-y divide-gray-200">
+          {logs.map((log, idx) => (
+            <li key={log.id || idx} className="py-3 flex flex-col">
+              <div className="flex items-center justify-between">
+                <span
+                  className="font-medium text-gray-900 cursor-pointer"
+                  onClick={() => {
+                    let facultyId = log.faculty_id;
+                    let facultyName = log.person_name;
+                    if (!facultyId && log.erp_id && Array.isArray(facultyMembers)) {
+                      const found = facultyMembers.find(f => f.erpid === log.erp_id);
+                      if (found) facultyId = found.id;
+                    }
+                    if (facultyId) handlePersonClick('faculty', facultyId, facultyName);
+                  }}
+                >
+                  {log.person_name || 'Unknown Faculty'}
+                </span>
+                <span className="text-xs text-gray-500">{new Date(log.timestamp).toLocaleString()}</span>
+              </div>
+              <div className="text-xs text-gray-600 mt-1">Location: {log.classroom || 'N/A'} | IP: {log.camera_ip || 'N/A'}</div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+function RecentLeaveApprovals() {
+  const [leaveApplications, setLeaveApplications] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [actionLoading, setActionLoading] = useState(null); // id of leave being processed
+
+  useEffect(() => {
+    const fetchLeaves = async () => {
+      try {
+        setLoading(true);
+        const res = await axios.get('http://69.62.83.14:9000/api/hod/leave-approval');
+        setLeaveApplications(Array.isArray(res.data) ? res.data.filter(app => app.HodApproval === 'Pending').slice(0, 5) : []);
+      } catch (err) {
+        setError('Could not load leave requests');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchLeaves();
+  }, []);
+
+  const handleAction = async (application, action) => {
+    setActionLoading(application.ErpStaffId);
+    try {
+      await axios.put(`http://69.62.83.14:9000/api/hod/leave-approval/${application.ErpStaffId}`, {
+        HodApproval: action === 'approve' ? 'Approved' : 'Rejected',
+      });
+      setLeaveApplications(prev => prev.filter(app => app.ErpStaffId !== application.ErpStaffId));
+    } catch (err) {
+      alert('Failed to update leave status');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  return (
+    <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100 h-full">
+      <h3 className="text-lg font-bold mb-4 flex items-center">
+        <FiBook className="mr-2 text-red-800" /> Recent Leave Approval Requests
+      </h3>
+      {loading ? (
+        <div className="text-gray-500">Loading...</div>
+      ) : error ? (
+        <div className="text-red-500">{error}</div>
+      ) : leaveApplications.length === 0 ? (
+        <div className="text-gray-500">No pending leave requests.</div>
+      ) : (
+        <ul className="divide-y divide-gray-200">
+          {leaveApplications.map((app, idx) => (
+            <li key={app.ErpStaffId || idx} className="py-3 flex flex-col">
+              <div className="flex items-center justify-between">
+                <span className="font-medium text-gray-900">{app.StaffName}</span>
+                <span className="text-xs text-gray-500">{app.leaveType}</span>
+              </div>
+              <div className="text-xs text-gray-600 mt-1">{app.fromDate} to {app.toDate}</div>
+              <div className="flex gap-2 mt-2">
+                <button
+                  className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 flex items-center text-xs disabled:opacity-50"
+                  disabled={actionLoading === app.ErpStaffId}
+                  onClick={() => handleAction(app, 'approve')}
+                >
+                  <Check size={14} className="mr-1" /> Approve
+                </button>
+                <button
+                  className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 flex items-center text-xs disabled:opacity-50"
+                  disabled={actionLoading === app.ErpStaffId}
+                  onClick={() => handleAction(app, 'reject')}
+                >
+                  <X size={14} className="mr-1" /> Reject
+                </button>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
 
 export default HODDashboard;       
             

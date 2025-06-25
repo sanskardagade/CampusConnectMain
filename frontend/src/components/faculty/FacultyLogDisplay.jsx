@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
 
-const FacultyLogDisplay = ({ logs = [] }) => {
+const FacultyLogDisplay = ({ logs = [], facultyName }) => {
   const [selectedView, setSelectedView] = useState('overview');
   const [selectedTimeRange, setSelectedTimeRange] = useState('today');
   const [modalOpen, setModalOpen] = useState(false);
@@ -241,7 +241,8 @@ const FacultyLogDisplay = ({ logs = [] }) => {
 
   // Filtered logs for table
   const filteredLogs = useMemo(() => {
-    return logs.filter(log => {
+    // First, apply the existing filters
+    let logsToFilter = logs.filter(log => {
       const matchesFaculty = filterFaculty ? log.person_name === filterFaculty : true;
       const matchesClassroom = filterClassroom ? log.classroom === filterClassroom : true;
       let matchesDate = true;
@@ -256,7 +257,37 @@ const FacultyLogDisplay = ({ logs = [] }) => {
       }
       return matchesFaculty && matchesClassroom && matchesDate;
     });
+
+    // Sort logs by faculty and timestamp (descending)
+    logsToFilter = logsToFilter.sort((a, b) => {
+      if (a.person_name === b.person_name) {
+        return new Date(b.timestamp) - new Date(a.timestamp);
+      }
+      return a.person_name.localeCompare(b.person_name);
+    });
+
+    // Filter to only one log per 30-minute window per faculty
+    const filteredByWindow = [];
+    const lastLogTimeByFaculty = {};
+    for (const log of logsToFilter) {
+      const faculty = log.person_name;
+      const logTime = new Date(log.timestamp).getTime();
+      if (!lastLogTimeByFaculty[faculty] || (lastLogTimeByFaculty[faculty] - logTime) >= 30 * 60 * 1000) {
+        filteredByWindow.push(log);
+        lastLogTimeByFaculty[faculty] = logTime;
+      }
+    }
+    return filteredByWindow;
   }, [logs, filterFaculty, filterClassroom, dateRange]);
+
+  // Determine the faculty name to display
+  let displayName = facultyName;
+  if (!displayName && logs && logs.length > 0) {
+    displayName = logs[0].person_name;
+  }
+  if (!displayName) {
+    displayName = 'Faculty';
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
@@ -283,7 +314,7 @@ const FacultyLogDisplay = ({ logs = [] }) => {
                 <Activity className="text-blue-600" size={24} />
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">Faculty Activity Dashboard</h1>
+                <h1 className="text-2xl font-bold text-gray-900">{displayName} Dashboard</h1>
                 <p className="text-gray-600">Real-time monitoring and analytics</p>
               </div>
             </div>
@@ -338,17 +369,30 @@ const FacultyLogDisplay = ({ logs = [] }) => {
           </div>
 
           <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between mb-4">
               <div>
-                <p className="text-gray-600 text-sm font-medium">Active Faculty</p>
-                <p className="text-3xl font-bold text-gray-900 mt-1">{stats.activeFaculty}</p>
+                <p className="text-gray-600 text-sm font-medium">Recent Activity</p>
+                {/* <p className="text-lg font-bold text-gray-900 mt-1">
+                  {logs.length > 0 ? logs[0].person_name : 'No activity'}
+                </p> */}
               </div>
               <div className="bg-purple-100 p-3 rounded-lg">
-                <User className="text-purple-600" size={24} />
+                <Clock className="text-purple-600" size={24} />
               </div>
             </div>
-            <div className="flex items-center mt-4 text-sm">
-              <span className="text-gray-600">Currently tracked</span>
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-gray-600">Recent:</span>
+                <span className="text-gray-900 font-medium">
+                  {logs.length > 0 ? new Date(logs[0].timestamp).toLocaleTimeString() : 'N/A'}
+                </span>
+              </div>
+              {/* <div className="flex justify-between">
+                <span className="text-gray-600">First log:</span>
+                <span className="text-gray-900 font-medium">
+                  {logs.length > 0 ? new Date(logs[logs.length - 1].timestamp).toLocaleTimeString() : 'N/A'}
+                </span>
+              </div> */}
             </div>
           </div>
 
@@ -525,9 +569,9 @@ const FacultyLogDisplay = ({ logs = [] }) => {
                   <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Timestamp
                   </th>
-                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  {/* <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Status
-                  </th>
+                  </th> */}
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
@@ -569,12 +613,12 @@ const FacultyLogDisplay = ({ logs = [] }) => {
                         </span>
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    {/* <td className="px-6 py-4 whitespace-nowrap">
                       <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
                         <div className="w-2 h-2 bg-green-400 rounded-full mr-2"></div>
                         Active
                       </span>
-                    </td>
+                    </td> */}
                   </tr>
                 ))}
                 {filteredLogs.length === 0 && (

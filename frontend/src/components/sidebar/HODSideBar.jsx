@@ -32,6 +32,11 @@ import SidebarMenu from "./SideBarMenu";
       icon: <BiAnalyse />,
     },
     {
+      path: "/hod/report",
+      name: "Faculty Report",
+      icon: <AiFillDatabase />,
+    },
+    {
       path: "/hod/view-stress-level",
       name: "View Faculty Stress Level",
       icon: <AiTwotoneFileExclamation />,
@@ -76,6 +81,7 @@ import SidebarMenu from "./SideBarMenu";
         },
       ],
     },
+   
     { path: "/", name: "Logout", icon: <AiOutlineLogout /> },
   ];
   

@@ -201,7 +201,7 @@ export default function AttendanceTracker({ initialData }) {
     if (!facultyObj || !data || !Array.isArray(data)) return [];
     const userLogs = data.filter(log => log.erp_id === facultyObj.erpid);
     const dates = [...new Set(userLogs.map(log =>
-      new Date(log.timestamp).toDateString()
+      new Date(log.timestamp).toISOString().split('T')[0]
     ))];
     return dates.sort();
   };
@@ -228,7 +228,7 @@ export default function AttendanceTracker({ initialData }) {
     }
     // Filter logs for selected faculty and date
     const userLogs = data.filter(log => {
-      const logDate = new Date(log.timestamp).toDateString();
+      const logDate = new Date(log.timestamp).toISOString().split('T')[0];
       return log.erp_id === selectedFaculty.erpid && logDate === date;
     });
     // Transform logs to the format expected by the component
@@ -288,7 +288,6 @@ export default function AttendanceTracker({ initialData }) {
 
   const filteredLogs = getLogsToDisplay().filter(log => {
     return (
-      (log.ip?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
       (log.logId?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
       (log.time?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
       (log.classroom?.toLowerCase() || '').includes(searchTerm.toLowerCase())
@@ -334,8 +333,8 @@ export default function AttendanceTracker({ initialData }) {
   const exportToCSV = () => {
     if (!filteredLogs.length) return;
     
-    const headers = ['IP Address', 'Log ID', 'Time', 'Status'];
-    const csvData = filteredLogs.map(log => [log.ip, log.logId, log.time, log.status]);
+    const headers = ['Log ID', 'Time', 'Classroom', 'Status'];
+    const csvData = filteredLogs.map(log => [log.logId, log.time, log.classroom, log.status]);
     
     // Add headers
     csvData.unshift(headers);
@@ -370,25 +369,6 @@ export default function AttendanceTracker({ initialData }) {
       setSelectedFaculty(facultyObj);
       setSelectedDate(''); // Reset date to show all logs for user
       // Set ipLogs to all logs for this faculty (across all dates)
-      if (data && Array.isArray(data)) {
-        // Defensive, but not needed here
-      }
-      if (facultyObj && Array.isArray(data)) {
-        // Defensive, but not needed here
-      }
-      if (facultyObj && Array.isArray(data)) {
-        // Defensive, but not needed here
-      }
-      if (facultyObj && Array.isArray(data)) {
-        // Defensive, but not needed here
-      }
-      if (facultyObj && Array.isArray(data)) {
-        // Defensive, but not needed here
-      }
-      if (facultyObj && Array.isArray(data)) {
-        // Defensive, but not needed here
-      }
-      // Set ipLogs to all logs for this faculty
       if (data && Array.isArray(data)) {
         const userLogs = data.filter(log => log.erp_id === facultyObj.erpid);
         const transformedLogs = userLogs.map(log => ({
@@ -561,7 +541,7 @@ export default function AttendanceTracker({ initialData }) {
                 <Users size={18} className="mr-2 text-blue-600" />
                 Select Faculty:
               </label>
-              <div className="mb-2 relative">
+              <div className="mb-2 relative max-w-md mx-auto">
                 <input
                   type="text"
                   placeholder="Search faculty..."
@@ -591,17 +571,15 @@ export default function AttendanceTracker({ initialData }) {
                 <Calendar size={18} className="mr-2 text-green-600" />
                 Select Date:
               </label>
-              <select
+              <input
+                type="date"
                 value={selectedDate}
                 onChange={handleDateChange}
                 className="block w-full p-3 border border-gray-300 rounded-md focus:ring-green-500 focus:border-green-500 bg-white shadow-sm"
                 disabled={!selectedFaculty}
-              >
-                <option value="">-- Select Date --</option>
-                {getDatesForFaculty(selectedFaculty).map(date => (
-                  <option key={date} value={date}>{date}</option>
-                ))}
-              </select>
+                min={getDatesForFaculty(selectedFaculty)[0]}
+                max={getDatesForFaculty(selectedFaculty)[getDatesForFaculty(selectedFaculty).length - 1]}
+              />
             </div>
           </div>
           
@@ -622,8 +600,8 @@ export default function AttendanceTracker({ initialData }) {
 
             {/* Show log search only if a faculty is selected */}
             {selectedUser && (
-              <div className="mb-4">
-                <div className="relative">
+              <div className="mb-4 flex justify-center w-full">
+                <div className="relative max-w-md w-96 mx-auto">
                   <input
                     type="text"
                     placeholder="Search logs..."
@@ -648,9 +626,6 @@ export default function AttendanceTracker({ initialData }) {
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       ERP ID
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Camera IP
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Classroom
@@ -682,9 +657,6 @@ export default function AttendanceTracker({ initialData }) {
                         {log.erpId}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {log.ip}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         {log.classroom}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
@@ -692,8 +664,7 @@ export default function AttendanceTracker({ initialData }) {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                          <Check className="h-3 w-3 mr-1" />
-                          Success
+                          {log.status || 'Present'}
                         </span>
                       </td>
                     </tr>
@@ -701,11 +672,16 @@ export default function AttendanceTracker({ initialData }) {
                 </tbody>
               </table>
             </div>
-
-            {filteredLogs.length === 0 && (
-              <div className="text-center py-8 text-gray-500">
-                <Activity className="mx-auto h-8 w-8 text-gray-400 mb-2" />
-                <p>No logs found for the selected criteria</p>
+            {/* Export Button */}
+            {filteredLogs.length > 0 && (
+              <div className="flex justify-end mt-4">
+                <button
+                  onClick={exportToCSV}
+                  className="flex items-center px-4 py-2 bg-green-100 text-green-700 rounded-md hover:bg-green-200 transition-colors text-sm font-medium"
+                >
+                  <Download size={16} className="mr-2" />
+                  Export to CSV
+                </button>
               </div>
             )}
           </div>
@@ -713,15 +689,4 @@ export default function AttendanceTracker({ initialData }) {
       )}
     </div>
   );
-}
-
-// Helper function to format date from YYYYMMDD to MM/DD/YYYY
-function formatDate(dateString) {
-  if (!dateString || dateString.length !== 8) return dateString;
-  
-  const year = dateString.substring(0, 4);
-  const month = dateString.substring(4, 6);
-  const day = dateString.substring(6, 8);
-  
-  return `${month}/${day}/${year}`;
 }
