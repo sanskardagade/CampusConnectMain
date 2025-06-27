@@ -450,7 +450,8 @@ const HODDashboard = () => {
               {[
                 { 
                   title: 'Total Students', 
-                  value: dashboardData.departmentStats?.totalStudents || 0, 
+                  // value: dashboardData.departmentStats?.totalStudents || 0,
+                  value: 0, 
                   icon: <FiUsers className="text-white" size={24} />, 
                   trend: 'up',
                 },
@@ -509,7 +510,7 @@ const HODDashboard = () => {
             </div>
 
             {/* Faculty Stress Level Insights */}
-            <motion.div
+            {/* <motion.div
               variants={itemVariants}
               className="bg-white rounded-xl shadow-sm p-6 border border-gray-100 mt-6"
             >
@@ -550,7 +551,7 @@ const HODDashboard = () => {
                   </table>
                 </div>
               )}
-            </motion.div>
+            </motion.div> */}
           </>
         )}
 
@@ -878,13 +879,10 @@ const HODDashboard = () => {
                 initial={{ scale: 0.9, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 exit={{ scale: 0.9, opacity: 0 }}
-                className="bg-white rounded-xl shadow-lg w-full max-w-5xl max-h-[90vh] overflow-hidden"
+                className="bg-white rounded-xl shadow-lg w-full max-w-6xl max-h-[95vh] overflow-hidden"
                 onClick={e => e.stopPropagation()}
               >
-                <div className="p-6 border-b border-gray-200 flex justify-between items-center">
-                  <h2 className="text-xl font-bold flex items-center">
-                    {selectedPerson?.name || (selectedPerson?.type === 'faculty' ? 'Faculty' : 'Non-Teaching Staff')} Logs
-                  </h2>
+                <div className="p-2 flex justify-end">
                   <button
                     onClick={() => setShowProfileModal(false)}
                     className="text-gray-500 hover:text-gray-700 p-2 hover:bg-gray-100 rounded-full transition-colors"
@@ -892,8 +890,8 @@ const HODDashboard = () => {
                     <FiX size={24} />
                   </button>
                 </div>
-                <div className="p-6 overflow-y-auto max-h-[calc(90vh-8rem)]">
-                  <FacultyLogDisplay logs={profileLogs || []} loading={profileLoading} />
+                <div className="p-0 overflow-y-auto max-h-[calc(95vh-3rem)]">
+                  <FacultyLogDisplay logs={profileLogs || []} facultyName={selectedPerson?.name} loading={profileLoading} />
                 </div>
               </motion.div>
             </motion.div>

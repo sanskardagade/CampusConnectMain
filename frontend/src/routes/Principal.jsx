@@ -13,6 +13,7 @@ import PrincipalProfileEdit from "../components/principal/PrincipalProfileEdit";
 import PrincipalChangePassword from "../components/principal/PrincipalChangePassword";
 import LeaveApplication from "../components/principal/LeaveApplication";
 import FacultyReport from "../components/principal/FacultyReport";
+import StressDisplay from "../components/principal/StressDisplay";
 
 
 const Principal = () => {
@@ -22,7 +23,7 @@ const Principal = () => {
         <Route path="" element={<PrincipalDashboard/>}/>
         <Route path="view-student" element={<AllStudentAttendance/>} />
         <Route path="view-faculty" element={<FacultyAttendance />} />
-        <Route path="view-stress-level" element={<StudentStressLevel />} />
+        {/* <Route path="view-stress-level" element={<StudentStressLevel />} /> */}
         <Route path="view-student-location" element={<StudentLocation />} />
         <Route path="department-statistics" element={<Divisions/>} />
         <Route path="principal-profile" element={<PrincipalProfile />} />
@@ -31,6 +32,7 @@ const Principal = () => {
         <Route path="principal-settings/change-password" element={<PrincipalChangePassword />} />
         <Route path="faculty-leave-approval" element={<LeaveApplication />} />
         <Route path="faculty-report" element={<FacultyReport />} />
+        <Route path="view-stress-level" element={<StressDisplay />} />
       </Routes>
     </PrincipalSideBar>
   );

@@ -9,6 +9,7 @@ import {
 } from 'react-icons/fi';
 import ProfileView from './ProfileView';
 import FacultyLogDisplay from '../components/faculty/FacultyLogDisplay';
+import dayjs from 'dayjs';
 
 const PrincipalDashboard = () => {
   const [loading, setLoading] = useState(true);
@@ -42,9 +43,15 @@ const PrincipalDashboard = () => {
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
   const [downloadFormat, setDownloadFormat] = useState('csv');
+  const [pendingLeaves, setPendingLeaves] = useState(0);
+  const [presentStudents, setPresentStudents] = useState(0);
+  const [presentFaculty, setPresentFaculty] = useState(0);
+  const [presentStaff, setPresentStaff] = useState(0);
 
   useEffect(() => {
     fetchDashboardData();
+    fetchPendingLeaves();
+    fetchTodayPresence();
   }, []);
 
   const fetchDashboardData = async () => {
@@ -61,6 +68,57 @@ const PrincipalDashboard = () => {
       console.error('Error fetching dashboard data:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchPendingLeaves = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await axios.get('http://69.62.83.14:9000/api/principal/faculty-leave-approval', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const pending = (res.data || []).filter(l => l.PrincipalApproval === 'Pending').length;
+      setPendingLeaves(pending);
+    } catch (e) {
+      setPendingLeaves(0);
+    }
+  };
+
+  const fetchTodayPresence = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      // Faculty logs
+      const facultyRes = await axios.get('http://69.62.83.14:9000/api/principal/faculty-logs', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const today = dayjs().format('YYYY-MM-DD');
+      const facultyToday = new Set();
+      (facultyRes.data.logs || []).forEach(log => {
+        if (dayjs(log.timestamp).format('YYYY-MM-DD') === today) {
+          facultyToday.add(log.erp_id);
+        }
+      });
+      setPresentFaculty(facultyToday.size);
+      // Staff logs
+      const staffRes = await axios.get('http://69.62.83.14:9000/api/principal/staff-logs', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const staffToday = new Set();
+      (staffRes.data.logs || []).forEach(log => {
+        if (dayjs(log.timestamp).format('YYYY-MM-DD') === today) {
+          staffToday.add(log.erp_id);
+        }
+      });
+      setPresentStaff(staffToday.size);
+      // Students: fetch from backend endpoint
+      const studentRes = await axios.get('http://69.62.83.14:9000/api/principal/student-attendance-today', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setPresentStudents(studentRes.data.count || 0);
+    } catch (e) {
+      setPresentFaculty(0);
+      setPresentStaff(0);
+      setPresentStudents(0);
     }
   };
 
@@ -337,6 +395,43 @@ const PrincipalDashboard = () => {
             delay={0.4}
           />
         </button>
+      </motion.div>
+
+      {/* Live Overview */}
+      <motion.div 
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.2 }}
+        className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8"
+      >
+        <StatCard 
+          icon={<FiBook size={20} />}
+          title="Pending Leave Approvals"
+          value={pendingLeaves}
+          color="from-blue-500 to-blue-600"
+          delay={0.1}
+        />
+        <StatCard 
+          icon={<FiUsers size={20} />}
+          title="Present Students"
+          value={presentStudents}
+          color="from-green-500 to-green-600"
+          delay={0.2}
+        />
+        <StatCard 
+          icon={<FiUser size={20} />}
+          title="Present Faculty"
+          value={presentFaculty}
+          color="from-red-500 to-red-600"
+          delay={0.3}
+        />
+        <StatCard 
+          icon={<FiBriefcase size={20} />}
+          title="Present Non-Teaching Staff"
+          value={presentStaff}
+          color="from-purple-500 to-purple-600"
+          delay={0.4}
+        />
       </motion.div>
 
       {showStudentUnavailable && (

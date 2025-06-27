@@ -699,10 +699,10 @@ const StudentStressDashboard = () => {
                 <tr>
                   <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Faculty</th>
                   <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ERP ID</th>
-                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Latest Score</th>
+                  {/* <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Latest Score</th> */}
                   <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                   <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Updated</th>
-                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                  {/* <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th> */}
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
@@ -729,7 +729,7 @@ const StudentStressDashboard = () => {
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                       {student.erpid}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    {/* <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center space-x-3">
                         <span className="text-lg font-bold text-gray-900">{student.latestEntry.score}%</span>
                         <div className="w-16 bg-gray-200 rounded-full h-2">
@@ -742,7 +742,7 @@ const StudentStressDashboard = () => {
                           ></div>
                         </div>
                       </div>
-                    </td>
+                    </td> */}
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span 
                         className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium"
@@ -758,7 +758,7 @@ const StudentStressDashboard = () => {
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {formatTimestamp(student.latestEntry.timestamp)}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    {/* <td className="px-6 py-4 whitespace-nowrap">
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
@@ -769,7 +769,7 @@ const StudentStressDashboard = () => {
                       >
                         <Eye className="h-5 w-5 text-gray-600" />
                       </button>
-                    </td>
+                    </td> */}
                   </tr>
                 ))}
               </tbody>

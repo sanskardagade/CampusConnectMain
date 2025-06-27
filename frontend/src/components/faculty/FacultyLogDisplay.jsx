@@ -35,14 +35,57 @@ const FacultyLogDisplay = ({ logs = [], facultyName }) => {
     );
   }
 
+  // Filtered logs for table
+  const filteredLogs = useMemo(() => {
+    // First, apply the existing filters
+    let logsToFilter = logs.filter(log => {
+      const matchesFaculty = filterFaculty ? log.person_name === filterFaculty : true;
+      const matchesClassroom = filterClassroom ? log.classroom === filterClassroom : true;
+      let matchesDate = true;
+      if (dateRange.start) {
+        matchesDate = matchesDate && new Date(log.timestamp) >= new Date(dateRange.start);
+      }
+      if (dateRange.end) {
+        // Add 1 day to end date to make it inclusive
+        const endDate = new Date(dateRange.end);
+        endDate.setDate(endDate.getDate() + 1);
+        matchesDate = matchesDate && new Date(log.timestamp) < endDate;
+      }
+      return matchesFaculty && matchesClassroom && matchesDate;
+    });
+
+    // Sort logs by faculty and timestamp (descending)
+    logsToFilter = logsToFilter.sort((a, b) => {
+      if (a.person_name === b.person_name) {
+        return new Date(b.timestamp) - new Date(a.timestamp);
+      }
+      return a.person_name.localeCompare(b.person_name);
+    });
+
+    // Filter to only one log per 30-minute window per faculty
+    const filteredByWindow = [];
+    const lastLogTimeByFaculty = {};
+    for (const log of logsToFilter) {
+      const faculty = log.person_name;
+      const logTime = new Date(log.timestamp).getTime();
+      if (!lastLogTimeByFaculty[faculty] || (lastLogTimeByFaculty[faculty] - logTime) >= 30 * 60 * 1000) {
+        filteredByWindow.push(log);
+        lastLogTimeByFaculty[faculty] = logTime;
+      }
+    }
+    return filteredByWindow;
+  }, [logs, filterFaculty, filterClassroom, dateRange]);
+
   // Data processing for charts
   const chartData = useMemo(() => {
-    const classroomCounts = logs.reduce((acc, log) => {
+    // Use filtered logs if date range is set, otherwise use all logs
+    const logsForChart = (dateRange.start || dateRange.end) ? filteredLogs : logs;
+    const classroomCounts = logsForChart.reduce((acc, log) => {
       acc[log.classroom] = (acc[log.classroom] || 0) + 1;
       return acc;
     }, {});
 
-    const hourlyData = logs.reduce((acc, log) => {
+    const hourlyData = logsForChart.reduce((acc, log) => {
       const hour = new Date(log.timestamp).getHours();
       const hourKey = `${hour}:00`;
       acc[hourKey] = (acc[hourKey] || 0) + 1;
@@ -53,7 +96,7 @@ const FacultyLogDisplay = ({ logs = [], facultyName }) => {
       classroomData: Object.entries(classroomCounts).map(([name, value]) => ({ name, value })),
       hourlyData: Object.entries(hourlyData).map(([hour, count]) => ({ hour, count }))
     };
-  }, [logs]);
+  }, [logs, filteredLogs, dateRange]);
 
   const colors = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#06B6D4'];
 
@@ -95,8 +138,10 @@ const FacultyLogDisplay = ({ logs = [], facultyName }) => {
 
   // Modal content generator
   const renderModalContent = () => {
+    // Use filteredLogs if date range is set, otherwise use all logs
+    const logsForModal = (dateRange.start || dateRange.end) ? filteredLogs : logs;
     // Group logs by classroom
-    const logsByClassroom = logs.reduce((acc, log) => {
+    const logsByClassroom = logsForModal.reduce((acc, log) => {
       if (!acc[log.classroom]) acc[log.classroom] = [];
       acc[log.classroom].push(log);
       return acc;
@@ -164,7 +209,7 @@ const FacultyLogDisplay = ({ logs = [], facultyName }) => {
     } else if (modalType === 'distribution') {
       if (selectedClassroom) {
         const entries = logsByClassroom[selectedClassroom] || [];
-        const total = logs.length;
+        const total = logsForModal.length;
         const percent = total ? ((entries.length / total) * 100).toFixed(2) : 0;
         return (
           <div className="max-h-[70vh] overflow-y-auto pr-2">
@@ -194,7 +239,7 @@ const FacultyLogDisplay = ({ logs = [], facultyName }) => {
         );
       }
       // Show list/table of classrooms
-      const total = logs.length;
+      const total = logsForModal.length;
       return (
         <div className="max-h-[70vh] overflow-y-auto pr-2">
           <h2 className="text-xl font-bold mb-4">All Classrooms</h2>
@@ -239,47 +284,6 @@ const FacultyLogDisplay = ({ logs = [], facultyName }) => {
   const facultyOptions = useMemo(() => Array.from(new Set(logs.map(l => l.person_name))).filter(Boolean), [logs]);
   const classroomOptions = useMemo(() => Array.from(new Set(logs.map(l => l.classroom))).filter(Boolean), [logs]);
 
-  // Filtered logs for table
-  const filteredLogs = useMemo(() => {
-    // First, apply the existing filters
-    let logsToFilter = logs.filter(log => {
-      const matchesFaculty = filterFaculty ? log.person_name === filterFaculty : true;
-      const matchesClassroom = filterClassroom ? log.classroom === filterClassroom : true;
-      let matchesDate = true;
-      if (dateRange.start) {
-        matchesDate = matchesDate && new Date(log.timestamp) >= new Date(dateRange.start);
-      }
-      if (dateRange.end) {
-        // Add 1 day to end date to make it inclusive
-        const endDate = new Date(dateRange.end);
-        endDate.setDate(endDate.getDate() + 1);
-        matchesDate = matchesDate && new Date(log.timestamp) < endDate;
-      }
-      return matchesFaculty && matchesClassroom && matchesDate;
-    });
-
-    // Sort logs by faculty and timestamp (descending)
-    logsToFilter = logsToFilter.sort((a, b) => {
-      if (a.person_name === b.person_name) {
-        return new Date(b.timestamp) - new Date(a.timestamp);
-      }
-      return a.person_name.localeCompare(b.person_name);
-    });
-
-    // Filter to only one log per 30-minute window per faculty
-    const filteredByWindow = [];
-    const lastLogTimeByFaculty = {};
-    for (const log of logsToFilter) {
-      const faculty = log.person_name;
-      const logTime = new Date(log.timestamp).getTime();
-      if (!lastLogTimeByFaculty[faculty] || (lastLogTimeByFaculty[faculty] - logTime) >= 30 * 60 * 1000) {
-        filteredByWindow.push(log);
-        lastLogTimeByFaculty[faculty] = logTime;
-      }
-    }
-    return filteredByWindow;
-  }, [logs, filterFaculty, filterClassroom, dateRange]);
-
   // Determine the faculty name to display
   let displayName = facultyName;
   if (!displayName && logs && logs.length > 0) {
@@ -314,7 +318,7 @@ const FacultyLogDisplay = ({ logs = [], facultyName }) => {
                 <Activity className="text-blue-600" size={24} />
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">{displayName} Dashboard</h1>
+                <h1 className="text-2xl font-bold text-gray-900">{displayName} </h1>
                 <p className="text-gray-600">Real-time monitoring and analytics</p>
               </div>
             </div>
@@ -335,7 +339,7 @@ const FacultyLogDisplay = ({ logs = [], facultyName }) => {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
             <div className="flex items-center justify-between">
               <div>
@@ -384,7 +388,7 @@ const FacultyLogDisplay = ({ logs = [], facultyName }) => {
               <div className="flex justify-between">
                 <span className="text-gray-600">Recent:</span>
                 <span className="text-gray-900 font-medium">
-                  {logs.length > 0 ? new Date(logs[0].timestamp).toLocaleTimeString() : 'N/A'}
+                  {logs.length > 0 ? `${new Date(logs[0].timestamp).toLocaleDateString()} ${new Date(logs[0].timestamp).toLocaleTimeString()}` : 'N/A'}
                 </span>
               </div>
               {/* <div className="flex justify-between">
@@ -396,7 +400,7 @@ const FacultyLogDisplay = ({ logs = [], facultyName }) => {
             </div>
           </div>
 
-          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+          {/* <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-gray-600 text-sm font-medium">Active Cameras</p>
@@ -410,7 +414,7 @@ const FacultyLogDisplay = ({ logs = [], facultyName }) => {
               <Eye className="text-blue-500 mr-1" size={16} />
               <span className="text-gray-600">Online and recording</span>
             </div>
-          </div>
+          </div> */}
         </div>
 
         {/* Charts Section */}

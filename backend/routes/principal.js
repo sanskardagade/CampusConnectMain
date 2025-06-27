@@ -496,7 +496,7 @@ router.get('/faculty-attendance-report', async (req, res) => {
 
       if (format === 'pdf') {
         // Generate PDF with table formatting
-        const doc = new PDFDocument({ margin: 30, size: 'A4' });
+        const doc = new PDFDocument({ margin: 30, size: 'A4', layout: 'landscape' });
         res.setHeader('Content-Type', 'application/pdf');
         res.setHeader('Content-Disposition', 'attachment; filename=faculty_attendance.pdf');
         doc.pipe(res);
@@ -504,22 +504,26 @@ router.get('/faculty-attendance-report', async (req, res) => {
         doc.fontSize(16).text('Faculty Attendance Report', { align: 'center' });
         doc.moveDown();
 
-        // Table columns
-        const headers = ['Date', 'Faculty Name', 'ERP ID', 'Department', 'First Log', 'Last Log', 'Duration (HH:MM:SS)'];
-        const colWidths = [80, 120, 70, 110, 60, 60, 80];
+        // Table columns (add Half/Full Day)
+        const headers = ['Date', 'Faculty Name', 'ERP ID', 'Department', 'First Log', 'Last Log', 'Duration (HH:MM:SS)', 'Half/Full Day'];
+        const colWidths = [80, 140, 70, 160, 70, 70, 120, 90];
         const startX = doc.x;
         let y = doc.y;
 
         // Draw header row
-        doc.font('Helvetica-Bold').fontSize(10);
-        let x = startX;
-        headers.forEach((header, i) => {
-          doc.rect(x, y, colWidths[i], 20).stroke();
-          doc.text(header, x + 2, y + 6, { width: colWidths[i] - 4, align: 'center' });
-          x += colWidths[i];
-        });
-        y += 20;
-        doc.font('Helvetica').fontSize(9);
+        function drawHeader() {
+          let x = startX;
+          doc.font('Helvetica-Bold').fontSize(10);
+          headers.forEach((header, i) => {
+            doc.rect(x, y, colWidths[i], 20).stroke();
+            doc.text(header, x + 2, y + 6, { width: colWidths[i] - 4, align: 'center' });
+            x += colWidths[i];
+          });
+          y += 20;
+          doc.font('Helvetica').fontSize(9);
+          doc.y = y; // Sync doc.y with y
+        }
+        drawHeader();
 
         // Helper to convert UTC timestamp to IST date string
         function toISTDateString(utcDateString) {
@@ -530,10 +534,12 @@ router.get('/faculty-attendance-report', async (req, res) => {
         }
 
         // Draw data rows
+        let rowCount = 0;
         rows.forEach(r => {
           const firstLog = new Date(r.first_log);
           const lastLog = new Date(r.last_log);
           let duration = '00:00:00';
+          let durationHours = 0;
           const durationMs = lastLog - firstLog;
           if (!isNaN(durationMs) && durationMs >= 0) {
             const hours = Math.floor(durationMs / (1000 * 60 * 60));
@@ -542,7 +548,9 @@ router.get('/faculty-attendance-report', async (req, res) => {
             duration = `${hours.toString().padStart(2, '0')}:${minutes
               .toString()
               .padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            durationHours = durationMs / (1000 * 60 * 60);
           }
+          const halfFull = durationHours < 4 ? 'Half Day' : 'Full Day';
           const row = [
             toISTDateString(r.first_log),
             r.faculty_name,
@@ -550,28 +558,23 @@ router.get('/faculty-attendance-report', async (req, res) => {
             r.department_name,
             firstLog.toTimeString().split(' ')[0],
             lastLog.toTimeString().split(' ')[0],
-            duration
+            duration,
+            halfFull
           ];
-          x = startX;
+          let x = startX;
           row.forEach((cell, i) => {
             doc.rect(x, y, colWidths[i], 18).stroke();
             doc.text(String(cell), x + 2, y + 5, { width: colWidths[i] - 4, align: 'center', ellipsis: true });
             x += colWidths[i];
           });
           y += 18;
-          // Add new page if needed
-          if (y > doc.page.height - 40) {
+          rowCount++;
+          // Add new page if needed (every 25 rows)
+          if (rowCount % 25 === 0) {
             doc.addPage();
             y = doc.y;
-            x = startX;
-            doc.font('Helvetica-Bold').fontSize(10);
-            headers.forEach((header, i) => {
-              doc.rect(x, y, colWidths[i], 20).stroke();
-              doc.text(header, x + 2, y + 6, { width: colWidths[i] - 4, align: 'center' });
-              x += colWidths[i];
-            });
-            y += 20;
-            doc.font('Helvetica').fontSize(9);
+            drawHeader();
+            y = doc.y;
           }
         });
         doc.end();
@@ -591,8 +594,8 @@ router.get('/faculty-attendance-report', async (req, res) => {
           { header: 'First Log', key: 'first_log', width: 15 },
           { header: 'Last Log', key: 'last_log', width: 15 },
           { header: 'Duration (HH:MM:SS)', key: 'duration', width: 18 },
+          { header: 'Half/Full Day', key: 'half_full', width: 15 },
         ];
-        // Helper to convert UTC timestamp to IST date string
         function toISTDateString(utcDateString) {
           const date = new Date(utcDateString);
           const istOffset = 5.5 * 60 * 60 * 1000;
@@ -603,6 +606,7 @@ router.get('/faculty-attendance-report', async (req, res) => {
           const firstLog = new Date(r.first_log);
           const lastLog = new Date(r.last_log);
           let duration = '00:00:00';
+          let durationHours = 0;
           const durationMs = lastLog - firstLog;
           if (!isNaN(durationMs) && durationMs >= 0) {
             const hours = Math.floor(durationMs / (1000 * 60 * 60));
@@ -611,7 +615,9 @@ router.get('/faculty-attendance-report', async (req, res) => {
             duration = `${hours.toString().padStart(2, '0')}:${minutes
               .toString()
               .padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            durationHours = durationMs / (1000 * 60 * 60);
           }
+          const halfFull = durationHours < 4 ? 'Half Day' : 'Full Day';
           worksheet.addRow({
             date: toISTDateString(r.first_log),
             faculty_name: r.faculty_name,
@@ -620,6 +626,7 @@ router.get('/faculty-attendance-report', async (req, res) => {
             first_log: firstLog.toTimeString().split(' ')[0],
             last_log: lastLog.toTimeString().split(' ')[0],
             duration,
+            half_full: halfFull,
           });
         });
         res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
@@ -630,7 +637,6 @@ router.get('/faculty-attendance-report', async (req, res) => {
       }
 
       // CSV generation
-      // Helper to convert UTC timestamp to IST date string
       function toISTDateString(utcDateString) {
         const date = new Date(utcDateString);
         const istOffset = 5.5 * 60 * 60 * 1000;
@@ -638,11 +644,12 @@ router.get('/faculty-attendance-report', async (req, res) => {
         return istDate.toISOString().split('T')[0];
       }
 
-      const csvHeader = 'Date,Faculty Name,ERP ID,Department,First Log,Last Log,Duration (HH:MM:SS)\n';
+      const csvHeader = 'Date,Faculty Name,ERP ID,Department,First Log,Last Log,Duration (HH:MM:SS),Half/Full Day\n';
       const csvRows = rows.map(r => {
           const firstLog = new Date(r.first_log);
           const lastLog = new Date(r.last_log);
           let duration = '00:00:00';
+          let durationHours = 0;
           const durationMs = lastLog - firstLog;
           if (!isNaN(durationMs) && durationMs >= 0) {
             const hours = Math.floor(durationMs / (1000 * 60 * 60));
@@ -651,7 +658,9 @@ router.get('/faculty-attendance-report', async (req, res) => {
             duration = `${hours.toString().padStart(2, '0')}:${minutes
               .toString()
               .padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            durationHours = durationMs / (1000 * 60 * 60);
           }
+          const halfFull = durationHours < 4 ? 'Half Day' : 'Full Day';
           return [
               toISTDateString(r.first_log),
               `"${r.faculty_name}"`,
@@ -659,7 +668,8 @@ router.get('/faculty-attendance-report', async (req, res) => {
               `"${r.department_name}"`,
               firstLog.toTimeString().split(' ')[0],
               lastLog.toTimeString().split(' ')[0],
-              duration
+              duration,
+              halfFull
           ].join(',');
       });
 
@@ -672,6 +682,62 @@ router.get('/faculty-attendance-report', async (req, res) => {
   } catch (error) {
       console.error('Error generating attendance report:', error);
       res.status(500).json({ message: 'Failed to generate attendance report' });
+  }
+});
+
+// REPLACE the /student-attendance-today endpoint with this:
+router.get('/student-attendance-today', async (req, res) => {
+  try {
+    const today = new Date();
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth() + 1).padStart(2, '0');
+    const dd = String(today.getDate()).padStart(2, '0');
+    const todayStr = `${yyyy}-${mm}-${dd}`;
+
+    // Query for unique present students today
+    const rows = await sql`
+      SELECT DISTINCT erpid
+      FROM student_attendance
+      WHERE date = ${todayStr} AND status = 'Present'
+    `;
+
+    res.json({ count: rows.length });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ message: 'Failed to fetch present students' });
+  }
+});
+
+
+router.get('/view-stress-level', authenticateToken, async (req, res) => {
+  try {
+    const { facultyId } = req.query;
+    if (!facultyId) {
+      return res.status(400).json({ message: 'facultyId is required' });
+    }
+    // Get faculty info
+    const [faculty] = await sql`
+      SELECT id, erpid, name FROM faculty WHERE erpid = ${facultyId}
+    `;
+    if (!faculty) {
+      return res.status(404).json({ message: 'Faculty not found' });
+    }
+    // Get all stress logs for this faculty
+    const logs = await sql`
+      SELECT id, erpid, timestamp, stress_status, stress_level
+      FROM stress_logs
+      WHERE erpid = ${facultyId}
+      ORDER BY timestamp DESC
+    `;
+    // Attach name to each log
+    const logsWithName = logs.map(log => ({
+      ...log,
+      name: faculty.name
+    }));
+    res.json(logsWithName);
+  } catch (error) {
+    console.error('Error fetching faculty stress data:', error);
+    res.status(500).json({ message: 'Error fetching faculty stress data' });
   }
 });
 

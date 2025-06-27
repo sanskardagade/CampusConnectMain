@@ -94,7 +94,7 @@ const PrincipalProfile = () => {
               
       <div className="space-y-4 px-2">
         <ProfileField label="Name" value={principal.name} />
-        <ProfileField label="Faculty ID" value={principal.erpStaffId} />
+        <ProfileField label="Faculty ID" value={principal.erpstaffid} />
         <ProfileField label="Email" value={principal.email} />
         {/* <ProfileField label="Start Date" value={principal.startDate} />
         <ProfileField label="End Date" value={principal.endDate || 'Current'} /> */}

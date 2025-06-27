@@ -38,6 +38,8 @@ import { useLocation } from "react-router-dom";
       name: "View Faculty Stress Level",
       icon: <AiTwotoneFileExclamation />,
     },
+   
+    
     {
       path: "/principal/faculty-leave-approval",
       name: "Faculty Leave Approval",

@@ -26,11 +26,11 @@ import SidebarMenu from "./SideBarMenu";
     //   name: "View Faculty Attendance",
     //   icon: <FaUser />,
     // },
-    {
-      path: "/hod/faculty-log",
-      name: "Faculty Attendance",
-      icon: <BiAnalyse />,
-    },
+    // {
+    //   path: "/hod/faculty-log",
+    //   name: "Faculty Attendance",
+    //   icon: <BiAnalyse />,
+    // },
     {
       path: "/hod/report",
       name: "Faculty Report",

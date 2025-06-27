@@ -3,60 +3,97 @@ const router = express.Router();
 const authenticateToken = require('../middleware/auth');
 const sql = require('../config/neonsetup');
 const Hod = require('../models/Hod');
-const { generateReport } = require('../services/reportService.jsx');
+const PDFDocument = require('pdfkit');
+const ExcelJS = require('exceljs');
 
-// Get HOD profile
+// Get HOD dashboard data (real-time, structured)
 router.get('/dashboard', authenticateToken, async (req, res) => {
   try {
-    console.log('Fetching HOD profile for user:', req.user);
+    const userId = req.user.id;
+    const departmentId = req.user.departmentId;
 
-    // First get the HOD data
-    const result = await sql`
+    // Get HOD profile
+    const [hod] = await sql`
       SELECT id, erpid, name, email, department_id, start_date, end_date, is_active
       FROM hod
-      WHERE id = ${req.user.id}
+      WHERE id = ${userId}
     `;
+    if (!hod) return res.status(404).json({ message: 'HOD not found' });
 
-    console.log('Query result:', result);
-
-    if (!result || result.length === 0) {
-      console.log('No HOD found for id:', req.user.id);
-      return res.status(404).json({ message: 'HOD not found' });
-    }
-
-    const hod = result[0];
-
-    // Try to get department name if department table exists
+    // Get department name
     let departmentName = null;
     try {
       const deptResult = await sql`
-        SELECT name 
-        FROM departments
-        WHERE id = ${hod.department_id}
+        SELECT name FROM departments WHERE id = ${hod.department_id}
       `;
-      if (deptResult && deptResult.length > 0) {
-        departmentName = deptResult[0].name;
-      }
-    } catch (deptError) {
-      console.log('Department table not found or error:', deptError);
-      // Continue without department name
-    }
+      if (deptResult && deptResult.length > 0) departmentName = deptResult[0].name;
+    } catch {}
 
-    const response = {
-      id: hod.id,
-      erpStaffId: hod.erpid,
+    // Get department stats
+    const [deptStats = {}] = await sql`
+      SELECT
+        (SELECT COUNT(*) FROM students WHERE department_id = ${departmentId}) AS "totalStudents",
+        (SELECT COUNT(*) FROM faculty WHERE department_id = ${departmentId} AND is_active = true) AS "totalFaculty"
+    `;
+
+    // Get faculty list
+    const faculty = await sql`
+      SELECT id, erpid, name, email, is_active, created_at FROM faculty WHERE department_id = ${departmentId} AND is_active = true ORDER BY name ASC
+    `;
+
+    // Get non-teaching staff
+    const nonTeachingStaff = await sql`
+      SELECT id, erpid, name, email FROM non_teaching_staff WHERE department_id = ${departmentId} ORDER BY name ASC
+    `;
+
+    // Get attendance logs count
+    const [{ count: attendanceLogsCount }] = await sql`
+      SELECT COUNT(*)::int as count FROM faculty_logs fl JOIN faculty f ON fl.erp_id = f.erpid WHERE f.department_id = ${departmentId}
+    `;
+
+    // Get stress levels (faculty)
+    const stressRows = await sql`
+      SELECT stress_status FROM stress_logs sl JOIN faculty f ON sl.erpid = f.erpid WHERE f.department_id = ${departmentId}
+    `;
+    let facultyStress = { high: 0, medium: 0, low: 0 };
+    stressRows.forEach(row => {
+      if (["Stressed", "At Risk", "Critical", "Warning"].includes(row.stress_status)) facultyStress.high++;
+      else if (["Stable", "Normal"].includes(row.stress_status)) facultyStress.low++;
+      else facultyStress.medium++;
+    });
+
+    // Get all faculty logs for the department
+    const logs = await sql`
+      SELECT fl.*, f.name as person_name
+      FROM faculty_logs fl
+      JOIN faculty f ON fl.erp_id = f.erpid
+      WHERE f.department_id = ${departmentId}
+      ORDER BY fl.timestamp DESC
+    `;
+
+    // Compose response
+    const dashboard = {
       name: hod.name,
+      hodErpId: hod.erpid,
       email: hod.email,
-      department: departmentName || 'Department ID: ' + hod.department_id,
-      startDate: hod.start_date,
-      endDate: hod.end_date,
-      isActive: hod.is_active
+      department: departmentName || `Department ID: ${hod.department_id}`,
+      departmentStats: {
+        totalStudents: deptStats.totalStudents || 0,
+        totalFaculty: deptStats.totalFaculty || 0,
+        ongoingProjects: 0,
+        avgAttendance: 0 // Placeholder, can be calculated if needed
+      },
+      faculty: faculty,
+      nonTeachingStaff: nonTeachingStaff,
+      attendanceLogsCount: attendanceLogsCount || 0,
+      stressLevels: {
+        faculty: facultyStress
+      },
+      logs: logs
     };
-
-    console.log('Sending response:', response);
-    res.json(response);
+    res.json(dashboard);
   } catch (error) {
-    console.error('Error fetching HOD profile:', error);
+    console.error('Error fetching HOD dashboard:', error);
     res.status(500).json({ message: 'Internal server error' });
   }
 });
@@ -286,72 +323,255 @@ router.put('/leave-approval/:erpStaffId', async (req, res) => {
   }
 });
 
-// Report generation endpoint
+// Faculty attendance report for HOD (CSV, XLSX, PDF)
 router.get('/faculty-attendance-report', authenticateToken, async (req, res) => {
   try {
     const { faculty, from, to, format } = req.query;
     const departmentId = req.user.departmentId;
-    let logs;
+    const fromDate = from || '1900-01-01';
+    const toDate = to || '2100-12-31';
+    let records;
     if (faculty && faculty !== 'all') {
-      logs = await sql`
-        SELECT f.name, f.erpid, fl.classroom, fl.timestamp
-        FROM faculty_logs fl
-        JOIN faculty f ON fl.erp_id = f.erpid
+      records = await sql`
+        SELECT
+          f.name AS faculty_name,
+          f.erpid,
+          d.name AS department_name,
+          log_summary.attendance_date,
+          log_summary.first_log,
+          log_summary.last_log
+        FROM
+          (
+            SELECT
+              erp_id,
+              DATE(timestamp AT TIME ZONE 'Asia/Kolkata') AS attendance_date,
+              MIN(timestamp) AS first_log,
+              MAX(timestamp) AS last_log
+            FROM
+              faculty_logs
+            WHERE
+              erp_id = ${faculty}
+              AND DATE(timestamp AT TIME ZONE 'Asia/Kolkata') >= ${fromDate}::date
+              AND DATE(timestamp AT TIME ZONE 'Asia/Kolkata') <= ${toDate}::date
+            GROUP BY
+              erp_id,
+              attendance_date
+          ) AS log_summary
+        JOIN
+          faculty f ON log_summary.erp_id = f.erpid
+        JOIN
+          departments d ON f.department_id = d.id
         WHERE f.department_id = ${departmentId}
-          AND f.erpid = ${faculty}
-          AND fl.timestamp >= ${from || '1970-01-01'}
-          AND fl.timestamp <= ${to || '2100-01-01'}
-        ORDER BY fl.timestamp DESC
+        ORDER BY d.name, f.name, log_summary.attendance_date
       `;
-      if (!logs || logs.length === 0) return res.status(404).send('No attendance data found for the selected criteria.');
-      // Group by classroom and date
-      const grouped = {};
-      logs.forEach(row => {
-        const date = row.timestamp ? new Date(row.timestamp).toLocaleDateString() : '';
-        const time = row.timestamp ? new Date(row.timestamp).toLocaleTimeString() : '';
-        const key = `${date}|${row.classroom}`;
-        if (!grouped[key]) grouped[key] = { Date: date, Time: time, Classroom: row.classroom, 'Logs Number': 0, 'ERP ID': row.erpid };
-        grouped[key]['Logs Number']++;
-      });
-      const data = Object.values(grouped);
-      // For PDF, pass faculty name as title
-      const facultyName = logs[0].name;
-      const { buffer, filename, contentType } = await generateReport(data, format || 'xlsx', facultyName);
-      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-      res.setHeader('Content-Type', contentType);
-      res.send(buffer);
     } else {
-      logs = await sql`
-        SELECT f.name, f.erpid, fl.classroom, fl.timestamp
-        FROM faculty_logs fl
-        JOIN faculty f ON fl.erp_id = f.erpid
+      records = await sql`
+        SELECT
+          f.name AS faculty_name,
+          f.erpid,
+          d.name AS department_name,
+          log_summary.attendance_date,
+          log_summary.first_log,
+          log_summary.last_log
+        FROM
+          (
+            SELECT
+              erp_id,
+              DATE(timestamp AT TIME ZONE 'Asia/Kolkata') AS attendance_date,
+              MIN(timestamp) AS first_log,
+              MAX(timestamp) AS last_log
+            FROM
+              faculty_logs
+            WHERE
+              DATE(timestamp AT TIME ZONE 'Asia/Kolkata') >= ${fromDate}::date
+              AND DATE(timestamp AT TIME ZONE 'Asia/Kolkata') <= ${toDate}::date
+            GROUP BY
+              erp_id,
+              attendance_date
+          ) AS log_summary
+        JOIN
+          faculty f ON log_summary.erp_id = f.erpid
+        JOIN
+          departments d ON f.department_id = d.id
         WHERE f.department_id = ${departmentId}
-          AND fl.timestamp >= ${from || '1970-01-01'}
-          AND fl.timestamp <= ${to || '2100-01-01'}
-        ORDER BY f.name, fl.timestamp DESC
+        ORDER BY d.name, f.name, log_summary.attendance_date
       `;
-      if (!logs || logs.length === 0) return res.status(404).send('No attendance data found for the selected criteria.');
-      // Group logs by faculty
-      const facultyMap = new Map();
-      logs.forEach(row => {
-        const key = row.erpid;
-        if (!facultyMap.has(key)) {
-          facultyMap.set(key, { Name: row.name, 'ERP ID': row.erpid, 'Logs Number': 0 });
-        }
-        facultyMap.get(key)['Logs Number']++;
-      });
-      const data = Array.from(facultyMap.values());
-      const { buffer, filename, contentType } = await generateReport(data, format || 'xlsx');
-      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-      res.setHeader('Content-Type', contentType);
-      res.send(buffer);
     }
+    const rows = Array.isArray(records) ? records : (records.rows || []);
+    if (!rows || rows.length === 0) {
+      return res.status(404).send('No attendance data found for the selected criteria.');
+    }
+    if (format === 'pdf') {
+      const doc = new PDFDocument({ margin: 30, size: 'A4', layout: 'landscape' });
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', 'attachment; filename=faculty_attendance.pdf');
+      doc.pipe(res);
+      doc.fontSize(16).text('Faculty Attendance Report', { align: 'center' });
+      doc.moveDown();
+      const headers = ['Date', 'Faculty Name', 'ERP ID', 'Department', 'First Log', 'Last Log', 'Duration (HH:MM:SS)', 'Half/Full Day'];
+      const colWidths = [80, 140, 70, 160, 70, 70, 120, 90];
+      const startX = doc.x;
+      let y = doc.y;
+      function drawHeader() {
+        let x = startX;
+        doc.font('Helvetica-Bold').fontSize(10);
+        headers.forEach((header, i) => {
+          doc.rect(x, y, colWidths[i], 20).stroke();
+          doc.text(header, x + 2, y + 6, { width: colWidths[i] - 4, align: 'center' });
+          x += colWidths[i];
+        });
+        y += 20;
+        doc.font('Helvetica').fontSize(9);
+        doc.y = y;
+      }
+      drawHeader();
+      function toISTDateString(utcDateString) {
+        const date = new Date(utcDateString);
+        const istOffset = 5.5 * 60 * 60 * 1000;
+        const istDate = new Date(date.getTime() + istOffset);
+        return istDate.toISOString().split('T')[0];
+      }
+      let rowCount = 0;
+      rows.forEach(r => {
+        const firstLog = new Date(r.first_log);
+        const lastLog = new Date(r.last_log);
+        let duration = '00:00:00';
+        let durationHours = 0;
+        const durationMs = lastLog - firstLog;
+        if (!isNaN(durationMs) && durationMs >= 0) {
+          const hours = Math.floor(durationMs / (1000 * 60 * 60));
+          const minutes = Math.floor((durationMs / (1000 * 60)) % 60);
+          const seconds = Math.floor((durationMs / 1000) % 60);
+          duration = `${hours.toString().padStart(2, '0')}:${minutes
+            .toString()
+            .padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+          durationHours = durationMs / (1000 * 60 * 60);
+        }
+        const halfFull = durationHours < 4 ? 'Half Day' : 'Full Day';
+        const row = [
+          toISTDateString(r.first_log),
+          r.faculty_name,
+          r.erpid,
+          r.department_name,
+          firstLog.toTimeString().split(' ')[0],
+          lastLog.toTimeString().split(' ')[0],
+          duration,
+          halfFull
+        ];
+        let x = startX;
+        row.forEach((cell, i) => {
+          doc.rect(x, y, colWidths[i], 18).stroke();
+          doc.text(String(cell), x + 2, y + 5, { width: colWidths[i] - 4, align: 'center', ellipsis: true });
+          x += colWidths[i];
+        });
+        y += 18;
+        rowCount++;
+        if (rowCount % 25 === 0) {
+          doc.addPage();
+          y = doc.y;
+          drawHeader();
+          y = doc.y;
+        }
+      });
+      doc.end();
+      return;
+    }
+    if (format === 'xlsx') {
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet('Faculty Attendance');
+      worksheet.columns = [
+        { header: 'Date', key: 'date', width: 15 },
+        { header: 'Faculty Name', key: 'faculty_name', width: 25 },
+        { header: 'ERP ID', key: 'erpid', width: 15 },
+        { header: 'Department', key: 'department_name', width: 25 },
+        { header: 'First Log', key: 'first_log', width: 15 },
+        { header: 'Last Log', key: 'last_log', width: 15 },
+        { header: 'Duration (HH:MM:SS)', key: 'duration', width: 18 },
+        { header: 'Half/Full Day', key: 'half_full', width: 15 },
+      ];
+      function toISTDateString(utcDateString) {
+        const date = new Date(utcDateString);
+        const istOffset = 5.5 * 60 * 60 * 1000;
+        const istDate = new Date(date.getTime() + istOffset);
+        return istDate.toISOString().split('T')[0];
+      }
+      rows.forEach(r => {
+        const firstLog = new Date(r.first_log);
+        const lastLog = new Date(r.last_log);
+        let duration = '00:00:00';
+        let durationHours = 0;
+        const durationMs = lastLog - firstLog;
+        if (!isNaN(durationMs) && durationMs >= 0) {
+          const hours = Math.floor(durationMs / (1000 * 60 * 60));
+          const minutes = Math.floor((durationMs / (1000 * 60)) % 60);
+          const seconds = Math.floor((durationMs / 1000) % 60);
+          duration = `${hours.toString().padStart(2, '0')}:${minutes
+            .toString()
+            .padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+          durationHours = durationMs / (1000 * 60 * 60);
+        }
+        const halfFull = durationHours < 4 ? 'Half Day' : 'Full Day';
+        worksheet.addRow({
+          date: toISTDateString(r.first_log),
+          faculty_name: r.faculty_name,
+          erpid: r.erpid,
+          department_name: r.department_name,
+          first_log: firstLog.toTimeString().split(' ')[0],
+          last_log: lastLog.toTimeString().split(' ')[0],
+          duration,
+          half_full: halfFull,
+        });
+      });
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Content-Disposition', 'attachment; filename=faculty_attendance.xlsx');
+      await workbook.xlsx.write(res);
+      res.end();
+      return;
+    }
+    // CSV generation
+    function toISTDateString(utcDateString) {
+      const date = new Date(utcDateString);
+      const istOffset = 5.5 * 60 * 60 * 1000;
+      const istDate = new Date(date.getTime() + istOffset);
+      return istDate.toISOString().split('T')[0];
+    }
+    const csvHeader = 'Date,Faculty Name,ERP ID,Department,First Log,Last Log,Duration (HH:MM:SS),Half/Full Day\n';
+    const csvRows = rows.map(r => {
+      const firstLog = new Date(r.first_log);
+      const lastLog = new Date(r.last_log);
+      let duration = '00:00:00';
+      let durationHours = 0;
+      const durationMs = lastLog - firstLog;
+      if (!isNaN(durationMs) && durationMs >= 0) {
+        const hours = Math.floor(durationMs / (1000 * 60 * 60));
+        const minutes = Math.floor((durationMs / (1000 * 60)) % 60);
+        const seconds = Math.floor((durationMs / 1000) % 60);
+        duration = `${hours.toString().padStart(2, '0')}:${minutes
+          .toString()
+          .padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        durationHours = durationMs / (1000 * 60 * 60);
+      }
+      const halfFull = durationHours < 4 ? 'Half Day' : 'Full Day';
+      return [
+        toISTDateString(r.first_log),
+        `"${r.faculty_name}"`,
+        r.erpid,
+        `"${r.department_name}"`,
+        firstLog.toTimeString().split(' ')[0],
+        lastLog.toTimeString().split(' ')[0],
+        duration,
+        halfFull
+      ].join(',');
+    });
+    const csvData = csvHeader + csvRows.join('\n');
+    res.header('Content-Type', 'text/csv');
+    res.attachment('faculty_attendance.csv');
+    return res.send(csvData);
   } catch (error) {
-    console.error('Error generating report:', error);
-    res.status(500).json({ message: 'Failed to generate report', error: error.message });
+    console.error('Error generating attendance report:', error);
+    res.status(500).json({ message: 'Failed to generate attendance report' });
   }
 });
-
 
 router.get('/faculty-stress-report', authenticateToken, async (req, res) => {
   try {
@@ -469,9 +689,9 @@ router.get('/faculty-profile/:id', authenticateToken, async (req, res) => {
       WHERE id = ${id} AND department_id = ${departmentId}
     `;
     if (!faculty) return res.status(404).json({ message: 'Faculty not found' });
-    // Get recent logs
+    // Get all logs (no LIMIT)
     const logs = await sql`
-      SELECT * FROM faculty_logs WHERE erp_id = ${faculty.erpid} ORDER BY timestamp DESC LIMIT 20
+      SELECT * FROM faculty_logs WHERE erp_id = ${faculty.erpid} ORDER BY timestamp DESC
     `;
     res.json({ profile: faculty, logs });
   } catch (error) {
@@ -492,9 +712,9 @@ router.get('/staff-profile/:id', authenticateToken, async (req, res) => {
       WHERE id = ${id} AND department_id = ${departmentId}
     `;
     if (!staff) return res.status(404).json({ message: 'Staff not found' });
-    // Get recent logs (if any, using erpid)
+    // Get all logs (no LIMIT)
     const logs = await sql`
-      SELECT * FROM faculty_logs WHERE erp_id = ${staff.erpid} ORDER BY timestamp DESC LIMIT 20
+      SELECT * FROM faculty_logs WHERE erp_id = ${staff.erpid} ORDER BY timestamp DESC
     `;
     res.json({ profile: staff, logs });
   } catch (error) {

@@ -12,7 +12,7 @@ import HODSideBar from "../components/sidebar/HODSideBar";
 import HODDashboard from "../pages/HODDashboard";
 import LeaveApprovalDashboard from "../components/hod/LeaveApproaval";
 import AttendanceTracker from "../components/hod/FacultyLog";
-import HODReport from '../pages/HODReport';
+import HODFacultyReport from '../components/hod/HODFacultyReport';
 
 const HOD = () => {
   return (
@@ -29,7 +29,7 @@ const HOD = () => {
         <Route path="hod-settings" element={<HODSettings />} />
         <Route path="hod-settings/edit-profile" element={<HODProfileEdit />} /> 
         <Route path="hod-settings/change-password" element={<HODChangePassword />} />
-        <Route path="report" element={<HODReport />} />
+        <Route path="report" element={<HODFacultyReport />} />
       </Routes>
     </HODSideBar>
   );
