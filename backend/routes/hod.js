@@ -742,4 +742,358 @@ router.get('/recent-faculty-logs', authenticateToken, async (req, res) => {
   }
 });
 
+// Get faculty stress levels for HOD's department
+router.get('/view-stress-level', authenticateToken, async (req, res) => {
+  try {
+    const { facultyId } = req.query;
+    const departmentId = req.user.departmentId;
+    
+    if (facultyId) {
+      // Get specific faculty stress data
+      const [faculty] = await sql`
+        SELECT id, erpid, name FROM faculty 
+        WHERE erpid = ${facultyId} AND department_id = ${departmentId}
+      `;
+      if (!faculty) {
+        return res.status(404).json({ message: 'Faculty not found in your department' });
+      }
+      
+      // Get all stress logs for this faculty
+      const logs = await sql`
+        SELECT id, erpid, timestamp, stress_status, stress_level
+        FROM stress_logs
+        WHERE erpid = ${facultyId}
+        ORDER BY timestamp DESC
+      `;
+      
+      // Attach name to each log
+      const logsWithName = logs.map(log => ({
+        ...log,
+        name: faculty.name
+      }));
+      res.json(logsWithName);
+    } else {
+      // Get all faculty stress data for the department
+      const result = await sql`
+        SELECT 
+          sl.id, 
+          sl.erpid, 
+          sl.timestamp, 
+          sl.stress_status, 
+          sl.stress_level,
+          f.name
+        FROM stress_logs sl
+        JOIN faculty f ON sl.erpid = f.erpid
+        WHERE f.department_id = ${departmentId}
+        ORDER BY sl.timestamp DESC
+      `;
+      res.json(result);
+    }
+  } catch (error) {
+    console.error('Error fetching faculty stress data:', error);
+    res.status(500).json({ message: 'Error fetching faculty stress data' });
+  }
+});
+
+// Get faculty members for stress level view (department-specific)
+router.get('/faculty-stress-members', authenticateToken, async (req, res) => {
+  try {
+    const departmentId = req.user.departmentId;
+    const faculty = await sql`
+      SELECT id, erpid, name, email
+      FROM faculty 
+      WHERE department_id = ${departmentId} AND is_active = true
+      ORDER BY name ASC
+    `;
+    res.json({ members: faculty });
+  } catch (error) {
+    console.error('Error fetching faculty members:', error);
+    res.status(500).json({ message: 'Error fetching faculty members' });
+  }
+});
+
+// Endpoint to fetch today's faculty attendance count for HOD's department
+router.get('/faculty-today-attendance-count', authenticateToken, async (req, res) => {
+  try {
+    const departmentId = req.user.departmentId;
+    // Get today's date in YYYY-MM-DD format
+    const today = new Date();
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth() + 1).padStart(2, '0');
+    const dd = String(today.getDate()).padStart(2, '0');
+    const todayStr = `${yyyy}-${mm}-${dd}`;
+
+    // Count unique faculty erp_id with a log today in this department
+    const result = await sql`
+      SELECT COUNT(DISTINCT fl.erp_id) AS count
+      FROM faculty_logs fl
+      JOIN faculty f ON fl.erp_id = f.erpid
+      WHERE f.department_id = ${departmentId}
+        AND fl.timestamp::date = ${todayStr}
+    `;
+    res.json({ count: result[0]?.count || 0 });
+  } catch (error) {
+    console.error('Error fetching today faculty attendance count:', error);
+    res.status(500).json({ message: 'Error fetching today faculty attendance count' });
+  }
+});
+
+// Endpoint to fetch today's student attendance count for HOD's department
+router.get('/student-today-attendance-count', authenticateToken, async (req, res) => {
+  try {
+    const departmentId = req.user.departmentId;
+    const today = new Date();
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth() + 1).padStart(2, '0');
+    const dd = String(today.getDate()).padStart(2, '0');
+    const todayStr = `${yyyy}-${mm}-${dd}`;
+
+    // Count unique student erpid with a present attendance log today in this department
+    const result = await sql`
+      SELECT COUNT(DISTINCT sa.erpid) AS count
+      FROM student_attendance sa
+      JOIN students s ON sa.erpid = s.erpid
+      WHERE s.department_id = ${departmentId}
+        AND sa.date = ${todayStr}
+        AND sa.status = 'Present'
+    `;
+    res.json({ count: result[0]?.count || 0 });
+  } catch (error) {
+    console.error('Error fetching today student attendance count:', error);
+    res.status(500).json({ message: 'Error fetching today student attendance count' });
+  }
+});
+
+// Endpoint to fetch today's non-teaching staff attendance count for HOD's department
+router.get('/nonteaching-today-attendance-count', authenticateToken, async (req, res) => {
+  try {
+    const departmentId = req.user.departmentId;
+    const today = new Date();
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth() + 1).padStart(2, '0');
+    const dd = String(today.getDate()).padStart(2, '0');
+    const todayStr = `${yyyy}-${mm}-${dd}`;
+
+    // Count unique non-teaching staff erpid with a log today in this department
+    const result = await sql`
+      SELECT COUNT(DISTINCT fl.erp_id) AS count
+      FROM faculty_logs fl
+      JOIN non_teaching_staff nts ON fl.erp_id = nts.erpid
+      WHERE nts.department_id = ${departmentId}
+        AND fl.timestamp::date = ${todayStr}
+    `;
+    res.json({ count: result[0]?.count || 0 });
+  } catch (error) {
+    console.error('Error fetching today non-teaching staff attendance count:', error);
+    res.status(500).json({ message: 'Error fetching today non-teaching staff attendance count' });
+  }
+});
+
+// faculty-attendance-data
+router.get('/faculty-attendance-data', authenticateToken, async (req, res) => {
+  try {
+    const departmentId = req.user.departmentId;
+    const { faculty, from, to, location } = req.query;
+    const fromDate = from || '1900-01-01';
+    const toDate = to || '2100-12-31';
+
+    // Validate departmentId exists
+    if (!departmentId) {
+      return res.status(400).json({ 
+        message: 'Department ID is required',
+        error: 'Missing departmentId in user token' 
+      });
+    }
+
+    // Base query with parameterized values
+    let query = sql`
+      SELECT 
+        fl.id,
+        f.name as faculty_name,
+        fl.erp_id,
+        fl.timestamp,
+        fl.classroom,
+        fl.camera_ip
+      FROM faculty_logs fl
+      JOIN faculty f ON fl.erp_id = f.erpid
+      WHERE f.department_id = ${departmentId}
+        AND fl.timestamp >= ${fromDate}::timestamp
+        AND fl.timestamp <= ${toDate}::timestamp
+    `;
+
+    // Add optional filters
+    if (faculty && faculty !== 'all') {
+      query = sql`${query} AND fl.erp_id = ${faculty}`;
+    }
+    
+    if (location && location !== 'all') {
+      query = sql`${query} AND (fl.classroom = ${location} OR fl.camera_ip = ${location})`;
+    }
+
+    query = sql`${query} ORDER BY fl.timestamp ASC`;
+
+    // Execute query with error handling
+    let result;
+    try {
+      result = await query;
+    } catch (dbError) {
+      console.error('Database query failed:', {
+        error: dbError.message,
+        query: dbError.query,
+        parameters: dbError.parameters
+      });
+      throw new Error('Failed to execute database query');
+    }
+
+    // Process the data safely
+    const processData = (rows) => {
+      const grouped = {};
+      
+      // First pass: group by faculty/date/location
+      rows.forEach(row => {
+        try {
+          const date = new Date(row.timestamp).toISOString().split('T')[0];
+          const locationKey = row.classroom || row.camera_ip || 'Unknown';
+          const key = `${row.erp_id}|${date}|${locationKey}`;
+          
+          if (!grouped[key]) {
+            grouped[key] = {
+              date,
+              faculty_name: row.faculty_name || 'Unknown',
+              erpid: row.erp_id,
+              location: locationKey,
+              logs: []
+            };
+          }
+          grouped[key].logs.push(new Date(row.timestamp));
+        } catch (e) {
+          console.warn('Error processing row:', { row, error: e.message });
+        }
+      });
+
+      // Second pass: calculate time differences
+      return Object.values(grouped).map(item => {
+        const sortedLogs = item.logs.sort((a, b) => a - b);
+        const firstLog = sortedLogs[0];
+        const lastLog = sortedLogs[sortedLogs.length - 1];
+        let duration = 0;
+        
+        if (firstLog && lastLog) {
+          duration = lastLog - firstLog; // duration in milliseconds
+        }
+
+        return {
+          date: item.date,
+          faculty_name: item.faculty_name,
+          erpid: item.erpid,
+          location: item.location,
+          first_log: firstLog,
+          last_log: lastLog,
+          duration_ms: duration,
+          log_count: item.logs.length
+        };
+      });
+    };
+
+    const chartData = processData(result || []);
+
+    res.json(chartData);
+
+  } catch (error) {
+    console.error('Error in faculty-attendance-data endpoint:', {
+      timestamp: new Date().toISOString(),
+      error: error.message,
+      stack: error.stack,
+      queryParams: req.query,
+      user: {
+        id: req.user?.id,
+        departmentId: req.user?.departmentId
+      }
+    });
+
+    res.status(500).json({ 
+      message: 'Failed to fetch attendance data',
+      error: error.message,
+      details: 'Check server logs for more information' 
+    });
+  }
+});
+
+// router.get('/faculty-attendance-data', authenticateToken, async (req, res) => {
+//   try {
+//     const departmentId = req.user.departmentId;
+//     const { faculty, from, to, location } = req.query;
+//     const fromDate = from || '1900-01-01';
+//     const toDate = to || '2100-12-31';
+
+//     // Initialize query parameters
+//     let queryParams = [departmentId, fromDate, toDate];
+//     let query = `
+//       SELECT 
+//         fl.id,
+//         f.name as faculty_name,
+//         fl.erp_id,
+//         fl.timestamp,
+//         fl.classroom,
+//         fl.camera_ip
+//       FROM faculty_logs fl
+//       JOIN faculty f ON fl.erp_id = f.erpid
+//       WHERE f.department_id = $1
+//         AND fl.timestamp >= $2
+//         AND fl.timestamp <= $3
+//     `;
+
+//     // Add optional filters
+//     if (faculty && faculty !== 'all') {
+//       query += ` AND fl.erp_id = $${queryParams.length + 1}`;
+//       queryParams.push(faculty);
+//     }
+    
+//     if (location && location !== 'all') {
+//       query += ` AND (fl.classroom = $${queryParams.length + 1} OR fl.camera_ip = $${queryParams.length + 1})`;
+//       queryParams.push(location);
+//     }
+
+//     query += ` ORDER BY fl.timestamp ASC`;
+
+//     // Execute query with proper error handling
+//     const { rows = [] } = await sql.query(query, queryParams);
+
+//     // Process data safely
+//     const grouped = {};
+//     rows.forEach(row => {  // Now safe because we default to empty array
+//       const date = new Date(row.timestamp).toISOString().split('T')[0];
+//       const locationKey = row.classroom || row.camera_ip || 'Unknown';
+//       const key = `${row.erp_id}|${date}|${locationKey}`;
+      
+//       if (!grouped[key]) {
+//         grouped[key] = {
+//           date,
+//           faculty_name: row.faculty_name,
+//           erpid: row.erp_id,
+//           location: locationKey,
+//           logs: []
+//         };
+//       }
+//       grouped[key].logs.push(row.timestamp);
+//     });
+
+//     const chartData = Object.values(grouped);
+
+//     res.json(chartData);
+
+//   } catch (error) {
+//     console.error('Error in faculty-attendance-data:', {
+//       message: error.message,
+//       stack: error.stack,
+//       queryParams: req.query
+//     });
+//     res.status(500).json({ 
+//       message: 'Failed to fetch attendance data',
+//       error: error.message
+//     });
+//   }
+// });
+
+
 module.exports = router; 

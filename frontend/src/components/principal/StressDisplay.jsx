@@ -13,7 +13,10 @@ function StressDisplay() {
   const [profileLoading, setProfileLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [fromDate, setFromDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [toDate, setToDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [modalOpen, setModalOpen] = useState(false);
+  const [selectedTab, setSelectedTab] = useState('faculty');
   const facultyListRef = useRef(null);
 
   useEffect(() => {
@@ -41,28 +44,31 @@ function StressDisplay() {
     }
   };
 
-  const fetchFaculty = async (deptId) => {
+  const fetchFacultyOrStaff = async (deptId, type, shouldScroll = false) => {
     setSelectedDept(deptId);
-    setFaculty([]);
     setSelectedFaculty(null);
     setStressData([]);
     setProfileLoading(true);
     try {
       const token = localStorage.getItem('token');
       const response = await axios.get(
-        `http://69.62.83.14:9000/api/principal/members?deptId=${deptId}&type=faculty`,
+        `http://69.62.83.14:9000/api/principal/members?deptId=${deptId}&type=${type}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      setFaculty(response.data.members || []);
-      // Scroll to faculty list after loading
-      setTimeout(() => {
-        if (facultyListRef.current && (response.data.members || []).length > 0) {
-          facultyListRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
-      }, 400);
+      const members = response.data.members || [];
+      setFaculty(members);
+      if (shouldScroll) {
+        setTimeout(() => {
+          if (facultyListRef.current && members.length > 0) {
+            facultyListRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        }, 50);
+      }
+      return members;
     } catch (err) {
       setFaculty([]);
-      console.error('Error fetching faculty:', err);
+      console.error('Error fetching members:', err);
+      return [];
     } finally {
       setProfileLoading(false);
     }
@@ -102,9 +108,9 @@ function StressDisplay() {
   const filteredData = useMemo(() => {
     return stressData.filter(item => {
       const itemDate = item.timestamp.toISOString().split('T')[0];
-      return itemDate === selectedDate;
+      return itemDate >= fromDate && itemDate <= toDate;
     });
-  }, [stressData, selectedDate]);
+  }, [stressData, fromDate, toDate]);
 
   const chartData = useMemo(() => {
     const counts = {
@@ -151,7 +157,8 @@ function StressDisplay() {
     return timestamp.toLocaleTimeString('en-US', {
       hour: '2-digit',
       minute: '2-digit',
-      hour12: true
+      hour12: true,
+      timeZone: 'UTC'
     });
   };
 
@@ -216,7 +223,7 @@ function StressDisplay() {
               </div>
               <div>
                 <h1 className="text-3xl font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-blue-600 bg-clip-text text-transparent">
-                  Faculty Stress Levels
+                  Faculty & Staff Stress Levels
                 </h1>
                 <p className="text-slate-600 font-medium">Department-wise stress monitoring and insights</p>
               </div>
@@ -252,7 +259,7 @@ function StressDisplay() {
             {departments.map((dept) => (
               <button
                 key={dept.id}
-                onClick={() => fetchFaculty(dept.id)}
+                onClick={() => fetchFacultyOrStaff(dept.id, selectedTab, true)}
                 className={`group p-4 rounded-xl transition-all duration-300 ${
                   selectedDept === dept.id
                     ? 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-lg scale-105'
@@ -275,14 +282,73 @@ function StressDisplay() {
         </div>
       </div>
 
-      {/* Faculty List */}
+      {/* Tab Bar for Faculty/Staff */}
+      <div className="flex justify-center mb-4">
+        <div className="inline-flex rounded-xl bg-white/70 shadow border border-white/30 overflow-hidden">
+          <button
+            className={`px-6 py-3 font-semibold transition-all duration-200 ${selectedTab === 'faculty' ? 'bg-indigo-500 text-white shadow' : 'text-indigo-700 hover:bg-indigo-100'}`}
+            onClick={async () => {
+              if (selectedTab === 'faculty') return;
+              setSelectedTab('faculty');
+              if (selectedDept) {
+                const newList = await fetchFacultyOrStaff(selectedDept, 'faculty', false);
+                if (modalOpen && selectedFaculty) {
+                  const found = newList.find(member => member.erpid === selectedFaculty);
+                  if (found) {
+                    fetchStressData(selectedFaculty);
+                  } else {
+                    setModalOpen(false);
+                    setSelectedFaculty(null);
+                    setStressData([]);
+                  }
+                }
+              }
+            }}
+          >
+            Faculty
+          </button>
+          <button
+            className={`px-6 py-3 font-semibold transition-all duration-200 ${selectedTab === 'staff' ? 'bg-purple-600 text-white shadow' : 'text-purple-700 hover:bg-purple-100'}`}
+            onClick={async () => {
+              if (selectedTab === 'staff') return;
+              setSelectedTab('staff');
+              if (selectedDept) {
+                const newList = await fetchFacultyOrStaff(selectedDept, 'staff', false);
+                if (modalOpen && selectedFaculty) {
+                  const found = newList.find(member => member.erpid === selectedFaculty);
+                  if (found) {
+                    fetchStressData(selectedFaculty);
+                  } else {
+                    setModalOpen(false);
+                    setSelectedFaculty(null);
+                    setStressData([]);
+                  }
+                }
+              }
+            }}
+          >
+            Non-Teaching Staff
+          </button>
+        </div>
+      </div>
+
+      {/* Faculty/Staff List */}
       {selectedDept && faculty.length > 0 && (
-        <div ref={facultyListRef} className="backdrop-blur-xl bg-white/40 rounded-2xl border border-white/20 shadow-xl mb-8">
+        <div ref={facultyListRef} className="backdrop-blur-xl bg-white/40 rounded-2xl border border-white/20 shadow-xl mb-8 relative">
+          {/* Loading overlay when switching tabs or departments */}
+          {profileLoading && !modalOpen && (
+            <div className="absolute inset-0 z-20 flex items-center justify-center bg-white/70 backdrop-blur rounded-2xl">
+              <div className="flex flex-col items-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mb-4"></div>
+                <span className="text-indigo-700 font-semibold text-lg">Loading...</span>
+              </div>
+            </div>
+          )}
           <div className="p-6 border-b border-white/20">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div className="flex items-center gap-3">
                 <Users className="text-indigo-600" size={24} />
-                <h3 className="text-xl font-bold text-slate-800">Faculty Members</h3>
+                <h3 className="text-xl font-bold text-slate-800">{selectedTab === 'faculty' ? 'Faculty Members' : 'Non-Teaching Staff'}</h3>
                 <span className="bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full text-sm font-medium">
                   {filteredFaculty.length} members
                 </span>
@@ -291,7 +357,7 @@ function StressDisplay() {
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" size={18} />
                 <input
                   type="text"
-                  placeholder="Search faculty..."
+                  placeholder={`Search ${selectedTab === 'faculty' ? 'faculty' : 'staff'}...`}
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10 pr-4 py-2 bg-white/60 border border-white/30 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
@@ -435,20 +501,40 @@ function StressDisplay() {
 
                 {/* Enhanced Date Selection */}
                 <div className="bg-white rounded-2xl shadow-xl border border-white/20 p-6">
-                  <div className="flex items-center space-x-4">
+                  <div className="flex items-center space-x-4 mb-4">
                     <div className="bg-gradient-to-r from-purple-500 to-pink-600 p-3 rounded-xl">
                       <Calendar className="h-6 w-6 text-white" />
                     </div>
-                    <label htmlFor="date-select" className="text-xl font-bold text-gray-900">
-                      Select Date:
+                    <label className="text-xl font-bold text-gray-900">
+                      Select Date Range:
                     </label>
-                    <input
-                      id="date-select"
-                      type="date"
-                      value={selectedDate}
-                      onChange={(e) => setSelectedDate(e.target.value)}
-                      className="px-6 py-3 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 text-lg font-medium bg-gradient-to-r from-white to-gray-50"
-                    />
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label htmlFor="from-date" className="block text-sm font-medium text-gray-700 mb-2">
+                        From Date:
+                      </label>
+                      <input
+                        id="from-date"
+                        type="date"
+                        value={fromDate}
+                        onChange={(e) => setFromDate(e.target.value)}
+                        className="w-full px-6 py-3 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 text-lg font-medium bg-gradient-to-r from-white to-gray-50"
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="to-date" className="block text-sm font-medium text-gray-700 mb-2">
+                        To Date:
+                      </label>
+                      <input
+                        id="to-date"
+                        type="date"
+                        value={toDate}
+                        onChange={(e) => setToDate(e.target.value)}
+                        min={fromDate}
+                        className="w-full px-6 py-3 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 text-lg font-medium bg-gradient-to-r from-white to-gray-50"
+                      />
+                    </div>
                   </div>
                 </div>
 
@@ -517,8 +603,11 @@ function StressDisplay() {
                     <div className="flex items-center space-x-3">
                       <TrendingUp className="h-6 w-6 text-white" />
                       <h2 className="text-2xl font-bold text-white">
-                        Records for {new Date(selectedDate).toLocaleDateString('en-US', { 
-                          weekday: 'long', 
+                        Records from {new Date(fromDate).toLocaleDateString('en-US', { 
+                          year: 'numeric', 
+                          month: 'long', 
+                          day: 'numeric' 
+                        })} to {new Date(toDate).toLocaleDateString('en-US', { 
                           year: 'numeric', 
                           month: 'long', 
                           day: 'numeric' 
@@ -533,8 +622,8 @@ function StressDisplay() {
                         <div className="bg-gradient-to-r from-gray-400 to-gray-500 p-4 rounded-full w-20 h-20 mx-auto mb-6 flex items-center justify-center">
                           <Clock className="h-10 w-10 text-white" />
                         </div>
-                        <p className="text-gray-600 text-xl font-semibold mb-2">No records found for the selected date</p>
-                        <p className="text-gray-400 text-lg">Try selecting a different date to view data</p>
+                        <p className="text-gray-600 text-xl font-semibold mb-2">No records found for the selected date range</p>
+                        <p className="text-gray-400 text-lg">Try selecting a different date range to view data</p>
                       </div>
                     ) : (
                       <div className="space-y-4">

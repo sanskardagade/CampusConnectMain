@@ -525,11 +525,19 @@ router.get('/faculty-attendance-report', async (req, res) => {
         }
         drawHeader();
 
-        // Helper to convert UTC timestamp to IST date string
+        // Robust UTC-to-IST conversion for time and date
+        function toISTTimeString(utcDateString) {
+          const date = new Date(utcDateString);
+          const utc = date.getTime() + (date.getTimezoneOffset() * 60000);
+          const istOffset = 5.5 * 60 * 60 * 1000;
+          const istDate = new Date(utc + istOffset);
+          return istDate.toTimeString().split(' ')[0];
+        }
         function toISTDateString(utcDateString) {
           const date = new Date(utcDateString);
+          const utc = date.getTime() + (date.getTimezoneOffset() * 60000);
           const istOffset = 5.5 * 60 * 60 * 1000;
-          const istDate = new Date(date.getTime() + istOffset);
+          const istDate = new Date(utc + istOffset);
           return istDate.toISOString().split('T')[0];
         }
 
@@ -598,9 +606,17 @@ router.get('/faculty-attendance-report', async (req, res) => {
         ];
         function toISTDateString(utcDateString) {
           const date = new Date(utcDateString);
+          const utc = date.getTime() + (date.getTimezoneOffset() * 60000);
           const istOffset = 5.5 * 60 * 60 * 1000;
-          const istDate = new Date(date.getTime() + istOffset);
+          const istDate = new Date(utc + istOffset);
           return istDate.toISOString().split('T')[0];
+        }
+        function toISTTimeString(utcDateString) {
+          const date = new Date(utcDateString);
+          const utc = date.getTime() + (date.getTimezoneOffset() * 60000);
+          const istOffset = 5.5 * 60 * 60 * 1000;
+          const istDate = new Date(utc + istOffset);
+          return istDate.toTimeString().split(' ')[0];
         }
         rows.forEach(r => {
           const firstLog = new Date(r.first_log);
@@ -639,9 +655,17 @@ router.get('/faculty-attendance-report', async (req, res) => {
       // CSV generation
       function toISTDateString(utcDateString) {
         const date = new Date(utcDateString);
+        const utc = date.getTime() + (date.getTimezoneOffset() * 60000);
         const istOffset = 5.5 * 60 * 60 * 1000;
-        const istDate = new Date(date.getTime() + istOffset);
+        const istDate = new Date(utc + istOffset);
         return istDate.toISOString().split('T')[0];
+      }
+      function toISTTimeString(utcDateString) {
+        const date = new Date(utcDateString);
+        const utc = date.getTime() + (date.getTimezoneOffset() * 60000);
+        const istOffset = 5.5 * 60 * 60 * 1000;
+        const istDate = new Date(utc + istOffset);
+        return istDate.toTimeString().split(' ')[0];
       }
 
       const csvHeader = 'Date,Faculty Name,ERP ID,Department,First Log,Last Log,Duration (HH:MM:SS),Half/Full Day\n';
@@ -715,14 +739,16 @@ router.get('/view-stress-level', authenticateToken, async (req, res) => {
     if (!facultyId) {
       return res.status(400).json({ message: 'facultyId is required' });
     }
-    // Get faculty info
-    const [faculty] = await sql`
-      SELECT id, erpid, name FROM faculty WHERE erpid = ${facultyId}
-    `;
-    if (!faculty) {
-      return res.status(404).json({ message: 'Faculty not found' });
+    // Try to find in faculty
+    let person = await sql`SELECT id, erpid, name FROM faculty WHERE erpid = ${facultyId}`;
+    if (!person.length) {
+      // Try to find in non_teaching_staff
+      person = await sql`SELECT id, erpid, name FROM non_teaching_staff WHERE erpid = ${facultyId}`;
+      if (!person.length) {
+        return res.status(404).json({ message: 'Person not found' });
+      }
     }
-    // Get all stress logs for this faculty
+    // Get all stress logs for this person
     const logs = await sql`
       SELECT id, erpid, timestamp, stress_status, stress_level
       FROM stress_logs
@@ -732,14 +758,230 @@ router.get('/view-stress-level', authenticateToken, async (req, res) => {
     // Attach name to each log
     const logsWithName = logs.map(log => ({
       ...log,
-      name: faculty.name
+      name: person[0].name
     }));
     res.json(logsWithName);
   } catch (error) {
-    console.error('Error fetching faculty stress data:', error);
-    res.status(500).json({ message: 'Error fetching faculty stress data' });
+    console.error('Error fetching stress data:', error);
+    res.status(500).json({ message: 'Error fetching stress data' });
+  }
+});
+
+// Faculty Stress Report
+router.get('/faculty-stress-report', async (req, res) => {
+  try {
+    const { departmentId, fromDate, toDate, format } = req.query;
+    const from = fromDate || '1900-01-01';
+    const to = toDate || '2100-12-31';
+    let records;
+    if (departmentId && departmentId !== 'all') {
+      let deptIds = departmentId.includes(',') ? departmentId.split(',').map(Number) : [Number(departmentId)];
+      records = await sql`
+        SELECT
+          f.name AS faculty_name,
+          f.erpid,
+          d.name AS department_name,
+          sl.timestamp,
+          sl.stress_status,
+          sl.stress_level
+        FROM stress_logs sl
+        JOIN faculty f ON sl.erpid = f.erpid
+        JOIN departments d ON f.department_id = d.id
+        WHERE f.department_id = ANY(${deptIds})
+          AND DATE(sl.timestamp AT TIME ZONE 'Asia/Kolkata') >= ${from}::date
+          AND DATE(sl.timestamp AT TIME ZONE 'Asia/Kolkata') <= ${to}::date
+        ORDER BY d.name, f.name, sl.timestamp
+      `;
+    } else {
+      records = await sql`
+        SELECT
+          f.name AS faculty_name,
+          f.erpid,
+          d.name AS department_name,
+          sl.timestamp,
+          sl.stress_status,
+          sl.stress_level
+        FROM stress_logs sl
+        JOIN faculty f ON sl.erpid = f.erpid
+        JOIN departments d ON f.department_id = d.id
+        WHERE DATE(sl.timestamp AT TIME ZONE 'Asia/Kolkata') >= ${from}::date
+          AND DATE(sl.timestamp AT TIME ZONE 'Asia/Kolkata') <= ${to}::date
+        ORDER BY d.name, f.name, sl.timestamp
+      `;
+    }
+    const rows = Array.isArray(records) ? records : (records.rows || []);
+    if (!rows || rows.length === 0) {
+      return res.status(404).send('No stress data found for the selected criteria.');
+    }
+    // Robust UTC-to-IST conversion for time and date
+    function toISTTimeString(utcDateString) {
+      const date = new Date(utcDateString);
+      const utc = date.getTime() + (date.getTimezoneOffset() * 60000);
+      const istOffset = 5.5 * 60 * 60 * 1000;
+      const istDate = new Date(utc + istOffset);
+      return istDate.toTimeString().split(' ')[0];
+    }
+    function toISTDateString(utcDateString) {
+      const date = new Date(utcDateString);
+      const utc = date.getTime() + (date.getTimezoneOffset() * 60000);
+      const istOffset = 5.5 * 60 * 60 * 1000;
+      const istDate = new Date(utc + istOffset);
+      return istDate.toISOString().split('T')[0];
+    }
+    if (format === 'pdf') {
+      const PDFDocument = require('pdfkit');
+      const doc = new PDFDocument({ margin: 30, size: 'A4', layout: 'landscape' });
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', 'attachment; filename=faculty_stress_report.pdf');
+      doc.pipe(res);
+      doc.fontSize(16).text('Faculty Stress Report', { align: 'center' });
+      doc.moveDown();
+      const headers = ['Date', 'Faculty Name', 'ERP ID', 'Department', 'Time', 'Stress Status', 'Stress Level'];
+      const colWidths = [80, 140, 70, 160, 70, 120, 90];
+      const startX = doc.x;
+      let y = doc.y;
+      function drawHeader() {
+        let x = startX;
+        doc.font('Helvetica-Bold').fontSize(10);
+        headers.forEach((header, i) => {
+          doc.rect(x, y, colWidths[i], 20).stroke();
+          doc.text(header, x + 2, y + 6, { width: colWidths[i] - 4, align: 'center' });
+          x += colWidths[i];
+        });
+        y += 20;
+        doc.font('Helvetica').fontSize(9);
+        doc.y = y;
+      }
+      drawHeader();
+      let rowCount = 0;
+      rows.forEach(r => {
+        const row = [
+          toISTDateString(r.timestamp),
+          r.faculty_name,
+          r.erpid,
+          r.department_name,
+          toISTTimeString(r.timestamp),
+          r.stress_status,
+          r.stress_level
+        ];
+        let x = startX;
+        row.forEach((cell, i) => {
+          doc.rect(x, y, colWidths[i], 18).stroke();
+          doc.text(String(cell), x + 2, y + 5, { width: colWidths[i] - 4, align: 'center', ellipsis: true });
+          x += colWidths[i];
+        });
+        y += 18;
+        rowCount++;
+        if (rowCount % 25 === 0) {
+          doc.addPage();
+          y = doc.y;
+          drawHeader();
+          y = doc.y;
+        }
+      });
+      doc.end();
+      return;
+    }
+    if (format === 'xlsx') {
+      const ExcelJS = require('exceljs');
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet('Faculty Stress');
+      worksheet.columns = [
+        { header: 'Date', key: 'date', width: 15 },
+        { header: 'Faculty Name', key: 'faculty_name', width: 25 },
+        { header: 'ERP ID', key: 'erpid', width: 15 },
+        { header: 'Department', key: 'department_name', width: 25 },
+        { header: 'Time', key: 'time', width: 15 },
+        { header: 'Stress Status', key: 'stress_status', width: 18 },
+        { header: 'Stress Level', key: 'stress_level', width: 15 },
+      ];
+      rows.forEach(r => {
+        worksheet.addRow({
+          date: toISTDateString(r.timestamp),
+          faculty_name: r.faculty_name,
+          erpid: r.erpid,
+          department_name: r.department_name,
+          time: toISTTimeString(r.timestamp),
+          stress_status: r.stress_status,
+          stress_level: r.stress_level,
+        });
+      });
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Content-Disposition', 'attachment; filename=faculty_stress_report.xlsx');
+      await workbook.xlsx.write(res);
+      res.end();
+      return;
+    }
+    // CSV
+    const csvHeader = 'Date,Faculty Name,ERP ID,Department,Time,Stress Status,Stress Level\n';
+    const csvRows = rows.map(r => [
+      toISTDateString(r.timestamp),
+      `"${r.faculty_name}"`,
+      r.erpid,
+      `"${r.department_name}"`,
+      toISTTimeString(r.timestamp),
+      r.stress_status,
+      r.stress_level
+    ].join(','));
+    const csvData = csvHeader + csvRows.join('\n');
+    res.header('Content-Type', 'text/csv');
+    res.attachment('faculty_stress_report.csv');
+    return res.send(csvData);
+  } catch (error) {
+    console.error('Error generating stress report:', error);
+    res.status(500).json({ message: 'Failed to generate stress report' });
   }
 });
 
 module.exports = router;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 

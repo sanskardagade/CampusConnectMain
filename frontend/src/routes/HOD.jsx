@@ -13,6 +13,7 @@ import HODDashboard from "../pages/HODDashboard";
 import LeaveApprovalDashboard from "../components/hod/LeaveApproaval";
 import AttendanceTracker from "../components/hod/FacultyLog";
 import HODFacultyReport from '../components/hod/HODFacultyReport';
+import HODFacultyStressLevel from '../components/hod/HODFacultyStressLevel';
 
 const HOD = () => {
   return (
@@ -21,7 +22,7 @@ const HOD = () => {
         <Route path="" element={<HODDashboard/>}/>
         <Route path="view-student" element={<DepartmentStudentAttendance/>} />
         <Route path="view-faculty" element={<DepartmentFacultyAttendance />} />
-        <Route path="view-stress-level" element={<StudentStressLevel />} />
+        <Route path="view-stress-level" element={<HODFacultyStressLevel />} />
         <Route path="view-student-location" element={<StudentLocation />} />
         <Route path="leave-approval" element={<LeaveApprovalDashboard />} />
         <Route path="faculty-log" element={<AttendanceTracker />} />

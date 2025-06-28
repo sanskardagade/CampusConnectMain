@@ -8,6 +8,11 @@ const formats = [
   { value: 'pdf', label: 'PDF (.pdf)' },
 ];
 
+const reportTypes = [
+  { value: 'attendance', label: 'Attendance Report' },
+  { value: 'stress', label: 'Stress Report' },
+];
+
 const FacultyReport = () => {
   const [departments, setDepartments] = useState([]);
   const [reportDept, setReportDept] = useState(['all']);
@@ -18,6 +23,7 @@ const FacultyReport = () => {
   const [error, setError] = useState(null);
   const [deptDropdownOpen, setDeptDropdownOpen] = useState(false);
   const deptDropdownRef = useRef(null);
+  const [reportType, setReportType] = useState('attendance');
 
   useEffect(() => {
     // Fetch departments for dropdown
@@ -62,14 +68,19 @@ const FacultyReport = () => {
         toDate,
         format,
       };
-      const response = await axios.get('http://69.62.83.14:9000/api/principal/faculty-attendance-report', {
+      const endpoint = reportType === 'attendance'
+        ? 'http://69.62.83.14:9000/api/principal/faculty-attendance-report'
+        : 'http://69.62.83.14:9000/api/principal/faculty-stress-report';
+      const response = await axios.get(endpoint, {
         params,
         headers: { Authorization: `Bearer ${token}` },
         responseType: 'blob',
       });
       // Get filename from content-disposition or fallback
       const disposition = response.headers['content-disposition'];
-      let filename = `faculty_attendance_report.${format}`;
+      let filename = reportType === 'attendance'
+        ? `faculty_attendance_report.${format}`
+        : `faculty_stress_report.${format}`;
       if (disposition) {
         const match = disposition.match(/filename="(.+)"/);
         if (match) filename = match[1];
@@ -96,9 +107,24 @@ const FacultyReport = () => {
           <h2 className="text-3xl font-bold mb-10 flex items-center text-gray-800">
             <FiFileText className="mr-4 text-red-800 text-4xl" />
             <span className="bg-gradient-to-r from-red-800 to-red-600 bg-clip-text text-transparent">
-              Generate Faculty Attendance Report
+              Generate Faculty {reportType === 'attendance' ? 'Attendance' : 'Stress'} Report
             </span>
           </h2>
+          <div className="flex justify-center mb-8">
+            {reportTypes.map(rt => (
+              <button
+                key={rt.value}
+                className={`px-6 py-3 rounded-xl mx-2 text-lg font-semibold border-2 transition-all duration-200 ${
+                  reportType === rt.value
+                    ? 'bg-gradient-to-r from-red-800 to-red-600 text-white border-red-700 shadow-lg'
+                    : 'bg-white text-red-800 border-red-300 hover:border-red-600'
+                }`}
+                onClick={() => setReportType(rt.value)}
+              >
+                {rt.label}
+              </button>
+            ))}
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-10 mb-10">
             <div className="space-y-3">
               <label className="block text-lg font-medium text-gray-700 mb-3">Department</label>

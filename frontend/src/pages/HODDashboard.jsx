@@ -23,6 +23,7 @@ import {
 import { Check, X } from 'lucide-react';
 import axios from 'axios';
 import FacultyLogDisplay from '../components/faculty/FacultyLogDisplay';
+import FacultyAttendanceOverview from '../components/hod/FacultyAttendanceOverview';
 
 const HODDashboard = () => {
   const [loading, setLoading] = useState(true);
@@ -77,6 +78,7 @@ const HODDashboard = () => {
   const [profileLogs, setProfileLogs] = useState([]);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [profileLoading, setProfileLoading] = useState(false);
+  const [todayCounts, setTodayCounts] = useState({ students: 0, faculty: 0, staff: 0 });
 
   const navigate = useNavigate();
 
@@ -354,6 +356,27 @@ const HODDashboard = () => {
       .catch(() => setProfileLoading(false));
   };
 
+  useEffect(() => {
+    const fetchTodayCounts = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const [facultyRes, studentRes, staffRes] = await Promise.all([
+          axios.get('http://69.62.83.14:9000/api/hod/faculty-today-attendance-count', { headers: { Authorization: `Bearer ${token}` } }),
+          axios.get('http://69.62.83.14:9000/api/hod/student-today-attendance-count', { headers: { Authorization: `Bearer ${token}` } }),
+          axios.get('http://69.62.83.14:9000/api/hod/nonteaching-today-attendance-count', { headers: { Authorization: `Bearer ${token}` } })
+        ]);
+        setTodayCounts({
+          faculty: facultyRes.data.count || 0,
+          students: studentRes.data.count || 0,
+          staff: staffRes.data.count || 0
+        });
+      } catch (e) {
+        setTodayCounts({ students: 0, faculty: 0, staff: 0 });
+      }
+    };
+    fetchTodayCounts();
+  }, []);
+
   if (loading) {
     return (
       <motion.div 
@@ -450,8 +473,7 @@ const HODDashboard = () => {
               {[
                 { 
                   title: 'Total Students', 
-                  // value: dashboardData.departmentStats?.totalStudents || 0,
-                  value: 0, 
+                  value: dashboardData.departmentStats?.totalStudents || 0, 
                   icon: <FiUsers className="text-white" size={24} />, 
                   trend: 'up',
                 },
@@ -476,10 +498,10 @@ const HODDashboard = () => {
                     }, 100);
                   }
                 },
-                { 
-                  title: 'Attendance Logs',
-                  value: dashboardData.attendanceLogsCount || 0,
-                  icon: <FiClock className="text-white" size={24} />,
+                {
+                  title: 'Ongoing Projects',
+                  value: dashboardData.departmentStats?.ongoingProjects || 0,
+                  icon: <FiAward className="text-white" size={24} />,
                   trend: 'neutral',
                 }
               ].map((stat, index) => (
@@ -501,59 +523,107 @@ const HODDashboard = () => {
               ))}
             </motion.div>
 
-            {/* Custom Quick Sections: Top 5 Faculty Logs & Recent Leave Approvals */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Top 5 Recent Faculty Logs */}
-              <RecentFacultyLogs facultyMembers={facultyMembers} handlePersonClick={handlePersonClick} />
+            {/* New row of white stat boxes */}
+            <motion.div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mt-6">
+              <div className="bg-white rounded-xl p-5 shadow flex flex-col items-start border border-gray-100">
+                <div className="w-10 h-10 rounded-lg bg-red-100 flex items-center justify-center mb-3">
+                  <FiUsers className="text-red-600" size={22} />
+                </div>
+                <h3 className="text-xl font-bold mb-1">{todayCounts.students}</h3>
+                <p className="text-sm text-gray-600">Students Present Today</p>
+              </div>
+              <div className="bg-white rounded-xl p-5 shadow flex flex-col items-start border border-gray-100">
+                <div className="w-10 h-10 rounded-lg bg-red-100 flex items-center justify-center mb-3">
+                  <FiUserCheck className="text-red-600" size={22} />
+                </div>
+                <h3 className="text-xl font-bold mb-1">{todayCounts.faculty}</h3>
+                <p className="text-sm text-gray-600">Faculty Present Today</p>
+              </div>
+              <div className="bg-white rounded-xl p-5 shadow flex flex-col items-start border border-gray-100">
+                <div className="w-10 h-10 rounded-lg bg-red-100 flex items-center justify-center mb-3">
+                  <FiUsers className="text-red-600" size={22} />
+                </div>
+                <h3 className="text-xl font-bold mb-1">{dashboardData.todayStats?.nonTeachingPresent || 0}</h3>
+                <p className="text-sm text-gray-600">Non-Teaching Staff Present Today</p>
+              </div>
+              <div className="bg-white rounded-xl p-5 shadow flex flex-col items-start border border-gray-100">
+                <div className="w-10 h-10 rounded-lg bg-red-100 flex items-center justify-center mb-3">
+                  <FiAward className="text-red-600" size={22} />
+                </div>
+                <h3 className="text-xl font-bold mb-1">{dashboardData.departmentStats?.pendingProjects || 0}</h3>
+                <p className="text-sm text-gray-600">Projects Pending</p>
+              </div>
+            </motion.div>
+
+            {/* Custom Quick Sections: Recent Leave Approvals & Top 5 Faculty Logs */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
               {/* Recent Leave Approvals */}
               <RecentLeaveApprovals />
+              {/* Faculty Stress Notifications */}
+              <motion.div
+                variants={itemVariants}
+                className="bg-white rounded-xl shadow-sm p-6 border border-red-200 h-full"
+              >
+                <h3 className="text-lg font-bold mb-4 flex items-center text-red-800">
+                  <FiAlertTriangle className="mr-2 text-red-800" /> Faculty Stress Notifications
+                </h3>
+                {facultyStressLoading ? (
+                  <div className="text-gray-500">Loading...</div>
+                ) : facultyStressError ? (
+                  <div className="text-red-500">{facultyStressError}</div>
+                ) : (
+                  (() => {
+                    // Filter for faculty stressed for more than 7 days
+                    const now = new Date();
+                    const stressedFaculty = (facultyStressData || []).filter(faculty => {
+                      if (!faculty.timestamp) return false;
+                      const days = (now - new Date(faculty.timestamp)) / (1000 * 60 * 60 * 24);
+                      return (faculty.status === 'Stressed' || faculty.status === 'At Risk') && days >= 7;
+                    });
+                    if (stressedFaculty.length === 0) {
+                      return <div className="text-gray-500">No faculty have been stressed for more than 7 days.</div>;
+                    }
+                    return (
+                      <div className="overflow-x-auto">
+                        <table className="w-full">
+                          <thead>
+                            <tr className="text-left text-sm text-red-700 border-b border-red-200">
+                              <th className="pb-3">Name</th>
+                              <th className="pb-3">ERP ID</th>
+                              <th className="pb-3">Stress Level</th>
+                              <th className="pb-3">Days Stressed</th>
+                              <th className="pb-3">Last Updated</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {stressedFaculty.map(faculty => {
+                              const days = Math.floor((now - new Date(faculty.timestamp)) / (1000 * 60 * 60 * 24));
+                              return (
+                                <tr key={faculty.erpid} className="border-b border-red-100 bg-red-50">
+                                  <td className="py-3 font-medium cursor-pointer text-red-800" onClick={() => handlePersonClick('faculty', faculty.id, faculty.name)}>{faculty.name}</td>
+                                  <td className="py-3 text-red-700">{faculty.erpid}</td>
+                                  <td className="py-3">
+                                    <span className="px-2 py-1 text-xs rounded-full bg-red-200 text-red-900 font-semibold">{faculty.status}</span>
+                                  </td>
+                                  <td className="py-3 text-red-700 font-bold">{days} days</td>
+                                  <td className="py-3 text-xs text-gray-500">{faculty.timestamp ? new Date(faculty.timestamp).toLocaleString() : 'N/A'}</td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    );
+                  })()
+                )}
+              </motion.div>
+              {/* Top 5 Recent Faculty Logs */}
+              {/* <RecentFacultyLogs facultyMembers={facultyMembers} handlePersonClick={handlePersonClick} /> */}
             </div>
-
-            {/* Faculty Stress Level Insights */}
-            {/* <motion.div
-              variants={itemVariants}
-              className="bg-white rounded-xl shadow-sm p-6 border border-gray-100 mt-6"
-            >
-              <h3 className="text-lg font-bold mb-4 flex items-center">
-                <FiActivity className="mr-2 text-red-800" /> Faculty Stress Level Insights
-              </h3>
-              {facultyStressLoading ? (
-                <div className="text-gray-500">Loading...</div>
-              ) : facultyStressError ? (
-                <div className="text-red-500">{facultyStressError}</div>
-              ) : facultyStressData.length === 0 ? (
-                <div className="text-gray-500">No faculty stress data found.</div>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="text-left text-sm text-gray-500 border-b border-gray-200">
-                        <th className="pb-3">Name</th>
-                        <th className="pb-3">ERP ID</th>
-                        <th className="pb-3">Latest Score</th>
-                        <th className="pb-3">Status</th>
-                        <th className="pb-3">Last Updated</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {facultyStressData.map(faculty => (
-                        <tr key={faculty.erpid} className="border-b border-gray-100 hover:bg-red-50">
-                          <td className="py-3 font-medium cursor-pointer" onClick={() => handlePersonClick('faculty', faculty.id, faculty.name)}>{faculty.name}</td>
-                          <td className="py-3">{faculty.erpid}</td>
-                          <td className="py-3">{faculty.score}%</td>
-                          <td className="py-3">
-                            <span className={`px-2 py-1 text-xs rounded-full ${faculty.status === 'Stressed' || faculty.status === 'At Risk' ? 'bg-red-100 text-red-800' : faculty.status === 'Stable' || faculty.status === 'Normal' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>{faculty.status}</span>
-                          </td>
-                          <td className="py-3 text-xs text-gray-500">{faculty.timestamp ? new Date(faculty.timestamp).toLocaleString() : 'N/A'}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </motion.div> */}
+            {/* Faculty Attendance Overview Section */}
+            {/* <FacultyAttendanceOverview /> */}
           </>
-        )}
+        )} 
 
         {/* Students Tab */}
         {activeTab === 'students' && (
@@ -879,10 +949,13 @@ const HODDashboard = () => {
                 initial={{ scale: 0.9, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 exit={{ scale: 0.9, opacity: 0 }}
-                className="bg-white rounded-xl shadow-lg w-full max-w-6xl max-h-[95vh] overflow-hidden"
+                className="bg-white rounded-xl shadow-lg w-full max-w-5xl max-h-[90vh] overflow-hidden"
                 onClick={e => e.stopPropagation()}
               >
-                <div className="p-2 flex justify-end">
+                <div className="p-6 border-b border-gray-200 flex justify-between items-center">
+                  <h2 className="text-xl font-bold flex items-center">
+                    {selectedPerson?.name || (selectedPerson?.type === 'faculty' ? 'Faculty' : 'Non-Teaching Staff')} Logs
+                  </h2>
                   <button
                     onClick={() => setShowProfileModal(false)}
                     className="text-gray-500 hover:text-gray-700 p-2 hover:bg-gray-100 rounded-full transition-colors"
@@ -890,8 +963,8 @@ const HODDashboard = () => {
                     <FiX size={24} />
                   </button>
                 </div>
-                <div className="p-0 overflow-y-auto max-h-[calc(95vh-3rem)]">
-                  <FacultyLogDisplay logs={profileLogs || []} facultyName={selectedPerson?.name} loading={profileLoading} />
+                <div className="p-6 overflow-y-auto max-h-[calc(90vh-8rem)]">
+                  <FacultyLogDisplay logs={profileLogs || []} loading={profileLoading} />
                 </div>
               </motion.div>
             </motion.div>
