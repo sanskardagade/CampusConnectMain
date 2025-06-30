@@ -30,9 +30,11 @@ const Footer = () => {
         <div>
           <h3 className="text-xl font-semibold mb-3">Contact</h3>
           <ul className="text-sm text-gray-300 space-y-2">
-            <li>Email: atul.kathole@dypvp.edu.in</li>
-            <li>Email: suvarna.patil@dypvp.edu.in</li>
-            <li>Address: DYPIT , Pimpri</li>
+            {/* <li>Email: atul.kathole@dypvp.edu.in</li> */}
+            {/* <li>Email: suvarna.patil@dypvp.edu.in</li> */}
+           <li>Email : campusconnect@dypvp.edu.in</li> 
+            <li>Address: Sant Tukaram Nagar ,<br/>
+               Dr. D. Y. Patil Institute of Technology, Pimpri , Pune</li>
           </ul>
         </div>
 
@@ -53,7 +55,7 @@ const Footer = () => {
             </button>
           </form>
 
-          <div className="flex gap-4 mt-4 text-lg">
+          {/* <div className="flex gap-4 mt-4 text-lg">
             <a href="https://facebook.com" target="_blank" rel="noopener noreferrer" className="hover:text-red-300">
               <FaFacebookF />
             </a>
@@ -66,7 +68,7 @@ const Footer = () => {
             <a href="https://linkedin.com" target="_blank" rel="noopener noreferrer" className="hover:text-red-300">
               <FaLinkedinIn />
             </a>
-          </div>
+          </div> */}
         </div>
       </div>
 

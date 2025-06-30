@@ -31,11 +31,7 @@ import SidebarMenu from "./SideBarMenu";
     //   name: "Faculty Attendance",
     //   icon: <BiAnalyse />,
     // },
-    {
-      path: "/hod/report",
-      name: "Faculty Report",
-      icon: <AiFillDatabase />,
-    },
+    
     {
       path: "/hod/view-stress-level",
       name: "View Faculty Stress Level",
@@ -50,6 +46,11 @@ import SidebarMenu from "./SideBarMenu";
       path: "/hod/leave-approval",
       name: "Faculty Leave Approval",
       icon: <AiFillBell />,
+    },
+    {
+      path: "/hod/report",
+      name: "Faculty Report",
+      icon: <AiFillDatabase />,
     },
     
     // {

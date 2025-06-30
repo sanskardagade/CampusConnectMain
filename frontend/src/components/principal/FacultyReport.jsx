@@ -11,6 +11,7 @@ const formats = [
 const reportTypes = [
   { value: 'attendance', label: 'Attendance Report' },
   { value: 'stress', label: 'Stress Report' },
+  { value: 'leave', label: 'Leave Report' },
 ];
 
 const FacultyReport = () => {
@@ -68,9 +69,14 @@ const FacultyReport = () => {
         toDate,
         format,
       };
-      const endpoint = reportType === 'attendance'
-        ? 'http://69.62.83.14:9000/api/principal/faculty-attendance-report'
-        : 'http://69.62.83.14:9000/api/principal/faculty-stress-report';
+      let endpoint;
+      if (reportType === 'attendance') {
+        endpoint = 'http://69.62.83.14:9000/api/principal/faculty-attendance-report';
+      } else if (reportType === 'stress') {
+        endpoint = 'http://69.62.83.14:9000/api/principal/faculty-stress-report';
+      } else if (reportType === 'leave') {
+        endpoint = 'http://69.62.83.14:9000/api/principal/faculty-leave-report';
+      }
       const response = await axios.get(endpoint, {
         params,
         headers: { Authorization: `Bearer ${token}` },
@@ -78,9 +84,14 @@ const FacultyReport = () => {
       });
       // Get filename from content-disposition or fallback
       const disposition = response.headers['content-disposition'];
-      let filename = reportType === 'attendance'
-        ? `faculty_attendance_report.${format}`
-        : `faculty_stress_report.${format}`;
+      let filename;
+      if (reportType === 'attendance') {
+        filename = `faculty_attendance_report.${format}`;
+      } else if (reportType === 'stress') {
+        filename = `faculty_stress_report.${format}`;
+      } else if (reportType === 'leave') {
+        filename = `faculty_leave_report.${format}`;
+      }
       if (disposition) {
         const match = disposition.match(/filename="(.+)"/);
         if (match) filename = match[1];
@@ -107,7 +118,7 @@ const FacultyReport = () => {
           <h2 className="text-3xl font-bold mb-10 flex items-center text-gray-800">
             <FiFileText className="mr-4 text-red-800 text-4xl" />
             <span className="bg-gradient-to-r from-red-800 to-red-600 bg-clip-text text-transparent">
-              Generate Faculty {reportType === 'attendance' ? 'Attendance' : 'Stress'} Report
+              Generate Faculty {reportType === 'attendance' ? 'Attendance' : reportType === 'stress' ? 'Stress' : 'Leave'} Report
             </span>
           </h2>
           <div className="flex justify-center mb-8">

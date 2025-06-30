@@ -62,6 +62,11 @@ import { useLocation } from "react-router-dom";
       name: "Faculty Attendance Report",
       icon: <AiOutlineFilePdf />,
     },
+    // {
+    //   path: "/principal/classroom-distribution",
+    //   name: "Classroom Distribution",
+    //   icon: <BiAnalyse />,
+    // },
     
     {
       path: "/principal/principal-profile",

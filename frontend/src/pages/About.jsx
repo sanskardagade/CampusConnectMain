@@ -1,7 +1,9 @@
 import React, { Link ,useState, useEffect } from 'react';
 import { GraduationCap, Users, Award, Target, Code, Lightbulb, Heart, Zap, ChevronRight, Star, BookOpen, Cpu } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 const About = () => {
+  const navigate = useNavigate();
   const [activeSection, setActiveSection] = useState(0);
   const [animatedStats, setAnimatedStats] = useState({ projects: 0, students: 0, satisfaction: 0 });
 
@@ -70,8 +72,8 @@ const About = () => {
     {
       icon: <Lightbulb size={24} />,
       title: "The Vision",
-      text: "Campus Connect began as a project with a vision to transform how educational institutions manage daily operations using AI, facial recognition, and data analytics.",
-      year: "2024"
+      text: "Campus Connect began as a project with a vision to transform how educational institutions manage daily Attendance using AI, facial recognition, and data analytics.",
+      year: "2025"
     },
     {
       icon: <Code size={24} />,
@@ -175,7 +177,7 @@ const About = () => {
         </section>
 
         {/* Project Guides */}
-        <section className="mb-24">
+        {/* <section className="mb-24">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold text-gray-800 mb-4">Our Project Guides</h2>
             <div className="w-24 h-1 bg-gradient-to-r from-red-600 to-red-700 mx-auto rounded-full"></div>
@@ -185,10 +187,10 @@ const About = () => {
             {guides.map((guide, index) => (
               <div key={index} className="group">
                 <div className="bg-white rounded-3xl shadow-lg p-8 border border-gray-100 hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 relative overflow-hidden">
-                  {/* Decorative gradient */}
+                
                   <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-red-600 to-red-700"></div>
                   
-                  {/* Avatar placeholder */}
+               
                   <div className="w-20 h-20 bg-gradient-to-br from-red-600 to-red-700 rounded-full flex items-center justify-center text-white text-2xl font-bold mb-6 shadow-lg">
                     {guide.name.split(' ').map(n => n[0]).join('')}
                   </div>
@@ -200,7 +202,7 @@ const About = () => {
                   </p>
                   <p className="text-gray-600 leading-relaxed mb-6">{guide.description}</p>
                   
-                  {/* Expertise tags */}
+              
                   <div className="flex flex-wrap gap-2">
                     {guide.expertise.map((skill, skillIndex) => (
                       <span key={skillIndex} className="bg-red-50 text-red-700 px-3 py-1 rounded-full text-xs font-medium border border-red-200">
@@ -212,10 +214,10 @@ const About = () => {
               </div>
             ))}
           </div>
-        </section>
+        </section> */}
 
         {/* Team Members */}
-        <section className="mb-24">
+        {/* <section className="mb-24">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold text-gray-800 mb-4">Meet Our Team</h2>
             <div className="w-24 h-1 bg-gradient-to-r from-red-600 to-red-700 mx-auto rounded-full"></div>
@@ -228,10 +230,10 @@ const About = () => {
             {teamMembers.map((member, index) => (
               <div key={index} className="group">
                 <div className="bg-white rounded-2xl shadow-lg p-6 text-center transition-all duration-300 hover:shadow-xl hover:-translate-y-2 border border-gray-100 relative overflow-hidden">
-                  {/* Background gradient */}
+               
                   <div className={`absolute inset-0 bg-gradient-to-br ${member.color} opacity-0 group-hover:opacity-10 transition-opacity duration-300`}></div>
                   
-                  {/* Avatar */}
+            
                   <div className={`w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br ${member.color} flex items-center justify-center text-2xl shadow-lg relative z-10`}>
                     {member.avatar}
                   </div>
@@ -239,13 +241,13 @@ const About = () => {
                   <h4 className="text-lg font-bold text-gray-800 mb-2 relative z-10">{member.name}</h4>
                   <p className="text-sm text-gray-600 relative z-10">{member.role}</p>
                   
-                  {/* Hover effect */}
+        
                   <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-current to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                 </div>
               </div>
             ))}
           </div>
-        </section>
+        </section> */}
 
         {/* Core Values */}
         <section className="bg-white rounded-3xl p-12 shadow-2xl border border-gray-100 relative overflow-hidden">
@@ -292,10 +294,12 @@ const About = () => {
               <p className="text-xl opacity-90 mb-8 max-w-2xl mx-auto">
                 Join us in revolutionizing educational management with cutting-edge technology
               </p>
-              <button  className="bg-white text-red-600 font-bold py-4 px-8 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 flex items-center gap-2 mx-auto">
+              
+              <button  onClick={() => navigate("/contact")} className="bg-white text-red-600 font-bold py-4 px-8 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 flex items-center gap-2 mx-auto">
                 Get Started Today
                 <ChevronRight size={20} />
               </button>
+              
             </div>
           </div>
         </section>

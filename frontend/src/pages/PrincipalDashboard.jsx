@@ -52,6 +52,7 @@ const PrincipalDashboard = () => {
     fetchDashboardData();
     fetchPendingLeaves();
     fetchTodayPresence();
+    fetchPresentFacultyStaffSummary();
   }, []);
 
   const fetchDashboardData = async () => {
@@ -119,6 +120,24 @@ const PrincipalDashboard = () => {
       setPresentFaculty(0);
       setPresentStaff(0);
       setPresentStudents(0);
+    }
+  };
+
+  const fetchPresentFacultyStaffSummary = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await axios.get('http://69.62.83.14:9000/api/principal/present-faculty-staff-summary', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      // Find today's date in the summary
+      const today = dayjs().format('YYYY-MM-DD');
+      const facultyToday = (res.data.faculty || []).find(row => dayjs(row.date).format('YYYY-MM-DD') === today);
+      const staffToday = (res.data.staff || []).find(row => dayjs(row.date).format('YYYY-MM-DD') === today);
+      setPresentFaculty(facultyToday ? facultyToday.total_faculty_present : 0);
+      setPresentStaff(staffToday ? staffToday.total_staff_present : 0);
+    } catch (e) {
+      setPresentFaculty(0);
+      setPresentStaff(0);
     }
   };
 

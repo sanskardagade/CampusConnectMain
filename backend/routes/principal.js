@@ -504,15 +504,16 @@ router.get('/faculty-attendance-report', async (req, res) => {
         doc.fontSize(16).text('Faculty Attendance Report', { align: 'center' });
         doc.moveDown();
 
-        // Table columns (add Half/Full Day)
-        const headers = ['Date', 'Faculty Name', 'ERP ID', 'Department', 'First Log', 'Last Log', 'Duration (HH:MM:SS)', 'Half/Full Day'];
-        const colWidths = [80, 140, 70, 160, 70, 70, 120, 90];
+        // Table columns (add Serial No and Half/Full Day)
+        const headers = ['S.No', 'Date', 'Faculty Name', 'ERP ID', 'Department', 'First Log', 'Last Log', 'Duration (HH:MM:SS)', 'Half/Full Day'];
+        const colWidths = [30, 70, 140, 65, 160, 70, 70, 110, 90];
         const startX = doc.x;
         let y = doc.y;
 
         // Draw header row
         function drawHeader() {
           let x = startX;
+          doc.font('Helvetica-Bold').fontSize(10);
           doc.font('Helvetica-Bold').fontSize(10);
           headers.forEach((header, i) => {
             doc.rect(x, y, colWidths[i], 20).stroke();
@@ -521,7 +522,7 @@ router.get('/faculty-attendance-report', async (req, res) => {
           });
           y += 20;
           doc.font('Helvetica').fontSize(9);
-          doc.y = y; // Sync doc.y with y
+          doc.y = y;
         }
         drawHeader();
 
@@ -543,6 +544,7 @@ router.get('/faculty-attendance-report', async (req, res) => {
 
         // Draw data rows
         let rowCount = 0;
+        let serialNumber = 1;
         rows.forEach(r => {
           const firstLog = new Date(r.first_log);
           const lastLog = new Date(r.last_log);
@@ -560,6 +562,7 @@ router.get('/faculty-attendance-report', async (req, res) => {
           }
           const halfFull = durationHours < 4 ? 'Half Day' : 'Full Day';
           const row = [
+            serialNumber.toString(),
             toISTDateString(r.first_log),
             r.faculty_name,
             r.erpid,
@@ -577,8 +580,9 @@ router.get('/faculty-attendance-report', async (req, res) => {
           });
           y += 18;
           rowCount++;
-          // Add new page if needed (every 25 rows)
-          if (rowCount % 25 === 0) {
+          serialNumber++;
+          // Add new page if needed (every 20 rows)
+          if (rowCount % 20 === 0) {
             doc.addPage();
             y = doc.y;
             drawHeader();
@@ -595,6 +599,7 @@ router.get('/faculty-attendance-report', async (req, res) => {
         const workbook = new ExcelJS.Workbook();
         const worksheet = workbook.addWorksheet('Faculty Attendance');
         worksheet.columns = [
+          { header: 'S.No', key: 'serial_no', width: 10 },
           { header: 'Date', key: 'date', width: 15 },
           { header: 'Faculty Name', key: 'faculty_name', width: 25 },
           { header: 'ERP ID', key: 'erpid', width: 15 },
@@ -618,6 +623,7 @@ router.get('/faculty-attendance-report', async (req, res) => {
           const istDate = new Date(utc + istOffset);
           return istDate.toTimeString().split(' ')[0];
         }
+        let serialNumber = 1;
         rows.forEach(r => {
           const firstLog = new Date(r.first_log);
           const lastLog = new Date(r.last_log);
@@ -635,6 +641,7 @@ router.get('/faculty-attendance-report', async (req, res) => {
           }
           const halfFull = durationHours < 4 ? 'Half Day' : 'Full Day';
           worksheet.addRow({
+            serial_no: serialNumber,
             date: toISTDateString(r.first_log),
             faculty_name: r.faculty_name,
             erpid: r.erpid,
@@ -644,6 +651,7 @@ router.get('/faculty-attendance-report', async (req, res) => {
             duration,
             half_full: halfFull,
           });
+          serialNumber++;
         });
         res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
         res.setHeader('Content-Disposition', 'attachment; filename=faculty_attendance.xlsx');
@@ -668,7 +676,8 @@ router.get('/faculty-attendance-report', async (req, res) => {
         return istDate.toTimeString().split(' ')[0];
       }
 
-      const csvHeader = 'Date,Faculty Name,ERP ID,Department,First Log,Last Log,Duration (HH:MM:SS),Half/Full Day\n';
+      const csvHeader = 'S.No,Date,Faculty Name,ERP ID,Department,First Log,Last Log,Duration (HH:MM:SS),Half/Full Day\n';
+      let serialNumber = 1;
       const csvRows = rows.map(r => {
           const firstLog = new Date(r.first_log);
           const lastLog = new Date(r.last_log);
@@ -685,7 +694,8 @@ router.get('/faculty-attendance-report', async (req, res) => {
             durationHours = durationMs / (1000 * 60 * 60);
           }
           const halfFull = durationHours < 4 ? 'Half Day' : 'Full Day';
-          return [
+          const row = [
+              serialNumber,
               toISTDateString(r.first_log),
               `"${r.faculty_name}"`,
               r.erpid,
@@ -694,7 +704,9 @@ router.get('/faculty-attendance-report', async (req, res) => {
               lastLog.toTimeString().split(' ')[0],
               duration,
               halfFull
-          ].join(',');
+          ];
+          serialNumber++;
+          return row.join(',');
       });
 
       const csvData = csvHeader + csvRows.join('\n');
@@ -781,8 +793,7 @@ router.get('/faculty-stress-report', async (req, res) => {
           f.name AS faculty_name,
           f.erpid,
           d.name AS department_name,
-          sl.timestamp,
-          sl.stress_status,
+          DATE(sl.timestamp AT TIME ZONE 'Asia/Kolkata') AS stress_date,
           sl.stress_level
         FROM stress_logs sl
         JOIN faculty f ON sl.erpid = f.erpid
@@ -790,7 +801,7 @@ router.get('/faculty-stress-report', async (req, res) => {
         WHERE f.department_id = ANY(${deptIds})
           AND DATE(sl.timestamp AT TIME ZONE 'Asia/Kolkata') >= ${from}::date
           AND DATE(sl.timestamp AT TIME ZONE 'Asia/Kolkata') <= ${to}::date
-        ORDER BY d.name, f.name, sl.timestamp
+        ORDER BY d.name, f.name, stress_date
       `;
     } else {
       records = await sql`
@@ -798,36 +809,51 @@ router.get('/faculty-stress-report', async (req, res) => {
           f.name AS faculty_name,
           f.erpid,
           d.name AS department_name,
-          sl.timestamp,
-          sl.stress_status,
+          DATE(sl.timestamp AT TIME ZONE 'Asia/Kolkata') AS stress_date,
           sl.stress_level
         FROM stress_logs sl
         JOIN faculty f ON sl.erpid = f.erpid
         JOIN departments d ON f.department_id = d.id
         WHERE DATE(sl.timestamp AT TIME ZONE 'Asia/Kolkata') >= ${from}::date
           AND DATE(sl.timestamp AT TIME ZONE 'Asia/Kolkata') <= ${to}::date
-        ORDER BY d.name, f.name, sl.timestamp
+        ORDER BY d.name, f.name, stress_date
       `;
     }
     const rows = Array.isArray(records) ? records : (records.rows || []);
     if (!rows || rows.length === 0) {
       return res.status(404).send('No stress data found for the selected criteria.');
     }
-    // Robust UTC-to-IST conversion for time and date
-    function toISTTimeString(utcDateString) {
-      const date = new Date(utcDateString);
-      const utc = date.getTime() + (date.getTimezoneOffset() * 60000);
-      const istOffset = 5.5 * 60 * 60 * 1000;
-      const istDate = new Date(utc + istOffset);
-      return istDate.toTimeString().split(' ')[0];
-    }
-    function toISTDateString(utcDateString) {
-      const date = new Date(utcDateString);
-      const utc = date.getTime() + (date.getTimezoneOffset() * 60000);
-      const istOffset = 5.5 * 60 * 60 * 1000;
-      const istDate = new Date(utc + istOffset);
-      return istDate.toISOString().split('T')[0];
-    }
+
+    // Aggregate data by faculty only (not by date)
+    const aggregatedData = {};
+    rows.forEach(row => {
+      const key = `${row.faculty_name}_${row.erpid}_${row.department_name}`;
+      if (!aggregatedData[key]) {
+        aggregatedData[key] = {
+          faculty_name: row.faculty_name,
+          erpid: row.erpid,
+          department_name: row.department_name,
+          stressed_count: 0,
+          unstressed_count: 0
+        };
+      }
+      
+      // Count stressed levels (L1, L2, L3)
+      if (['L1', 'L2', 'L3'].includes(row.stress_level)) {
+        aggregatedData[key].stressed_count++;
+      }
+      // Count unstressed levels (A1, A2, A3)
+      else if (['A1', 'A2', 'A3'].includes(row.stress_level)) {
+        aggregatedData[key].unstressed_count++;
+      }
+    });
+
+    // Convert to array and add verdict
+    const finalData = Object.values(aggregatedData).map(item => ({
+      ...item,
+      verdict: item.stressed_count > item.unstressed_count ? 'Stressed' : 'Unstressed'
+    }));
+
     if (format === 'pdf') {
       const PDFDocument = require('pdfkit');
       const doc = new PDFDocument({ margin: 30, size: 'A4', layout: 'landscape' });
@@ -836,12 +862,23 @@ router.get('/faculty-stress-report', async (req, res) => {
       doc.pipe(res);
       doc.fontSize(16).text('Faculty Stress Report', { align: 'center' });
       doc.moveDown();
-      const headers = ['Date', 'Faculty Name', 'ERP ID', 'Department', 'Time', 'Stress Status', 'Stress Level'];
-      const colWidths = [80, 140, 70, 160, 70, 120, 90];
+      doc.fontSize(12).text(`From: ${from} To: ${to}`, { align: 'center' });
+      doc.moveDown();
+      // Add stress level indicators
+      doc.fontSize(10).text('Stress Level Indicators:', { align: 'left' });
+      doc.moveDown(0.2);
+      doc.fontSize(8).text('STRESS: L1 - 70-80  | L2 - 80-90  | L3 - 90-100', { align: 'left' });
+      doc.moveDown(0.1);
+      doc.fontSize(8).text('UNSTRESS: A1 - 90-100  | A2 - 80-90  | A3 - 70-80', { align: 'left' });
+      doc.moveDown();
+      
+      const headers = ['S.No', 'Faculty Name', 'ERP ID', 'Department', 'Stressed Count', 'Unstressed Count', 'Verdict'];
+      const colWidths = [40, 200, 70, 200, 100, 100, 80];
       const startX = doc.x;
       let y = doc.y;
       function drawHeader() {
         let x = startX;
+        doc.font('Helvetica-Bold').fontSize(10);
         doc.font('Helvetica-Bold').fontSize(10);
         headers.forEach((header, i) => {
           doc.rect(x, y, colWidths[i], 20).stroke();
@@ -854,15 +891,16 @@ router.get('/faculty-stress-report', async (req, res) => {
       }
       drawHeader();
       let rowCount = 0;
-      rows.forEach(r => {
+      let serialNumber = 1;
+      finalData.forEach(r => {
         const row = [
-          toISTDateString(r.timestamp),
+          serialNumber.toString(),
           r.faculty_name,
           r.erpid,
           r.department_name,
-          toISTTimeString(r.timestamp),
-          r.stress_status,
-          r.stress_level
+          r.stressed_count.toString(),
+          r.unstressed_count.toString(),
+          r.verdict
         ];
         let x = startX;
         row.forEach((cell, i) => {
@@ -872,7 +910,8 @@ router.get('/faculty-stress-report', async (req, res) => {
         });
         y += 18;
         rowCount++;
-        if (rowCount % 25 === 0) {
+        serialNumber++;
+        if (rowCount % 20 === 0) {
           doc.addPage();
           y = doc.y;
           drawHeader();
@@ -886,25 +925,38 @@ router.get('/faculty-stress-report', async (req, res) => {
       const ExcelJS = require('exceljs');
       const workbook = new ExcelJS.Workbook();
       const worksheet = workbook.addWorksheet('Faculty Stress');
+      
+      // Add title and date range
+      worksheet.addRow(['Faculty Stress Report']);
+      worksheet.addRow([`From: ${from} To: ${to}`]);
+      worksheet.addRow([]); // Empty row for spacing
+      
+      // Add stress level indicators
+      worksheet.addRow(['Stress Level Indicators:']);
+      worksheet.addRow(['L1 - 70-80 stress', 'L2 - 80-90 stress', 'L3 - 90-100 stress', 'A1 - 90-100 unstress', 'A2 - 80-90 unstress', 'A3 - 70-80 unstress']);
+      worksheet.addRow([]); // Empty row for spacing
+      
       worksheet.columns = [
-        { header: 'Date', key: 'date', width: 15 },
+        { header: 'S.No', key: 'serial_no', width: 10 },
         { header: 'Faculty Name', key: 'faculty_name', width: 25 },
         { header: 'ERP ID', key: 'erpid', width: 15 },
         { header: 'Department', key: 'department_name', width: 25 },
-        { header: 'Time', key: 'time', width: 15 },
-        { header: 'Stress Status', key: 'stress_status', width: 18 },
-        { header: 'Stress Level', key: 'stress_level', width: 15 },
+        { header: 'Stressed Count', key: 'stressed_count', width: 15 },
+        { header: 'Unstressed Count', key: 'unstressed_count', width: 15 },
+        { header: 'Verdict', key: 'verdict', width: 15 },
       ];
-      rows.forEach(r => {
+      let serialNumber = 1;
+      finalData.forEach(r => {
         worksheet.addRow({
-          date: toISTDateString(r.timestamp),
+          serial_no: serialNumber,
           faculty_name: r.faculty_name,
           erpid: r.erpid,
           department_name: r.department_name,
-          time: toISTTimeString(r.timestamp),
-          stress_status: r.stress_status,
-          stress_level: r.stress_level,
+          stressed_count: r.stressed_count,
+          unstressed_count: r.unstressed_count,
+          verdict: r.verdict,
         });
+        serialNumber++;
       });
       res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
       res.setHeader('Content-Disposition', 'attachment; filename=faculty_stress_report.xlsx');
@@ -913,16 +965,18 @@ router.get('/faculty-stress-report', async (req, res) => {
       return;
     }
     // CSV
-    const csvHeader = 'Date,Faculty Name,ERP ID,Department,Time,Stress Status,Stress Level\n';
-    const csvRows = rows.map(r => [
-      toISTDateString(r.timestamp),
+    const csvHeader = `Faculty Stress Report\nFrom: ${from} To: ${to}\n\nStress Level Indicators:\nL1 - 70-80 stress | L2 - 80-90 stress | L3 - 90-100 stress | A1 - 90-100 unstress | A2 - 80-90 unstress | A3 - 70-80 unstress\n\nS.No,Faculty Name,ERP ID,Department,Stressed Count,Unstressed Count,Verdict\n`;
+    let serialNumber = 1;
+    const csvRows = finalData.map(r => [
+      serialNumber,
       `"${r.faculty_name}"`,
       r.erpid,
       `"${r.department_name}"`,
-      toISTTimeString(r.timestamp),
-      r.stress_status,
-      r.stress_level
+      r.stressed_count,
+      r.unstressed_count,
+      r.verdict
     ].join(','));
+    serialNumber++;
     const csvData = csvHeader + csvRows.join('\n');
     res.header('Content-Type', 'text/csv');
     res.attachment('faculty_stress_report.csv');
@@ -930,6 +984,205 @@ router.get('/faculty-stress-report', async (req, res) => {
   } catch (error) {
     console.error('Error generating stress report:', error);
     res.status(500).json({ message: 'Failed to generate stress report' });
+  }
+});
+
+// Faculty Leave Report
+router.get('/faculty-leave-report', async (req, res) => {
+  try {
+    const { departmentId, fromDate, toDate, format } = req.query;
+    const from = fromDate || '1900-01-01';
+    const to = toDate || '2100-12-31';
+    
+    let records;
+    if (departmentId && departmentId !== 'all') {
+      let deptIds = departmentId.includes(',') ? departmentId.split(',').map(Number) : [Number(departmentId)];
+      records = await sql`
+        SELECT
+          fl."StaffName" AS faculty_name,
+          fl."ErpStaffId" AS erpid,
+          TO_CHAR(fl."fromDate", 'YYYY-MM-DD') AS leave_date,
+          d.name AS department_name,
+          fl."reason"
+        FROM faculty_leave fl
+        JOIN faculty f ON fl."ErpStaffId" = f.erpid
+        JOIN departments d ON f.department_id = d.id
+        WHERE f.department_id = ANY(${deptIds})
+          AND fl."fromDate" >= ${from}::date
+          AND fl."toDate" <= ${to}::date
+        ORDER BY d.name, fl."StaffName", fl."fromDate"
+      `;
+    } else {
+      records = await sql`
+        SELECT
+          fl."StaffName" AS faculty_name,
+          fl."ErpStaffId" AS erpid,
+          TO_CHAR(fl."fromDate", 'YYYY-MM-DD') AS leave_date,
+          d.name AS department_name,
+          fl."reason"
+        FROM faculty_leave fl
+        JOIN faculty f ON fl."ErpStaffId" = f.erpid
+        JOIN departments d ON f.department_id = d.id
+        WHERE fl."fromDate" >= ${from}::date
+          AND fl."toDate" <= ${to}::date
+        ORDER BY d.name, fl."StaffName", fl."fromDate"
+      `;
+    }
+
+    const rows = Array.isArray(records) ? records : (records.rows || []);
+    if (!rows || rows.length === 0) {
+      return res.status(404).send('No leave data found for the selected criteria.');
+    }
+
+    if (format === 'pdf') {
+      const doc = new PDFDocument({ margin: 30, size: 'A4', layout: 'landscape' });
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', 'attachment; filename=faculty_leave_report.pdf');
+      doc.pipe(res);
+
+      doc.fontSize(16).text('Faculty Leave Report', { align: 'center' });
+      doc.moveDown();
+      doc.fontSize(12).text(`From: ${from} To: ${to}`, { align: 'center' });
+      doc.moveDown();
+
+      const headers = ['S.No', 'Name', 'ERP ID', 'Date', 'Department', 'Reason'];
+      const colWidths = [40, 150, 80, 80, 150, 300];
+      const startX = doc.x;
+      let y = doc.y;
+
+      function drawHeader() {
+        let x = startX;
+        doc.font('Helvetica-Bold').fontSize(10);
+        headers.forEach((header, i) => {
+          doc.rect(x, y, colWidths[i], 20).stroke();
+          doc.text(header, x + 2, y + 6, { width: colWidths[i] - 4, align: 'center' });
+          x += colWidths[i];
+        });
+        y += 20;
+        doc.font('Helvetica').fontSize(9);
+        doc.y = y;
+      }
+
+      drawHeader();
+      let rowCount = 0;
+      let serialNumber = 1;
+
+      rows.forEach(r => {
+        const row = [
+          serialNumber.toString(),
+          r.faculty_name,
+          r.erpid,
+          r.leave_date,
+          r.department_name,
+          r.reason
+        ];
+
+        let x = startX;
+        row.forEach((cell, i) => {
+          doc.rect(x, y, colWidths[i], 18).stroke();
+          doc.text(String(cell), x + 2, y + 5, { width: colWidths[i] - 4, align: 'center', ellipsis: true });
+          x += colWidths[i];
+        });
+        y += 18;
+        rowCount++;
+        serialNumber++;
+
+        if (rowCount % 20 === 0) {
+          doc.addPage();
+          y = doc.y;
+          drawHeader();
+          y = doc.y;
+        }
+      });
+
+      doc.end();
+      return;
+    }
+
+    if (format === 'xlsx') {
+      const ExcelJS = require('exceljs');
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet('Faculty Leave');
+      
+      // Add title and date range
+      worksheet.addRow(['Faculty Leave Report']);
+      worksheet.addRow([`From: ${from} To: ${to}`]);
+      worksheet.addRow([]); // Empty row for spacing
+      
+      worksheet.columns = [
+        { header: 'S.No', key: 'serial_no', width: 10 },
+        { header: 'Name', key: 'faculty_name', width: 20 },
+        { header: 'ERP ID', key: 'erpid', width: 15 },
+        { header: 'Date', key: 'leave_date', width: 15 },
+        { header: 'Department', key: 'department_name', width: 20 },
+        { header: 'Reason', key: 'reason', width: 40 },
+      ];
+
+      let serialNumber = 1;
+      rows.forEach(r => {
+        worksheet.addRow({
+          serial_no: serialNumber,
+          faculty_name: r.faculty_name,
+          erpid: r.erpid,
+          leave_date: r.leave_date,
+          department_name: r.department_name,
+          reason: r.reason,
+        });
+        serialNumber++;
+      });
+
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Content-Disposition', 'attachment; filename=faculty_leave_report.xlsx');
+      await workbook.xlsx.write(res);
+      res.end();
+      return;
+    }
+
+    // CSV
+    const csvHeader = `Faculty Leave Report\nFrom: ${from} To: ${to}\n\nS.No,Name,ERP ID,Date,Department,Reason\n`;
+    let serialNumber = 1;
+    const csvRows = rows.map(r => [
+      serialNumber,
+      `"${r.faculty_name}"`,
+      r.erpid,
+      r.leave_date,
+      `"${r.department_name}"`,
+      `"${r.reason}"`
+    ].join(','));
+    serialNumber++;
+    const csvData = csvHeader + csvRows.join('\n');
+    res.header('Content-Type', 'text/csv');
+    res.attachment('faculty_leave_report.csv');
+    return res.send(csvData);
+
+  } catch (error) {
+    console.error('Error generating leave report:', error);
+    res.status(500).json({ message: 'Failed to generate leave report' });
+  }
+});
+
+// Endpoint to get present faculty and staff summary per day
+router.get('/present-faculty-staff-summary', async (req, res) => {
+  try {
+    // Present faculty per day
+    const facultyRows = await sql`
+      SELECT COUNT(DISTINCT erp_id) AS total_faculty_present, DATE("timestamp") AS date
+      FROM faculty_logs
+      GROUP BY DATE("timestamp")
+      ORDER BY date DESC
+    `;
+    // Present staff per day (assuming staff logs are also in faculty_logs with erp_id from non_teaching_staff)
+    const staffRows = await sql`
+      SELECT COUNT(DISTINCT erp_id) AS total_staff_present, DATE("timestamp") AS date
+      FROM faculty_logs
+      WHERE erp_id IN (SELECT erpid FROM non_teaching_staff)
+      GROUP BY DATE("timestamp")
+      ORDER BY date DESC
+    `;
+    res.json({ faculty: facultyRows, staff: staffRows });
+  } catch (error) {
+    console.error('Error fetching present faculty/staff summary:', error);
+    res.status(500).json({ message: 'Failed to fetch present faculty/staff summary' });
   }
 });
 

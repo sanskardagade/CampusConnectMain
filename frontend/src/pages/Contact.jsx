@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { MapPin, Phone, Mail, Clock, Send, CheckCircle, AlertCircle } from 'lucide-react';
+import Navbar from '../components/common/Navbar';
+import Footer from '../components/common/Footer';
 
 const Contact = () => {
   const [formData, setFormData] = useState({
@@ -36,13 +38,7 @@ const Contact = () => {
 
   return (
     <>
-      {/* Animated Background */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-4 -left-4 w-96 h-96 bg-red-100 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-pulse"></div>
-        <div className="absolute -bottom-8 -right-4 w-96 h-96 bg-red-200 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-pulse animation-delay-2000"></div>
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-red-50 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse animation-delay-4000"></div>
-      </div>
-
+    <Navbar/>
       <section className="relative py-20 bg-gradient-to-br from-gray-50 via-red-50/30 to-gray-100 min-h-screen">
         <div className="container mx-auto px-4">
           {/* Header with animation */}
@@ -77,7 +73,7 @@ const Contact = () => {
                       {
                         icon: MapPin,
                         title: "Address",
-                        content: ["123 University Avenue", "Tech Campus, Building 4", "Edutown, ET 54321"],
+                        content: ["Dr. D. Y. Patil Institute of Technology", "Sant Tukaram Nagar ", "Pimpri, Pune - 411018"],
                         delay: "0s"
                       },
                       {
@@ -324,6 +320,7 @@ const Contact = () => {
           animation-delay: 4s;
         }
       `}</style>
+      <Footer/>
     </>
   );
 };

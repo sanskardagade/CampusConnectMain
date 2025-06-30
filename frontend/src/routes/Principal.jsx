@@ -14,6 +14,7 @@ import PrincipalChangePassword from "../components/principal/PrincipalChangePass
 import LeaveApplication from "../components/principal/LeaveApplication";
 import FacultyReport from "../components/principal/FacultyReport";
 import StressDisplay from "../components/principal/StressDisplay";
+import ClassroomDistribution from "../components/principal/ClassroomDistribution";
 
 
 const Principal = () => {
@@ -33,6 +34,7 @@ const Principal = () => {
         <Route path="faculty-leave-approval" element={<LeaveApplication />} />
         <Route path="faculty-report" element={<FacultyReport />} />
         <Route path="view-stress-level" element={<StressDisplay />} />
+        <Route path="classroom-distribution" element={<ClassroomDistribution />} />
       </Routes>
     </PrincipalSideBar>
   );

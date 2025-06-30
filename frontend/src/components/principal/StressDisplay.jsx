@@ -501,13 +501,25 @@ function StressDisplay() {
 
                 {/* Enhanced Date Selection */}
                 <div className="bg-white rounded-2xl shadow-xl border border-white/20 p-6">
-                  <div className="flex items-center space-x-4 mb-4">
-                    <div className="bg-gradient-to-r from-purple-500 to-pink-600 p-3 rounded-xl">
-                      <Calendar className="h-6 w-6 text-white" />
+                  <div className="flex items-center space-x-4 mb-4 justify-between flex-wrap">
+                    <div className="flex items-center space-x-4 min-w-fit">
+                      <div className="bg-gradient-to-r from-purple-500 to-pink-600 p-3 rounded-xl">
+                        <Calendar className="h-6 w-6 text-white" />
+                      </div>
+                      <label className="text-xl font-bold text-gray-900">
+                        Select Date Range:
+                      </label>
                     </div>
-                    <label className="text-xl font-bold text-gray-900">
-                      Select Date Range:
-                    </label>
+                    {/* Compact Stress Level Indicators - inline */}
+                    <div className="text-xs md:text-sm text-gray-600 bg-gray-50 border border-gray-200 rounded-lg px-4 py-2 shadow-sm text-center max-w-xl ml-auto mt-2 md:mt-0">
+                      <div className="font-semibold text-gray-700 mb-1">Stress Level Indicators:</div>
+                      <div>
+                        <span className="text-red-700 font-semibold">STRESS:</span> <strong> L1 - 70-80 % | L2 - 80-90 % | L3 - 90-100 %</strong>
+                      </div>
+                      <div>
+                        <span className="text-green-700 font-semibold">UNSTRESS:</span> <strong>A1 - 90-100 % | A2 - 80-90 % | A3 - 70-80 %</strong>
+                      </div>  
+                    </div>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
@@ -583,6 +595,19 @@ function StressDisplay() {
                           </ReBarChart>
                         </ResponsiveContainer>
                       </div>
+                      {/* Compact Stress Level Indicators - single line */}
+                      {/* <div className="mt-4 mb-2 flex justify-center">
+                        <div className="text-xs md:text-sm text-gray-600 bg-gray-50 border border-gray-200 rounded-lg px-4 py-2 shadow-sm text-center max-w-2xl">
+                          <div className="font-semibold text-gray-700 mb-1">Stress Level Indicators:</div>
+                          <div>
+                            <span className="text-red-700 font-semibold">STRESS:</span> L1 - 70-80 | L2 - 80-90 | L3 - 90-100
+                          </div>
+                          <div>
+                            <span className="text-green-700 font-semibold">UNSTRESS:</span> A1 - 90-100 | A2 - 80-90 | A3 - 70-80
+                          </div>
+                        </div>
+                      </div> */}
+                      {/* End Compact Info Box */}
                       <div className="flex justify-center space-x-12 mt-6">
                         <div className="flex items-center space-x-3">
                           <div className="w-6 h-6 bg-gradient-to-r from-red-500 to-red-600 rounded-full shadow-lg"></div>

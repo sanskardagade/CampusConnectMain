@@ -41,7 +41,7 @@ const Navbar = () => {
   const navLinks = [
     { id: "features", label: "Features" },
     { id: "about", label: "About" },
-    { id: "contact", label: "Contact" }
+    { id: "contact", label: "Contact", to: "/contact" }
   ];
 
   const userMenuItems = [
@@ -90,7 +90,7 @@ const Navbar = () => {
   return (
     <nav className={`fixed w-full top-0 z-50 transition-all duration-300 ${scrolled ? "bg-[#3a0000] shadow-xl" : "bg-[#4b0000]"}`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
+        <div className="flex justify-between items-center h-14">
           {/* Logo */}
           <motion.div 
             whileHover={{ scale: 1.05 }}
@@ -106,25 +106,43 @@ const Navbar = () => {
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-8">
             {navLinks.map((link) => (
-              <ScrollLink
-                key={link.id}
-                to={link.id}
-                smooth={true}
-                offset={-80}
-                duration={500}
-                spy={true}
-                onSetActive={() => setActiveLink(link.id)}
-                className={`relative px-3 py-2 text-sm font-medium cursor-pointer transition-colors ${activeLink === link.id ? "text-red-300" : "text-white hover:text-red-300"}`}
-              >
-                {link.label}
-                {activeLink === link.id && (
-                  <motion.span 
-                    layoutId="navUnderline"
-                    className="absolute left-0 bottom-0 w-full h-0.5 bg-red-400"
-                    transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
-                  />
-                )}
-              </ScrollLink>
+              link.id === "contact" ? (
+                <Link
+                  key={link.id}
+                  to={link.to}
+                  className={`relative px-3 py-2 text-sm font-medium cursor-pointer transition-colors ${activeLink === link.id ? "text-red-300" : "text-white hover:text-red-300"}`}
+                  onClick={() => setActiveLink(link.id)}
+                >
+                  {link.label}
+                  {activeLink === link.id && (
+                    <motion.span 
+                      layoutId="navUnderline"
+                      className="absolute left-0 bottom-0 w-full h-0.5 bg-red-400"
+                      transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                    />
+                  )}
+                </Link>
+              ) : (
+                <ScrollLink
+                  key={link.id}
+                  to={link.id}
+                  smooth={true}
+                  offset={-80}
+                  duration={500}
+                  spy={true}
+                  onSetActive={() => setActiveLink(link.id)}
+                  className={`relative px-3 py-2 text-sm font-medium cursor-pointer transition-colors ${activeLink === link.id ? "text-red-300" : "text-white hover:text-red-300"}`}
+                >
+                  {link.label}
+                  {activeLink === link.id && (
+                    <motion.span 
+                      layoutId="navUnderline"
+                      className="absolute left-0 bottom-0 w-full h-0.5 bg-red-400"
+                      transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                    />
+                  )}
+                </ScrollLink>
+              )
             ))}
             {/* Admin Quick Login Button */}
             <button
@@ -221,19 +239,30 @@ const Navbar = () => {
           >
             <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
               {navLinks.map((link) => (
-                <ScrollLink
-                  key={link.id}
-                  to={link.id}
-                  smooth={true}
-                  offset={-80}
-                  duration={500}
-                  spy={true}
-                  onSetActive={() => setActiveLink(link.id)}
-                  onClick={() => setMobileOpen(false)}
-                  className={`block px-3 py-2 rounded-md text-base font-medium ${activeLink === link.id ? "bg-red-900 text-white" : "text-white hover:bg-red-800 hover:text-white"}`}
-                >
-                  {link.label}
-                </ScrollLink>
+                link.id === "contact" ? (
+                  <Link
+                    key={link.id}
+                    to={link.to}
+                    className={`block px-3 py-2 rounded-md text-base font-medium ${activeLink === link.id ? "bg-red-900 text-white" : "text-white hover:bg-red-800 hover:text-white"}`}
+                    onClick={() => { setActiveLink(link.id); setMobileOpen(false); }}
+                  >
+                    {link.label}
+                  </Link>
+                ) : (
+                  <ScrollLink
+                    key={link.id}
+                    to={link.id}
+                    smooth={true}
+                    offset={-80}
+                    duration={500}
+                    spy={true}
+                    onSetActive={() => setActiveLink(link.id)}
+                    onClick={() => setMobileOpen(false)}
+                    className={`block px-3 py-2 rounded-md text-base font-medium ${activeLink === link.id ? "bg-red-900 text-white" : "text-white hover:bg-red-800 hover:text-white"}`}
+                  >
+                    {link.label}
+                  </ScrollLink>
+                )
               ))}
               {/* Admin Quick Login Button for Mobile */}
               <button
@@ -243,30 +272,6 @@ const Navbar = () => {
               >
                 <FiLogIn /> Admin Quick Login
               </button>
-              <div className="pt-4 pb-2 border-t border-red-800">
-                <div className="flex items-center px-3">
-                  <div className="flex-shrink-0">
-                    <div className="w-10 h-10 rounded-full bg-red-700 flex items-center justify-center">
-                      <FaUser className="text-white text-sm" />
-                    </div>
-                  </div>
-                  <div className="ml-3">
-                    {/* <div className="text-sm font-medium text-white">User Account</div> */}
-                  </div>
-                </div>
-                <div className="mt-3 space-y-1">
-                  {userMenuItems.map((item) => (
-                    <Link
-                      key={item.label}
-                      to={item.to}
-                      className="block px-3 py-2 rounded-md text-base font-medium text-white hover:bg-red-800"
-                      onClick={() => setMobileOpen(false)}
-                    >
-                      {item.label}
-                    </Link>
-                  ))}
-                </div>
-              </div>
             </div>
           </motion.div>
         )}
@@ -276,62 +281,3 @@ const Navbar = () => {
 };
 
 export default Navbar;
-
-// import React, { useState } from "react";
-// import { Link } from "react-router-dom";
-// import { FaBars, FaTimes, FaUserCircle } from "react-icons/fa";
-
-// const Navbar = () => {
-//   const [mobileOpen, setMobileOpen] = useState(false);
-
-//   return (
-//     <nav className="bg-[#4b0000] text-white shadow-md w-full">
-//       <div className="w-full px-2 sm:px-4 py-3 flex justify-between items-center">
-//         {/* Logo on Left */}
-//         <Link to="/" className="text-xl sm:text-2xl font-bold">
-//           DYPDPU
-//         </Link>
-
-//         {/* Right Side Menu - Desktop */}
-//         <div className="hidden md:flex items-center gap-8 sm:gap-6 ml-auto">
-//           {/* <Link to="/dashboard/student" className="hover:text-red-300">Dashboard</Link> */}
-//           <Link to="/features" className="hover:text-red-300">Features</Link>
-//           <Link to="/about" className="hover:text-red-300">About</Link>
-//           <Link to="/contact" className="hover:text-red-300">Contact</Link>
-//           <Link
-//             to="/signin"
-//             className="bg-red-700 px-3 py-2 rounded-lg hover:bg-red-800 transition text-sm"
-//           >
-//             Sign In
-//           </Link>
-//           {/* <FaUserCircle size={22} className="cursor-pointer" /> */}
-//         </div>
-
-//         {/* Mobile Toggle */}
-//         <div className="md:hidden ml-auto">
-//           <button onClick={() => setMobileOpen(!mobileOpen)}>
-//             {mobileOpen ? <FaTimes size={22} /> : <FaBars size={22} />}
-//           </button>
-//         </div>
-//       </div>
-
-//       {/* Mobile Menu */}
-//       {mobileOpen && (
-//         <div className="md:hidden bg-[#4b0000] px-4 pb-4 space-y-3">
-//           {/* <Link to="/dashboard/student" className="block hover:text-red-300">Dashboard</Link> */}
-//           <Link to="/features" className="block hover:text-red-300">Features</Link>
-//           <Link to="/about" className="block hover:text-red-300">About</Link>
-//           <Link to="/contact" className="block hover:text-red-300">Contact</Link>
-//           <Link
-//             to="/signin"
-//             className="block bg-red-700 px-4 py-2 rounded-lg hover:bg-red-800"
-//           >
-//             Sign In
-//           </Link>
-//         </div>
-//       )}
-//     </nav>
-//   );
-// };
-
-// export default Navbar;
