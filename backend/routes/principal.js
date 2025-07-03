@@ -446,6 +446,8 @@ router.get('/faculty-attendance-report', async (req, res) => {
                     WHERE
                         DATE(timestamp AT TIME ZONE 'Asia/Kolkata') >= ${from}::date AND
                         DATE(timestamp AT TIME ZONE 'Asia/Kolkata') <= ${to}::date
+                        AND erp_id <> 'No id'
+                        AND erp_id IN (SELECT erpid FROM faculty)
                     GROUP BY
                         erp_id,
                         person_name,
@@ -480,6 +482,8 @@ router.get('/faculty-attendance-report', async (req, res) => {
                       WHERE
                           DATE(timestamp AT TIME ZONE 'Asia/Kolkata') >= ${from}::date AND
                           DATE(timestamp AT TIME ZONE 'Asia/Kolkata') <= ${to}::date
+                          AND erp_id <> 'No id'
+                          AND erp_id IN (SELECT erpid FROM faculty)
                       GROUP BY
                           erp_id,
                           person_name,
@@ -1135,6 +1139,7 @@ router.get('/present-faculty-staff-summary', async (req, res) => {
     const facultyRows = await sql`
       SELECT COUNT(DISTINCT erp_id) AS total_faculty_present, DATE("timestamp") AS date
       FROM faculty_logs
+      WHERE erp_id IN (SELECT erpid FROM faculty)
       GROUP BY DATE("timestamp")
       ORDER BY date DESC
     `;
@@ -1150,6 +1155,545 @@ router.get('/present-faculty-staff-summary', async (req, res) => {
   } catch (error) {
     console.error('Error fetching present faculty/staff summary:', error);
     res.status(500).json({ message: 'Failed to fetch present faculty/staff summary' });
+  }
+});
+
+// Endpoint to get present faculty for today with department info (show all present, even if not in faculty table)
+router.get('/present-faculty-today', async (req, res) => {
+  try {
+    const today = new Date();
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth() + 1).padStart(2, '0');
+    const dd = String(today.getDate()).padStart(2, '0');
+    const todayStr = `${yyyy}-${mm}-${dd}`;
+
+    const records = await sql`
+      SELECT
+        log_summary.person_name AS faculty_name,
+        log_summary.erp_id,
+        COALESCE(d.name, 'N/A') AS department_name,
+        f.department_id AS departmentId,
+        f.email,
+        log_summary.first_log,
+        log_summary.last_log
+      FROM
+        (
+          SELECT
+            erp_id,
+            COALESCE(NULLIF(person_name, ''), 'Unknown') AS person_name,
+            DATE(timestamp AT TIME ZONE 'Asia/Kolkata') AS attendance_date,
+            MIN(timestamp) AS first_log,
+            MAX(timestamp) AS last_log
+          FROM
+            faculty_logs
+          WHERE
+            DATE(timestamp AT TIME ZONE 'Asia/Kolkata') = ${todayStr}::date
+            AND erp_id IN (SELECT erpid FROM faculty)
+            AND erp_id <> 'No id'
+          GROUP BY
+            erp_id,
+            person_name,
+            attendance_date
+        ) AS log_summary
+      LEFT JOIN
+        faculty f ON log_summary.erp_id = f.erpid
+      LEFT JOIN
+        departments d ON f.department_id = d.id
+      ORDER BY department_name, faculty_name
+    `;
+    const rows = Array.isArray(records) ? records : (records.rows || []);
+    res.json({ presentFaculty: rows });
+  } catch (e) {
+    console.error('Error fetching present faculty today:', e);
+    res.status(500).json({ message: 'Failed to fetch present faculty today' });
+  }
+});
+
+// Endpoint to get present non-teaching staff for today with department info (show all present, even if not in non_teaching_staff table)
+router.get('/present-staff-today', async (req, res) => {
+  try {
+    const today = new Date();
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth() + 1).padStart(2, '0');
+    const dd = String(today.getDate()).padStart(2, '0');
+    const todayStr = `${yyyy}-${mm}-${dd}`;
+
+    const records = await sql`
+      SELECT
+        log_summary.person_name AS staff_name,
+        log_summary.erp_id,
+        COALESCE(d.name, 'N/A') AS department_name,
+        s.department_id AS departmentId,
+        s.email,
+        log_summary.first_log,
+        log_summary.last_log
+      FROM
+        (
+          SELECT
+            erp_id,
+            COALESCE(NULLIF(person_name, ''), 'Unknown') AS person_name,
+            DATE(timestamp AT TIME ZONE 'Asia/Kolkata') AS attendance_date,
+            MIN(timestamp) AS first_log,
+            MAX(timestamp) AS last_log
+          FROM
+            faculty_logs
+          WHERE
+            DATE(timestamp AT TIME ZONE 'Asia/Kolkata') = ${todayStr}::date
+            AND erp_id IN (SELECT erpid FROM non_teaching_staff)
+            AND erp_id <> 'No id'
+          GROUP BY
+            erp_id,
+            person_name,
+            attendance_date
+        ) AS log_summary
+      LEFT JOIN
+        non_teaching_staff s ON log_summary.erp_id = s.erpid
+      LEFT JOIN
+        departments d ON s.department_id = d.id
+      ORDER BY department_name, staff_name
+    `;
+    const rows = Array.isArray(records) ? records : (records.rows || []);
+    res.json({ presentStaff: rows });
+  } catch (e) {
+    console.error('Error fetching present staff today:', e);
+    res.status(500).json({ message: 'Failed to fetch present staff today' });
+  }
+});
+
+// Staff Attendance Report (Non-Teaching Staff)
+router.get('/staff-attendance-report', async (req, res) => {
+  try {
+    const { departmentId, fromDate, toDate, format } = req.query;
+    const from = fromDate || '1900-01-01';
+    const to = toDate || '2100-12-31';
+    let records;
+    if (departmentId && departmentId !== 'all') {
+      let deptIds = departmentId.includes(',') ? departmentId.split(',').map(Number) : [Number(departmentId)];
+      records = await sql`
+        SELECT
+          log_summary.person_name AS staff_name,
+          log_summary.erp_id,
+          COALESCE(d.name, 'Unknown') AS department_name,
+          log_summary.attendance_date,
+          log_summary.first_log,
+          log_summary.last_log
+        FROM
+          (
+            SELECT
+              erp_id,
+              COALESCE(NULLIF(person_name, ''), 'Unknown') AS person_name,
+              DATE(timestamp AT TIME ZONE 'Asia/Kolkata') AS attendance_date,
+              MIN(timestamp) AS first_log,
+              MAX(timestamp) AS last_log
+            FROM
+              faculty_logs
+            WHERE
+              DATE(timestamp AT TIME ZONE 'Asia/Kolkata') >= ${from}::date AND
+              DATE(timestamp AT TIME ZONE 'Asia/Kolkata') <= ${to}::date
+              AND erp_id <> 'No id'
+              AND erp_id IN (SELECT erpid FROM non_teaching_staff)
+            GROUP BY
+              erp_id,
+              person_name,
+              attendance_date
+          ) AS log_summary
+        LEFT JOIN
+          non_teaching_staff s ON log_summary.erp_id = s.erpid
+        LEFT JOIN
+          departments d ON s.department_id = d.id
+        WHERE (s.department_id = ANY(${deptIds}) OR s.department_id IS NULL)
+        ORDER BY department_name, staff_name, log_summary.attendance_date
+      `;
+    } else {
+      records = await sql`
+        SELECT
+          log_summary.person_name AS staff_name,
+          log_summary.erp_id,
+          COALESCE(d.name, 'Unknown') AS department_name,
+          log_summary.attendance_date,
+          log_summary.first_log,
+          log_summary.last_log
+        FROM
+          (
+            SELECT
+              erp_id,
+              COALESCE(NULLIF(person_name, ''), 'Unknown') AS person_name,
+              DATE(timestamp AT TIME ZONE 'Asia/Kolkata') AS attendance_date,
+              MIN(timestamp) AS first_log,
+              MAX(timestamp) AS last_log
+            FROM
+              faculty_logs
+            WHERE
+              DATE(timestamp AT TIME ZONE 'Asia/Kolkata') >= ${from}::date AND
+              DATE(timestamp AT TIME ZONE 'Asia/Kolkata') <= ${to}::date
+              AND erp_id <> 'No id'
+              AND erp_id IN (SELECT erpid FROM non_teaching_staff)
+            GROUP BY
+              erp_id,
+              person_name,
+              attendance_date
+          ) AS log_summary
+        LEFT JOIN
+          non_teaching_staff s ON log_summary.erp_id = s.erpid
+        LEFT JOIN
+          departments d ON s.department_id = d.id
+        ORDER BY department_name, staff_name, log_summary.attendance_date
+      `;
+    }
+    const rows = Array.isArray(records) ? records : (records.rows || []);
+    if (!rows || rows.length === 0) {
+      return res.status(404).send('No attendance data found for the selected criteria.');
+    }
+    // Helper functions for IST conversion
+    function toISTDateString(utcDateString) {
+      const date = new Date(utcDateString);
+      const utc = date.getTime() + (date.getTimezoneOffset() * 60000);
+      const istOffset = 5.5 * 60 * 60 * 1000;
+      const istDate = new Date(utc + istOffset);
+      return istDate.toISOString().split('T')[0];
+    }
+    if (format === 'pdf') {
+      const PDFDocument = require('pdfkit');
+      const doc = new PDFDocument({ margin: 30, size: 'A4', layout: 'landscape' });
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', 'attachment; filename=staff_attendance_report.pdf');
+      doc.pipe(res);
+      doc.fontSize(16).text('Non-Teaching Staff Attendance Report', { align: 'center' });
+      doc.moveDown();
+      // Table columns
+      const headers = ['S.No', 'Date', 'Staff Name', 'ERP ID', 'Department', 'First Log', 'Last Log', 'Duration (HH:MM:SS)'];
+      const colWidths = [30, 70, 140, 65, 160, 70, 70, 110];
+      const startX = doc.x;
+      let y = doc.y;
+      function drawHeader() {
+        let x = startX;
+        doc.font('Helvetica-Bold').fontSize(10);
+        headers.forEach((header, i) => {
+          doc.rect(x, y, colWidths[i], 20).stroke();
+          doc.text(header, x + 2, y + 6, { width: colWidths[i] - 4, align: 'center' });
+          x += colWidths[i];
+        });
+        y += 20;
+        doc.font('Helvetica').fontSize(9);
+        doc.y = y;
+      }
+      drawHeader();
+      let rowCount = 0;
+      let serialNumber = 1;
+      rows.forEach(r => {
+        const firstLog = new Date(r.first_log);
+        const lastLog = new Date(r.last_log);
+        let duration = '00:00:00';
+        const durationMs = lastLog - firstLog;
+        if (!isNaN(durationMs) && durationMs >= 0) {
+          const hours = Math.floor(durationMs / (1000 * 60 * 60));
+          const minutes = Math.floor((durationMs / (1000 * 60)) % 60);
+          const seconds = Math.floor((durationMs / 1000) % 60);
+          duration = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        }
+        const row = [
+          serialNumber.toString(),
+          toISTDateString(r.first_log),
+          r.staff_name,
+          r.erp_id,
+          r.department_name,
+          firstLog.toTimeString().split(' ')[0],
+          lastLog.toTimeString().split(' ')[0],
+          duration
+        ];
+        let x = startX;
+        row.forEach((cell, i) => {
+          doc.rect(x, y, colWidths[i], 18).stroke();
+          doc.text(String(cell), x + 2, y + 5, { width: colWidths[i] - 4, align: 'center', ellipsis: true });
+          x += colWidths[i];
+        });
+        y += 18;
+        rowCount++;
+        serialNumber++;
+        if (rowCount % 20 === 0) {
+          doc.addPage();
+          y = doc.y;
+          drawHeader();
+          y = doc.y;
+        }
+      });
+      doc.end();
+      return;
+    }
+    if (format === 'xlsx') {
+      const ExcelJS = require('exceljs');
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet('Staff Attendance');
+      worksheet.columns = [
+        { header: 'S.No', key: 'serial_no', width: 10 },
+        { header: 'Date', key: 'date', width: 15 },
+        { header: 'Staff Name', key: 'staff_name', width: 25 },
+        { header: 'ERP ID', key: 'erp_id', width: 15 },
+        { header: 'Department', key: 'department_name', width: 25 },
+        { header: 'First Log', key: 'first_log', width: 15 },
+        { header: 'Last Log', key: 'last_log', width: 15 },
+        { header: 'Duration (HH:MM:SS)', key: 'duration', width: 18 },
+      ];
+      let serialNumber = 1;
+      rows.forEach(r => {
+        const firstLog = new Date(r.first_log);
+        const lastLog = new Date(r.last_log);
+        let duration = '00:00:00';
+        const durationMs = lastLog - firstLog;
+        if (!isNaN(durationMs) && durationMs >= 0) {
+          const hours = Math.floor(durationMs / (1000 * 60 * 60));
+          const minutes = Math.floor((durationMs / (1000 * 60)) % 60);
+          const seconds = Math.floor((durationMs / 1000) % 60);
+          duration = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        }
+        worksheet.addRow({
+          serial_no: serialNumber,
+          date: toISTDateString(r.first_log),
+          staff_name: r.staff_name,
+          erp_id: r.erp_id,
+          department_name: r.department_name,
+          first_log: firstLog.toTimeString().split(' ')[0],
+          last_log: lastLog.toTimeString().split(' ')[0],
+          duration,
+        });
+        serialNumber++;
+      });
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Content-Disposition', 'attachment; filename=staff_attendance_report.xlsx');
+      await workbook.xlsx.write(res);
+      res.end();
+      return;
+    }
+    // CSV generation
+    const csvHeader = 'S.No,Date,Staff Name,ERP ID,Department,First Log,Last Log,Duration (HH:MM:SS)\n';
+    let serialNumber = 1;
+    const csvRows = rows.map(r => {
+      const firstLog = new Date(r.first_log);
+      const lastLog = new Date(r.last_log);
+      let duration = '00:00:00';
+      const durationMs = lastLog - firstLog;
+      if (!isNaN(durationMs) && durationMs >= 0) {
+        const hours = Math.floor(durationMs / (1000 * 60 * 60));
+        const minutes = Math.floor((durationMs / (1000 * 60)) % 60);
+        const seconds = Math.floor((durationMs / 1000) % 60);
+        duration = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+      }
+      const row = [
+        serialNumber,
+        toISTDateString(r.first_log),
+        `"${r.staff_name}"`,
+        r.erp_id,
+        `"${r.department_name}"`,
+        firstLog.toTimeString().split(' ')[0],
+        lastLog.toTimeString().split(' ')[0],
+        duration
+      ];
+      serialNumber++;
+      return row.join(',');
+    });
+    const csvData = csvHeader + csvRows.join('\n');
+    res.header('Content-Type', 'text/csv');
+    res.attachment('staff_attendance_report.csv');
+    return res.send(csvData);
+  } catch (error) {
+    console.error('Error generating staff attendance report:', error);
+    res.status(500).json({ message: 'Failed to generate staff attendance report' });
+  }
+});
+
+// Staff Stress Report (Non-Teaching Staff)
+router.get('/staff-stress-report', async (req, res) => {
+  try {
+    const { departmentId, fromDate, toDate, format } = req.query;
+    const from = fromDate || '1900-01-01';
+    const to = toDate || '2100-12-31';
+    let records;
+    if (departmentId && departmentId !== 'all') {
+      let deptIds = departmentId.includes(',') ? departmentId.split(',').map(Number) : [Number(departmentId)];
+      records = await sql`
+        SELECT
+          s.name AS staff_name,
+          s.erpid,
+          d.name AS department_name,
+          DATE(sl.timestamp AT TIME ZONE 'Asia/Kolkata') AS stress_date,
+          sl.stress_level
+        FROM stress_logs sl
+        JOIN non_teaching_staff s ON sl.erpid = s.erpid
+        JOIN departments d ON s.department_id = d.id
+        WHERE s.department_id = ANY(${deptIds})
+          AND DATE(sl.timestamp AT TIME ZONE 'Asia/Kolkata') >= ${from}::date
+          AND DATE(sl.timestamp AT TIME ZONE 'Asia/Kolkata') <= ${to}::date
+        ORDER BY d.name, s.name, stress_date
+      `;
+    } else {
+      records = await sql`
+        SELECT
+          s.name AS staff_name,
+          s.erpid,
+          d.name AS department_name,
+          DATE(sl.timestamp AT TIME ZONE 'Asia/Kolkata') AS stress_date,
+          sl.stress_level
+        FROM stress_logs sl
+        JOIN non_teaching_staff s ON sl.erpid = s.erpid
+        JOIN departments d ON s.department_id = d.id
+        WHERE DATE(sl.timestamp AT TIME ZONE 'Asia/Kolkata') >= ${from}::date
+          AND DATE(sl.timestamp AT TIME ZONE 'Asia/Kolkata') <= ${to}::date
+        ORDER BY d.name, s.name, stress_date
+      `;
+    }
+    const rows = Array.isArray(records) ? records : (records.rows || []);
+    if (!rows || rows.length === 0) {
+      return res.status(404).send('No stress data found for the selected criteria.');
+    }
+    // Aggregate data by staff only (not by date)
+    const aggregatedData = {};
+    rows.forEach(row => {
+      const key = `${row.staff_name}_${row.erpid}_${row.department_name}`;
+      if (!aggregatedData[key]) {
+        aggregatedData[key] = {
+          staff_name: row.staff_name,
+          erpid: row.erpid,
+          department_name: row.department_name,
+          stressed_count: 0,
+          unstressed_count: 0
+        };
+      }
+      // Count stressed levels (L1, L2, L3)
+      if (["L1", "L2", "L3"].includes(row.stress_level)) {
+        aggregatedData[key].stressed_count++;
+      }
+      // Count unstressed levels (A1, A2, A3)
+      else if (["A1", "A2", "A3"].includes(row.stress_level)) {
+        aggregatedData[key].unstressed_count++;
+      }
+    });
+    // Convert to array and add verdict
+    const finalData = Object.values(aggregatedData).map(item => ({
+      ...item,
+      verdict: item.stressed_count > item.unstressed_count ? 'Stressed' : 'Unstressed'
+    }));
+    if (format === 'pdf') {
+      const PDFDocument = require('pdfkit');
+      const doc = new PDFDocument({ margin: 30, size: 'A4', layout: 'landscape' });
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', 'attachment; filename=staff_stress_report.pdf');
+      doc.pipe(res);
+      doc.fontSize(16).text('Non-Teaching Staff Stress Report', { align: 'center' });
+      doc.moveDown();
+      doc.fontSize(12).text(`From: ${from} To: ${to}`, { align: 'center' });
+      doc.moveDown();
+      doc.fontSize(10).text('Stress Level Indicators:', { align: 'left' });
+      doc.moveDown(0.2);
+      doc.fontSize(8).text('STRESS: L1 - 70-80  | L2 - 80-90  | L3 - 90-100', { align: 'left' });
+      doc.moveDown(0.1);
+      doc.fontSize(8).text('UNSTRESS: A1 - 90-100  | A2 - 80-90  | A3 - 70-80', { align: 'left' });
+      doc.moveDown();
+      const headers = ['S.No', 'Staff Name', 'ERP ID', 'Department', 'Stressed Count', 'Unstressed Count', 'Verdict'];
+      const colWidths = [40, 200, 70, 200, 100, 100, 80];
+      const startX = doc.x;
+      let y = doc.y;
+      function drawHeader() {
+        let x = startX;
+        doc.font('Helvetica-Bold').fontSize(10);
+        headers.forEach((header, i) => {
+          doc.rect(x, y, colWidths[i], 20).stroke();
+          doc.text(header, x + 2, y + 6, { width: colWidths[i] - 4, align: 'center' });
+          x += colWidths[i];
+        });
+        y += 20;
+        doc.font('Helvetica').fontSize(9);
+        doc.y = y;
+      }
+      drawHeader();
+      let rowCount = 0;
+      let serialNumber = 1;
+      finalData.forEach(r => {
+        const row = [
+          serialNumber.toString(),
+          r.staff_name,
+          r.erpid,
+          r.department_name,
+          r.stressed_count.toString(),
+          r.unstressed_count.toString(),
+          r.verdict
+        ];
+        let x = startX;
+        row.forEach((cell, i) => {
+          doc.rect(x, y, colWidths[i], 18).stroke();
+          doc.text(String(cell), x + 2, y + 5, { width: colWidths[i] - 4, align: 'center', ellipsis: true });
+          x += colWidths[i];
+        });
+        y += 18;
+        rowCount++;
+        serialNumber++;
+        if (rowCount % 20 === 0) {
+          doc.addPage();
+          y = doc.y;
+          drawHeader();
+          y = doc.y;
+        }
+      });
+      doc.end();
+      return;
+    }
+    if (format === 'xlsx') {
+      const ExcelJS = require('exceljs');
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet('Staff Stress');
+      worksheet.addRow(['Non-Teaching Staff Stress Report']);
+      worksheet.addRow([`From: ${from} To: ${to}`]);
+      worksheet.addRow([]);
+      worksheet.addRow(['Stress Level Indicators:']);
+      worksheet.addRow(['L1 - 70-80 stress', 'L2 - 80-90 stress', 'L3 - 90-100 stress', 'A1 - 90-100 unstress', 'A2 - 80-90 unstress', 'A3 - 70-80 unstress']);
+      worksheet.addRow([]);
+      worksheet.columns = [
+        { header: 'S.No', key: 'serial_no', width: 10 },
+        { header: 'Staff Name', key: 'staff_name', width: 25 },
+        { header: 'ERP ID', key: 'erpid', width: 15 },
+        { header: 'Department', key: 'department_name', width: 25 },
+        { header: 'Stressed Count', key: 'stressed_count', width: 15 },
+        { header: 'Unstressed Count', key: 'unstressed_count', width: 15 },
+        { header: 'Verdict', key: 'verdict', width: 15 },
+      ];
+      let serialNumber = 1;
+      finalData.forEach(r => {
+        worksheet.addRow({
+          serial_no: serialNumber,
+          staff_name: r.staff_name,
+          erpid: r.erpid,
+          department_name: r.department_name,
+          stressed_count: r.stressed_count,
+          unstressed_count: r.unstressed_count,
+          verdict: r.verdict,
+        });
+        serialNumber++;
+      });
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Content-Disposition', 'attachment; filename=staff_stress_report.xlsx');
+      await workbook.xlsx.write(res);
+      res.end();
+      return;
+    }
+    // CSV
+    const csvHeader = `Non-Teaching Staff Stress Report\nFrom: ${from} To: ${to}\n\nStress Level Indicators:\nL1 - 70-80 stress | L2 - 80-90 stress | L3 - 90-100 stress | A1 - 90-100 unstress | A2 - 80-90 unstress | A3 - 70-80 unstress\n\nS.No,Staff Name,ERP ID,Department,Stressed Count,Unstressed Count,Verdict\n`;
+    let serialNumber = 1;
+    const csvRows = finalData.map(r => [
+      serialNumber,
+      `"${r.staff_name}"`,
+      r.erpid,
+      `"${r.department_name}"`,
+      r.stressed_count,
+      r.unstressed_count,
+      r.verdict
+    ].join(','));
+    serialNumber++;
+    const csvData = csvHeader + csvRows.join('\n');
+    res.header('Content-Type', 'text/csv');
+    res.attachment('staff_stress_report.csv');
+    return res.send(csvData);
+  } catch (error) {
+    console.error('Error generating staff stress report:', error);
+    res.status(500).json({ message: 'Failed to generate staff stress report' });
   }
 });
 

@@ -55,6 +55,12 @@ const PrincipalDashboard = () => {
   const [presentStaffList, setPresentStaffList] = useState([]);
   const [facultyDeptFilter, setFacultyDeptFilter] = useState('all');
   const [staffDeptFilter, setStaffDeptFilter] = useState('all');
+  const [selectedDeptFilters, setSelectedDeptFilters] = useState(['all']);
+  const [deptDropdownOpen, setDeptDropdownOpen] = useState(false);
+  const deptDropdownRef = useRef(null);
+  const [selectedStaffDeptFilters, setSelectedStaffDeptFilters] = useState(['all']);
+  const [staffDeptDropdownOpen, setStaffDeptDropdownOpen] = useState(false);
+  const staffDeptDropdownRef = useRef(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -63,6 +69,38 @@ const PrincipalDashboard = () => {
     fetchTodayPresence();
     fetchPresentFacultyStaffSummary();
   }, []);
+
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (deptDropdownRef.current && !deptDropdownRef.current.contains(event.target)) {
+        setDeptDropdownOpen(false);
+      }
+    }
+    if (deptDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    } else {
+      document.removeEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [deptDropdownOpen]);
+
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (staffDeptDropdownRef.current && !staffDeptDropdownRef.current.contains(event.target)) {
+        setStaffDeptDropdownOpen(false);
+      }
+    }
+    if (staffDeptDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    } else {
+      document.removeEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [staffDeptDropdownOpen]);
 
   const fetchDashboardData = async () => {
     try {
@@ -917,38 +955,50 @@ const PrincipalDashboard = () => {
                 &times;
               </button>
               <h2 className="text-xl font-bold mb-4 text-red-700">Present Faculty Today</h2>
+              {/* Branch-wise (Department-wise) Count */}
               <div className="mb-4">
-                <label className="block text-sm font-medium mb-1">Filter by Department:</label>
-                <select
-                  value={facultyDeptFilter}
-                  onChange={e => setFacultyDeptFilter(e.target.value)}
-                  className="p-2 border rounded w-full"
-                >
-                  <option value="all">All Departments</option>
-                  {departments.map(dept => (
-                    <option key={dept.id} value={dept.id}>{dept.name}</option>
-                  ))}
-                </select>
+                <h3 className="font-semibold mb-2">Branch-wise Present Faculty Count</h3>
+                <ul className="grid grid-cols-2 gap-2">
+                  {departments.map(dept => {
+                    const count = presentFacultyList.filter(f => {
+                      const facDeptId = f.departmentId ?? f.department_id;
+                      const facDeptName = f.department_name ?? f.departmentName;
+                      return (
+                        (facDeptId !== undefined && facDeptId !== null && Number(facDeptId) === Number(dept.id)) ||
+                        (facDeptName && facDeptName.trim().toLowerCase() === dept.name.trim().toLowerCase())
+                      );
+                    }).length;
+                    return (
+                      <li key={dept.id} className="flex justify-between bg-gray-50 rounded p-2">
+                        <span>{dept.name}</span>
+                        <span className="font-bold">{count}</span>
+                      </li>
+                    );
+                  })}
+                  {/* Show N/A group if any */}
+                  {presentFacultyList.filter(f => {
+                    const facDeptId = f.departmentId ?? f.department_id;
+                    const facDeptName = f.department_name ?? f.departmentName;
+                    return (!facDeptId && (!facDeptName || facDeptName === 'N/A' || facDeptName === 'Unknown'));
+                  }).length > 0 && (
+                    <li className="flex justify-between bg-gray-50 rounded p-2">
+                      <span>Unknown / N/A</span>
+                      <span className="font-bold">{presentFacultyList.filter(f => {
+                        const facDeptId = f.departmentId ?? f.department_id;
+                        const facDeptName = f.department_name ?? f.departmentName;
+                        return (!facDeptId && (!facDeptName || facDeptName === 'N/A' || facDeptName === 'Unknown'));
+                      }).length}</span>
+                    </li>
+                  )}
+                </ul>
               </div>
-              <div className="divide-y divide-gray-200">
-                {presentFacultyList.filter(f => facultyDeptFilter === 'all' || String(f.departmentId) === String(facultyDeptFilter)).length === 0 ? (
-                  <div className="p-4 text-center text-gray-500">No present faculty found for this department.</div>
-                ) : (
-                  presentFacultyList
-                    .filter(f => facultyDeptFilter === 'all' || String(f.departmentId) === String(facultyDeptFilter))
-                    .map(faculty => (
-                      <div key={faculty.id} className="p-3 flex items-center">
-                        <div className="w-8 h-8 rounded-full bg-red-100 text-red-600 flex items-center justify-center mr-3 font-bold">
-                          {faculty.name?.charAt(0) || 'F'}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <h4 className="font-medium truncate">{faculty.name}</h4>
-                          <div className="text-xs text-gray-500">{faculty.email}</div>
-                          <div className="text-xs text-gray-400">Department: {faculty.departmentName || 'N/A'}</div>
-                        </div>
-                      </div>
-                    ))
-                )}
+              <div className="flex justify-center mt-4">
+                <button
+                  className="px-4 py-2 bg-red-700 text-white rounded-lg font-semibold hover:bg-red-800 transition-colors shadow"
+                  onClick={() => { setShowPresentFacultyModal(false); navigate('/principal/faculty-report'); }}
+                >
+                 Report
+                </button>
               </div>
             </div>
           </motion.div>
@@ -966,38 +1016,50 @@ const PrincipalDashboard = () => {
                 &times;
               </button>
               <h2 className="text-xl font-bold mb-4 text-purple-700">Present Non-Teaching Staff Today</h2>
+              {/* Branch-wise (Department-wise) Count for Staff */}
               <div className="mb-4">
-                <label className="block text-sm font-medium mb-1">Filter by Department:</label>
-                <select
-                  value={staffDeptFilter}
-                  onChange={e => setStaffDeptFilter(e.target.value)}
-                  className="p-2 border rounded w-full"
-                >
-                  <option value="all">All Departments</option>
-                  {departments.map(dept => (
-                    <option key={dept.id} value={dept.id}>{dept.name}</option>
-                  ))}
-                </select>
+                <h3 className="font-semibold mb-2">Branch-wise Present Non-Teaching Staff Count</h3>
+                <ul className="grid grid-cols-2 gap-2">
+                  {departments.map(dept => {
+                    const count = presentStaffList.filter(s => {
+                      const staffDeptId = s.departmentId ?? s.department_id;
+                      const staffDeptName = s.department_name ?? s.departmentName;
+                      return (
+                        (staffDeptId !== undefined && staffDeptId !== null && Number(staffDeptId) === Number(dept.id)) ||
+                        (staffDeptName && staffDeptName.trim().toLowerCase() === dept.name.trim().toLowerCase())
+                      );
+                    }).length;
+                    return (
+                      <li key={dept.id} className="flex justify-between bg-gray-50 rounded p-2">
+                        <span>{dept.name}</span>
+                        <span className="font-bold">{count}</span>
+                      </li>
+                    );
+                  })}
+                  {/* Show N/A group if any */}
+                  {presentStaffList.filter(s => {
+                    const staffDeptId = s.departmentId ?? s.department_id;
+                    const staffDeptName = s.department_name ?? s.departmentName;
+                    return (!staffDeptId && (!staffDeptName || staffDeptName === 'N/A' || staffDeptName === 'Unknown'));
+                  }).length > 0 && (
+                    <li className="flex justify-between bg-gray-50 rounded p-2">
+                      <span>Unknown / N/A</span>
+                      <span className="font-bold">{presentStaffList.filter(s => {
+                        const staffDeptId = s.departmentId ?? s.department_id;
+                        const staffDeptName = s.department_name ?? s.departmentName;
+                        return (!staffDeptId && (!staffDeptName || staffDeptName === 'N/A' || staffDeptName === 'Unknown'));
+                      }).length}</span>
+                    </li>
+                  )}
+                </ul>
               </div>
-              <div className="divide-y divide-gray-200">
-                {presentStaffList.filter(s => staffDeptFilter === 'all' || String(s.departmentId) === String(staffDeptFilter)).length === 0 ? (
-                  <div className="p-4 text-center text-gray-500">No present staff found for this department.</div>
-                ) : (
-                  presentStaffList
-                    .filter(s => staffDeptFilter === 'all' || String(s.departmentId) === String(staffDeptFilter))
-                    .map(staff => (
-                      <div key={staff.id} className="p-3 flex items-center">
-                        <div className="w-8 h-8 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center mr-3 font-bold">
-                          {staff.name?.charAt(0) || 'S'}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <h4 className="font-medium truncate">{staff.name}</h4>
-                          <div className="text-xs text-gray-500">{staff.email}</div>
-                          <div className="text-xs text-gray-400">Department: {staff.departmentName || 'N/A'}</div>
-                        </div>
-                      </div>
-                    ))
-                )}
+              <div className="flex justify-center mt-4">
+                <button
+                  className="px-4 py-2 bg-purple-700 text-white rounded-lg font-semibold hover:bg-purple-800 transition-colors shadow"
+                  onClick={() => { setShowPresentStaffModal(false); navigate('/principal/faculty-report'); }}
+                >
+                  Download Report
+                </button>
               </div>
             </div>
           </motion.div>
