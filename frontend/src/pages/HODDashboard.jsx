@@ -25,6 +25,38 @@ import axios from 'axios';
 import FacultyLogDisplay from '../components/faculty/FacultyLogDisplay';
 import FacultyAttendanceOverview from '../components/hod/FacultyAttendanceOverview';
 
+import HeaderHOD from '../components/common/HeaderHOD';
+import HeaderMobile from '../components/common/HeaderMobile';
+import { useIsMobile } from '../components/hooks/use-mobile';
+import { AiFillBell, AiOutlineFilePdf, AiOutlineSetting, AiOutlineLogout } from 'react-icons/ai';
+
+const MobileBottomTabsHOD = () => {
+  const navigate = useNavigate();
+  const location = window.location.pathname;
+  const tabs = [
+    { path: '/hod', label: 'Dashboard', icon: <FiHome /> },
+    { path: '/hod/leave-approval', label: 'Leaves', icon: <AiFillBell /> },
+    { path: '/hod/report', label: 'Report', icon: <AiOutlineFilePdf /> },
+    { path: '/hod/view-stress-level', label: 'Stress', icon: <FiActivity /> },
+    { path: '/hod/hod-settings', label: 'Settings', icon: <AiOutlineSetting /> },
+    { path: '/', label: 'Logout', icon: <AiOutlineLogout /> },
+  ];
+  return (
+    <nav className="fixed bottom-0 left-0 right-0 z-20 bg-red-900 text-white flex justify-between items-center px-1 py-1 shadow-t border-t border-red-800">
+      {tabs.map((tab) => (
+        <button
+          key={tab.path}
+          onClick={() => navigate(tab.path)}
+          className={`flex flex-col items-center flex-1 px-1 py-1 focus:outline-none ${location === tab.path ? 'text-yellow-300' : ''}`}
+        >
+          <span className="text-lg">{tab.icon}</span>
+          <span className="text-[10px] leading-none">{tab.label}</span>
+        </button>
+      ))}
+    </nav>
+  );
+};
+
 const HODDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
@@ -81,6 +113,7 @@ const HODDashboard = () => {
   const [todayCounts, setTodayCounts] = useState({ students: 0, faculty: 0, staff: 0 });
 
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
 
   // Add a ref for the non-teaching staff section
   const nonTeachingStaffRef = useRef(null);
@@ -99,7 +132,7 @@ const HODDashboard = () => {
         console.log('Fetching dashboard and faculty data...');
 
         // Fetch faculty members first
-        const facultyResponse = await fetch('http://69.62.83.14:9000/api/hod/faculty', {
+        const facultyResponse = await fetch('http://localhost:5000/api/hod/faculty', {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
@@ -123,7 +156,7 @@ const HODDashboard = () => {
         setFacultyMembers(facultyData || []); // Ensure facultyData is an array
 
         // Fetch faculty logs for last active location
-        const logsResponse = await fetch('http://69.62.83.14:9000/api/hod/faculty-log', {
+        const logsResponse = await fetch('http://localhost:5000/api/hod/faculty-log', {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
@@ -139,7 +172,7 @@ const HODDashboard = () => {
         setFacultyLogs(logsData);
 
         // Fetch dashboard data
-        const dashboardResponse = await fetch('http://69.62.83.14:9000/api/hod/dashboard', {
+        const dashboardResponse = await fetch('http://localhost:5000/api/hod/dashboard', {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
@@ -157,7 +190,7 @@ const HODDashboard = () => {
         // Fetch non-teaching staff list for department
         let staffList = [];
         try {
-          const staffRes = await fetch('http://69.62.83.14:9000/api/hod/nonteaching', {
+          const staffRes = await fetch('http://localhost:5000/api/hod/nonteaching', {
             method: 'GET',
             headers: {
               'Content-Type': 'application/json',
@@ -173,7 +206,7 @@ const HODDashboard = () => {
         // Fetch attendance logs count for department
         let attendanceLogsCount = 0;
         try {
-          const logsRes = await fetch('http://69.62.83.14:9000/api/hod/faculty-log', {
+          const logsRes = await fetch('http://localhost:5000/api/hod/faculty-log', {
             method: 'GET',
             headers: {
               'Content-Type': 'application/json',
@@ -244,7 +277,7 @@ const HODDashboard = () => {
     const fetchFacultyStress = async () => {
       setFacultyStressLoading(true);
       try {
-        const response = await fetch('http://69.62.83.14:9000/api/faculty/student-stress-level', {
+        const response = await fetch('http://localhost:5000/api/faculty/student-stress-level', {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`,
             'Content-Type': 'application/json'
@@ -342,8 +375,8 @@ const HODDashboard = () => {
     setProfileLoading(true);
     setProfileLogs([]);
     const url = type === 'faculty'
-      ? `http://69.62.83.14:9000/api/hod/faculty-profile/${id}`
-      : `http://69.62.83.14:9000/api/hod/staff-profile/${id}`;
+      ? `http://localhost:5000/api/hod/faculty-profile/${id}`
+      : `http://localhost:5000/api/hod/staff-profile/${id}`;
     fetch(url, {
       headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
     })
@@ -361,9 +394,9 @@ const HODDashboard = () => {
       try {
         const token = localStorage.getItem('token');
         const [facultyRes, studentRes, staffRes] = await Promise.all([
-          axios.get('http://69.62.83.14:9000/api/hod/faculty-today-attendance-count', { headers: { Authorization: `Bearer ${token}` } }),
-          axios.get('http://69.62.83.14:9000/api/hod/student-today-attendance-count', { headers: { Authorization: `Bearer ${token}` } }),
-          axios.get('http://69.62.83.14:9000/api/hod/nonteaching-today-attendance-count', { headers: { Authorization: `Bearer ${token}` } })
+          axios.get('http://localhost:5000/api/hod/faculty-today-attendance-count', { headers: { Authorization: `Bearer ${token}` } }),
+          axios.get('http://localhost:5000/api/hod/student-today-attendance-count', { headers: { Authorization: `Bearer ${token}` } }),
+          axios.get('http://localhost:5000/api/hod/nonteaching-today-attendance-count', { headers: { Authorization: `Bearer ${token}` } })
         ]);
         setTodayCounts({
           faculty: facultyRes.data.count || 0,
@@ -379,599 +412,609 @@ const HODDashboard = () => {
 
   if (loading) {
     return (
-      <motion.div 
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        className="flex justify-center items-center h-screen"
-      >
-        <motion.div
-          animate={{ 
-            rotate: 360,
-            scale: [1, 1.2, 1]
-          }}
-          transition={{ 
-            repeat: Infinity, 
-            duration: 1.5,
-            ease: "linear"
-          }}
-          className="h-16 w-16 rounded-full border-4 border-t-red-600 border-r-red-600 border-b-transparent border-l-transparent"
-        ></motion.div>
-      </motion.div>
+      <>
+        {isMobile ? <HeaderHOD /> : <HeaderMobile title="Dashboard" />}
+        <div className={`pt-16 flex items-center justify-center min-h-[60vh]`}>
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="flex justify-center items-center h-screen"
+          >
+            <motion.div
+              animate={{ 
+                rotate: 360,
+                scale: [1, 1.2, 1]
+              }}
+              transition={{ 
+                repeat: Infinity, 
+                duration: 1.5,
+                ease: "linear"
+              }}
+              className="h-16 w-16 rounded-full border-4 border-t-red-600 border-r-red-600 border-b-transparent border-l-transparent"
+            ></motion.div>
+          </motion.div>
+        </div>
+        {isMobile && <MobileBottomTabsHOD />}
+      </>
     );
   }
 
   return (
-    <div className="flex-1 overflow-auto bg-gray-50 p-4 sm:p-6">
-      {/* Header */}
-      <motion.header
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ type: "spring", stiffness: 300 }}
-        className={`bg-white rounded-xl shadow-md p-6 mb-6 border ${theme.border}`}
-      >
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
-          <div>
-            <motion.h1 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.1 }}
-              className="text-2xl font-bold text-gray-900"
-            >
-              HOD <span className={theme.text}>Dashboard</span>
-            </motion.h1>
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.2 }}
-              className="text-gray-600 space-y-1"
-            >
-              <p className="font-medium">{dashboardData.name || 'HOD Name'}</p>
-              <p className="text-sm">ERP ID: {dashboardData.hodErpId || 'Not Available'}</p>
-              <p className="text-sm">{dashboardData.department || 'Department'} - {dashboardData.branch || 'Branch'}</p>
-            </motion.div>
-          </div>
-          <motion.div 
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.3 }}
-            className="mt-4 md:mt-0"
-          >
-            <div className="flex space-x-2 mb-6">
-              {['overview', 'faculty', 'nonteaching', 'students'].map((tab) => (
-                <motion.button
-                  key={tab}
-                  className={`px-4 py-2 rounded-lg font-semibold transition-colors duration-200 ${
-                    activeTab === tab ? theme.primary + ' text-white' : 'bg-white text-gray-700 border border-gray-200'
-                  }`}
-                  onClick={() => setActiveTab(tab)}
-                  whileHover={{ scale: 1.05 }}
-                >
-                  {tab === 'overview' ? <FiHome className="inline mr-1" /> : 
-                   tab === 'faculty' ? <FiUserCheck className="inline mr-1" /> : 
-                   tab === 'students' ? <FiUsers className="inline mr-1" /> :
-                   tab === 'nonteaching' ? <FiUsers className="inline mr-1" /> : null}
-                  {tab === 'nonteaching' ? 'Non-Teaching Staff' : tab.charAt(0).toUpperCase() + tab.slice(1)}
-                </motion.button>
-              ))}
-            </div>
-          </motion.div>
-        </div>
-      </motion.header>
-
-      {/* Main Content */}
-      <motion.div 
-        className="space-y-6"
-        variants={containerVariants}
-        initial="hidden"
-        animate="visible"
-      >
-        {/* Overview Section */}
-        {activeTab === 'overview' && (
-          <>
-            {/* Stats Cards */}
-            <motion.div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
-              {[
-                { 
-                  title: 'Total Students', 
-                  value: dashboardData.departmentStats?.totalStudents || 0, 
-                  icon: <FiUsers className="text-white" size={24} />, 
-                  trend: 'up',
-                },
-                { 
-                  title: 'Faculty Members', 
-                  value: dashboardData.departmentStats?.totalFaculty || 0, 
-                  icon: <FiUserCheck className="text-white" size={24} />, 
-                  trend: 'neutral',
-                  onClick: () => setActiveTab('faculty')
-                },
-                { 
-                  title: 'Non-Teaching Staff',
-                  value: dashboardData.staffCount || 0,
-                  icon: <FiUsers className="text-white" size={24} />,
-                  trend: 'neutral',
-                  onClick: () => {
-                    setActiveTab('faculty');
-                    setTimeout(() => {
-                      if (nonTeachingStaffRef.current) {
-                        nonTeachingStaffRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                      }
-                    }, 100);
-                  }
-                },
-                {
-                  title: 'Ongoing Projects',
-                  value: dashboardData.departmentStats?.ongoingProjects || 0,
-                  icon: <FiAward className="text-white" size={24} />,
-                  trend: 'neutral',
-                }
-              ].map((stat, index) => (
-                <motion.div
-                  key={stat.title}
-                  variants={itemVariants}
-                  whileHover="hover"
-                  className={`${theme.primary} text-white rounded-xl p-5 shadow-lg ${stat.onClick ? 'cursor-pointer' : ''}`}
-                  onClick={stat.onClick}
-                >
-                  <div className="flex justify-between items-start">
-                    <div className="w-12 h-12 rounded-lg bg-white bg-opacity-20 flex items-center justify-center mb-4">
-                      {stat.icon}
-                    </div>
-                  </div>
-                  <h3 className="text-2xl font-bold mb-1">{stat.value}</h3>
-                  <p className="text-sm opacity-90">{stat.title}</p>
-                </motion.div>
-              ))}
-            </motion.div>
-
-            {/* New row of white stat boxes */}
-            <motion.div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mt-6">
-              <div className="bg-white rounded-xl p-5 shadow flex flex-col items-start border border-gray-100">
-                <div className="w-10 h-10 rounded-lg bg-red-100 flex items-center justify-center mb-3">
-                  <FiUsers className="text-red-600" size={22} />
-                </div>
-                <h3 className="text-xl font-bold mb-1">{todayCounts.students}</h3>
-                <p className="text-sm text-gray-600">Students Present Today</p>
-              </div>
-              <div className="bg-white rounded-xl p-5 shadow flex flex-col items-start border border-gray-100">
-                <div className="w-10 h-10 rounded-lg bg-red-100 flex items-center justify-center mb-3">
-                  <FiUserCheck className="text-red-600" size={22} />
-                </div>
-                <h3 className="text-xl font-bold mb-1">{todayCounts.faculty}</h3>
-                <p className="text-sm text-gray-600">Faculty Present Today</p>
-              </div>
-              <div className="bg-white rounded-xl p-5 shadow flex flex-col items-start border border-gray-100">
-                <div className="w-10 h-10 rounded-lg bg-red-100 flex items-center justify-center mb-3">
-                  <FiUsers className="text-red-600" size={22} />
-                </div>
-                <h3 className="text-xl font-bold mb-1">{dashboardData.todayStats?.nonTeachingPresent || 0}</h3>
-                <p className="text-sm text-gray-600">Non-Teaching Staff Present Today</p>
-              </div>
-              <div className="bg-white rounded-xl p-5 shadow flex flex-col items-start border border-gray-100">
-                <div className="w-10 h-10 rounded-lg bg-red-100 flex items-center justify-center mb-3">
-                  <FiAward className="text-red-600" size={22} />
-                </div>
-                <h3 className="text-xl font-bold mb-1">{dashboardData.departmentStats?.pendingProjects || 0}</h3>
-                <p className="text-sm text-gray-600">Projects Pending</p>
-              </div>
-            </motion.div>
-
-            {/* Custom Quick Sections: Recent Leave Approvals & Top 5 Faculty Logs */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
-              {/* Recent Leave Approvals */}
-              <RecentLeaveApprovals />
-              {/* Faculty Stress Notifications */}
-              <motion.div
-                variants={itemVariants}
-                className="bg-white rounded-xl shadow-sm p-6 border border-red-200 h-full"
+    <>
+      {isMobile ? <HeaderHOD /> : <HeaderMobile title="Dashboard" />}
+      <div className={`flex-1 overflow-auto bg-gray-50 p-4 sm:p-6 ${isMobile ? 'pt-16 pb-14' : ''}`}>
+        {/* Header */}
+        <motion.header
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ type: "spring", stiffness: 300 }}
+          className={`bg-white rounded-xl shadow-md p-6 mb-6 border ${theme.border}`}
+        >
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
+            <div>
+              <motion.h1 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.1 }}
+                className="text-2xl font-bold text-gray-900"
               >
-                <h3 className="text-lg font-bold mb-4 flex items-center text-red-800">
-                  <FiAlertTriangle className="mr-2 text-red-800" /> Faculty Stress Notifications
-                </h3>
-                {facultyStressLoading ? (
-                  <div className="text-gray-500">Loading...</div>
-                ) : facultyStressError ? (
-                  <div className="text-red-500">{facultyStressError}</div>
-                ) : (
-                  (() => {
-                    // Filter for faculty stressed for more than 7 days
-                    const now = new Date();
-                    const stressedFaculty = (facultyStressData || []).filter(faculty => {
-                      if (!faculty.timestamp) return false;
-                      const days = (now - new Date(faculty.timestamp)) / (1000 * 60 * 60 * 24);
-                      return (faculty.status === 'Stressed' || faculty.status === 'At Risk') && days >= 7;
-                    });
-                    if (stressedFaculty.length === 0) {
-                      return <div className="text-gray-500">No faculty have been stressed for more than 7 days.</div>;
-                    }
-                    return (
-                      <div className="overflow-x-auto">
-                        <table className="w-full">
-                          <thead>
-                            <tr className="text-left text-sm text-red-700 border-b border-red-200">
-                              <th className="pb-3">Name</th>
-                              <th className="pb-3">ERP ID</th>
-                              <th className="pb-3">Stress Level</th>
-                              <th className="pb-3">Days Stressed</th>
-                              <th className="pb-3">Last Updated</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {stressedFaculty.map(faculty => {
-                              const days = Math.floor((now - new Date(faculty.timestamp)) / (1000 * 60 * 60 * 24));
-                              return (
-                                <tr key={faculty.erpid} className="border-b border-red-100 bg-red-50">
-                                  <td className="py-3 font-medium cursor-pointer text-red-800" onClick={() => handlePersonClick('faculty', faculty.id, faculty.name)}>{faculty.name}</td>
-                                  <td className="py-3 text-red-700">{faculty.erpid}</td>
-                                  <td className="py-3">
-                                    <span className="px-2 py-1 text-xs rounded-full bg-red-200 text-red-900 font-semibold">{faculty.status}</span>
-                                  </td>
-                                  <td className="py-3 text-red-700 font-bold">{days} days</td>
-                                  <td className="py-3 text-xs text-gray-500">{faculty.timestamp ? new Date(faculty.timestamp).toLocaleString() : 'N/A'}</td>
-                                </tr>
-                              );
-                            })}
-                          </tbody>
-                        </table>
-                      </div>
-                    );
-                  })()
-                )}
+                HOD <span className={theme.text}>Dashboard</span>
+              </motion.h1>
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.2 }}
+                className="text-gray-600 space-y-1"
+              >
+                <p className="font-medium">{dashboardData.name || 'HOD Name'}</p>
+                <p className="text-sm">ERP ID: {dashboardData.hodErpId || 'Not Available'}</p>
+                <p className="text-sm">{dashboardData.department || 'Department'} - {dashboardData.branch || 'Branch'}</p>
               </motion.div>
-              {/* Top 5 Recent Faculty Logs */}
-              {/* <RecentFacultyLogs facultyMembers={facultyMembers} handlePersonClick={handlePersonClick} /> */}
             </div>
-            {/* Faculty Attendance Overview Section */}
-            {/* <FacultyAttendanceOverview /> */}
-          </>
-        )} 
-
-        {/* Students Tab */}
-        {activeTab === 'students' && (
-          <motion.div
-            variants={containerVariants}
-            initial="hidden"
-            animate="visible"
-          >
-            {/* Student Attendance */}
-            <motion.div
-              variants={itemVariants}
-              className="bg-white rounded-xl shadow-sm p-6 border border-gray-100 mb-6"
+            <motion.div 
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.3 }}
+              className="mt-4 md:mt-0"
             >
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl font-bold flex items-center">
-                  <FiUsers className={`mr-2 ${theme.text}`} />
-                  Student Attendance
-                </h2>
-                <button className={`text-sm ${theme.text} font-medium flex items-center`}>
-                  View All <FiChevronRight className="ml-1" />
-                </button>
-              </div>
-
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="text-left text-sm text-gray-500 border-b border-gray-200">
-                      <th className="pb-3">Course</th>
-                      <th className="pb-3">Date</th>
-                      <th className="pb-3">Present</th>
-                      <th className="pb-3">Absent</th>
-                      <th className="pb-3">Late</th>
-                      <th className="pb-3">Professor</th>
-                      <th className="pb-3">Room</th>
-                      <th className="pb-3">Attendance %</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {(dashboardData.studentAttendance || []).map((course, index) => {
-                      const total = (course.present || 0) + (course.absent || 0);
-                      const percentage = calculatePercentage(course.present || 0, total);
-                      
-                      return (
-                        <motion.tr
-                          key={index}
-                          variants={itemVariants}
-                          className="border-b border-gray-100 hover:bg-red-50"
-                          whileHover={{ x: 5 }}
-                        >
-                          <td className="py-4 font-medium">{course.course || 'Unknown Course'}</td>
-                          <td className="py-4 text-sm">{course.date || 'Unknown Date'}</td>
-                          <td className="py-4 text-green-600">{course.present || 0}</td>
-                          <td className="py-4 text-red-600">{course.absent || 0}</td>
-                          <td className="py-4 text-yellow-600">{course.late || 0}</td>
-                          <td className="py-4 text-sm">{course.professor || 'Unknown'}</td>
-                          <td className="py-4 text-sm">{course.room || 'Unknown'}</td>
-                          <td className="py-4">
-                            <div className="flex items-center">
-                              <div className="w-16 bg-gray-200 rounded-full h-2 mr-2">
-                                <div 
-                                  className={`h-2 rounded-full ${
-                                    percentage >= 90 ? 'bg-green-500' :
-                                    percentage >= 75 ? 'bg-yellow-500' : 'bg-red-500'
-                                  }`}
-                                  style={{ width: `${percentage}%` }}
-                                ></div>
-                              </div>
-                              <span>{percentage}%</span>
-                            </div>
-                          </td>
-                        </motion.tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </motion.div>
-
-            {/* Student Performance */}
-            <motion.div
-              variants={itemVariants}
-              className="bg-white rounded-xl shadow-sm p-6 border border-gray-100"
-            >
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl font-bold flex items-center">
-                  <FiBarChart2 className={`mr-2 ${theme.text}`} />
-                  Student Performance
-                </h2>
-                <button className={`text-sm ${theme.text} font-medium flex items-center`}>
-                  View All <FiChevronRight className="ml-1" />
-                </button>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {(dashboardData.studentPerformance || []).map((course, index) => (
-                  <motion.div
-                    key={index}
-                    variants={itemVariants}
-                    whileHover="hover"
-                    className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
+              <div className="flex space-x-2 mb-6">
+                {['overview', 'faculty', 'nonteaching', 'students'].map((tab) => (
+                  <motion.button
+                    key={tab}
+                    className={`px-4 py-2 rounded-lg font-semibold transition-colors duration-200 ${
+                      activeTab === tab ? theme.primary + ' text-white' : 'bg-white text-gray-700 border border-gray-200'
+                    }`}
+                    onClick={() => setActiveTab(tab)}
+                    whileHover={{ scale: 1.05 }}
                   >
-                    <h3 className="font-bold text-gray-900 mb-2">{course.course || 'Unknown Course'}</h3>
-                    <div className="flex justify-between mb-3">
-                      <span className="text-sm text-gray-600">Average Grade:</span>
-                      <span className="font-medium">{course.avgGrade || 0}%</span>
-                    </div>
-                    <div className="flex justify-between mb-3">
-                      <span className="text-sm text-gray-600">Top Performer:</span>
-                      <span className="font-medium">{course.topPerformer || 'Unknown'}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-sm text-gray-600">Improvement:</span>
-                      <span className={`font-medium ${
-                        (course.improvement || '').startsWith('+') ? 'text-green-600' : 'text-red-600'
-                      }`}>
-                        {course.improvement || '0%'}
-                      </span>
-                    </div>
-                  </motion.div>
+                    {tab === 'overview' ? <FiHome className="inline mr-1" /> : 
+                     tab === 'faculty' ? <FiUserCheck className="inline mr-1" /> : 
+                     tab === 'students' ? <FiUsers className="inline mr-1" /> :
+                     tab === 'nonteaching' ? <FiUsers className="inline mr-1" /> : null}
+                    {tab === 'nonteaching' ? 'Non-Teaching Staff' : tab.charAt(0).toUpperCase() + tab.slice(1)}
+                  </motion.button>
                 ))}
               </div>
             </motion.div>
-          </motion.div>
-        )}
+          </div>
+        </motion.header>
 
-        {/* Faculty Tab */}
-        {activeTab === 'faculty' && (
-          <motion.div
-            variants={containerVariants}
-            initial="hidden"
-            animate="visible"
-          >
-            {/* Department Faculty List */}
-            <motion.div
-              ref={nonTeachingStaffRef}
-              variants={itemVariants}
-              className="bg-white rounded-xl shadow-sm p-6 border border-gray-100 mb-6"
-            >
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl font-bold flex items-center">
-                  <FiUsers className={`mr-2 ${theme.text}`} />
-                  Department Faculty ({facultyMembers.length})
-                </h2>
-              </div>
-              {facultyMembers.length === 0 ? (
-                <div className="text-center py-8">
-                  <p className="text-gray-500">No faculty members found in your department.</p>
+        {/* Main Content */}
+        <motion.div 
+          className="space-y-6"
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
+        >
+          {/* Overview Section */}
+          {activeTab === 'overview' && (
+            <>
+              {/* Stats Cards */}
+              <motion.div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+                {[
+                  { 
+                    title: 'Total Students', 
+                    value: dashboardData.departmentStats?.totalStudents || 0, 
+                    icon: <FiUsers className="text-white" size={24} />, 
+                    trend: 'up',
+                  },
+                  { 
+                    title: 'Faculty Members', 
+                    value: dashboardData.departmentStats?.totalFaculty || 0, 
+                    icon: <FiUserCheck className="text-white" size={24} />, 
+                    trend: 'neutral',
+                    onClick: () => setActiveTab('faculty')
+                  },
+                  { 
+                    title: 'Non-Teaching Staff',
+                    value: dashboardData.staffCount || 0,
+                    icon: <FiUsers className="text-white" size={24} />,
+                    trend: 'neutral',
+                    onClick: () => {
+                      setActiveTab('faculty');
+                      setTimeout(() => {
+                        if (nonTeachingStaffRef.current) {
+                          nonTeachingStaffRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        }
+                      }, 100);
+                    }
+                  },
+                  {
+                    title: 'Ongoing Projects',
+                    value: dashboardData.departmentStats?.ongoingProjects || 0,
+                    icon: <FiAward className="text-white" size={24} />,
+                    trend: 'neutral',
+                  }
+                ].map((stat, index) => (
+                  <motion.div
+                    key={stat.title}
+                    variants={itemVariants}
+                    whileHover="hover"
+                    className={`${theme.primary} text-white rounded-xl p-5 shadow-lg ${stat.onClick ? 'cursor-pointer' : ''}`}
+                    onClick={stat.onClick}
+                  >
+                    <div className="flex justify-between items-start">
+                      <div className="w-12 h-12 rounded-lg bg-white bg-opacity-20 flex items-center justify-center mb-4">
+                        {stat.icon}
+                      </div>
+                    </div>
+                    <h3 className="text-2xl font-bold mb-1">{stat.value}</h3>
+                    <p className="text-sm opacity-90">{stat.title}</p>
+                  </motion.div>
+                ))}
+              </motion.div>
+
+              {/* New row of white stat boxes */}
+              <motion.div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mt-6">
+                <div className="bg-white rounded-xl p-5 shadow flex flex-col items-start border border-gray-100">
+                  <div className="w-10 h-10 rounded-lg bg-red-100 flex items-center justify-center mb-3">
+                    <FiUsers className="text-red-600" size={22} />
+                  </div>
+                  <h3 className="text-xl font-bold mb-1">{todayCounts.students}</h3>
+                  <p className="text-sm text-gray-600">Students Present Today</p>
                 </div>
-              ) : (
+                <div className="bg-white rounded-xl p-5 shadow flex flex-col items-start border border-gray-100">
+                  <div className="w-10 h-10 rounded-lg bg-red-100 flex items-center justify-center mb-3">
+                    <FiUserCheck className="text-red-600" size={22} />
+                  </div>
+                  <h3 className="text-xl font-bold mb-1">{todayCounts.faculty}</h3>
+                  <p className="text-sm text-gray-600">Faculty Present Today</p>
+                </div>
+                <div className="bg-white rounded-xl p-5 shadow flex flex-col items-start border border-gray-100">
+                  <div className="w-10 h-10 rounded-lg bg-red-100 flex items-center justify-center mb-3">
+                    <FiUsers className="text-red-600" size={22} />
+                  </div>
+                  <h3 className="text-xl font-bold mb-1">{dashboardData.todayStats?.nonTeachingPresent || 0}</h3>
+                  <p className="text-sm text-gray-600">Non-Teaching Staff Present Today</p>
+                </div>
+                <div className="bg-white rounded-xl p-5 shadow flex flex-col items-start border border-gray-100">
+                  <div className="w-10 h-10 rounded-lg bg-red-100 flex items-center justify-center mb-3">
+                    <FiAward className="text-red-600" size={22} />
+                  </div>
+                  <h3 className="text-xl font-bold mb-1">{dashboardData.departmentStats?.pendingProjects || 0}</h3>
+                  <p className="text-sm text-gray-600">Projects Pending</p>
+                </div>
+              </motion.div>
+
+              {/* Custom Quick Sections: Recent Leave Approvals & Top 5 Faculty Logs */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+                {/* Recent Leave Approvals */}
+                <RecentLeaveApprovals />
+                {/* Faculty Stress Notifications */}
+                <motion.div
+                  variants={itemVariants}
+                  className="bg-white rounded-xl shadow-sm p-6 border border-red-200 h-full"
+                >
+                  <h3 className="text-lg font-bold mb-4 flex items-center text-red-800">
+                    <FiAlertTriangle className="mr-2 text-red-800" /> Faculty Stress Notifications
+                  </h3>
+                  {facultyStressLoading ? (
+                    <div className="text-gray-500">Loading...</div>
+                  ) : facultyStressError ? (
+                    <div className="text-red-500">{facultyStressError}</div>
+                  ) : (
+                    (() => {
+                      // Filter for faculty stressed for more than 7 days
+                      const now = new Date();
+                      const stressedFaculty = (facultyStressData || []).filter(faculty => {
+                        if (!faculty.timestamp) return false;
+                        const days = (now - new Date(faculty.timestamp)) / (1000 * 60 * 60 * 24);
+                        return (faculty.status === 'Stressed' || faculty.status === 'At Risk') && days >= 7;
+                      });
+                      if (stressedFaculty.length === 0) {
+                        return <div className="text-gray-500">No faculty have been stressed for more than 7 days.</div>;
+                      }
+                      return (
+                        <div className="overflow-x-auto">
+                          <table className="w-full">
+                            <thead>
+                              <tr className="text-left text-sm text-red-700 border-b border-red-200">
+                                <th className="pb-3">Name</th>
+                                <th className="pb-3">ERP ID</th>
+                                <th className="pb-3">Stress Level</th>
+                                <th className="pb-3">Days Stressed</th>
+                                <th className="pb-3">Last Updated</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {stressedFaculty.map(faculty => {
+                                const days = Math.floor((now - new Date(faculty.timestamp)) / (1000 * 60 * 60 * 24));
+                                return (
+                                  <tr key={faculty.erpid} className="border-b border-red-100 bg-red-50">
+                                    <td className="py-3 font-medium cursor-pointer text-red-800" onClick={() => handlePersonClick('faculty', faculty.id, faculty.name)}>{faculty.name}</td>
+                                    <td className="py-3 text-red-700">{faculty.erpid}</td>
+                                    <td className="py-3">
+                                      <span className="px-2 py-1 text-xs rounded-full bg-red-200 text-red-900 font-semibold">{faculty.status}</span>
+                                    </td>
+                                    <td className="py-3 text-red-700 font-bold">{days} days</td>
+                                    <td className="py-3 text-xs text-gray-500">{faculty.timestamp ? new Date(faculty.timestamp).toLocaleString() : 'N/A'}</td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      );
+                    })()
+                  )}
+                </motion.div>
+                {/* Top 5 Recent Faculty Logs */}
+                {/* <RecentFacultyLogs facultyMembers={facultyMembers} handlePersonClick={handlePersonClick} /> */}
+              </div>
+              {/* Faculty Attendance Overview Section */}
+              {/* <FacultyAttendanceOverview /> */}
+            </>
+          )} 
+
+          {/* Students Tab */}
+          {activeTab === 'students' && (
+            <motion.div
+              variants={containerVariants}
+              initial="hidden"
+              animate="visible"
+            >
+              {/* Student Attendance */}
+              <motion.div
+                variants={itemVariants}
+                className="bg-white rounded-xl shadow-sm p-6 border border-gray-100 mb-6"
+              >
+                <div className="flex justify-between items-center mb-6">
+                  <h2 className="text-xl font-bold flex items-center">
+                    <FiUsers className={`mr-2 ${theme.text}`} />
+                    Student Attendance
+                  </h2>
+                  <button className={`text-sm ${theme.text} font-medium flex items-center`}>
+                    View All <FiChevronRight className="ml-1" />
+                  </button>
+                </div>
+
                 <div className="overflow-x-auto">
                   <table className="w-full">
                     <thead>
                       <tr className="text-left text-sm text-gray-500 border-b border-gray-200">
-                        <th className="pb-3">ERP ID</th>
-                        <th className="pb-3">Name</th>
-                        <th className="pb-3">Email</th>
-                        <th className="pb-3">Last Active Location</th>
+                        <th className="pb-3">Course</th>
+                        <th className="pb-3">Date</th>
+                        <th className="pb-3">Present</th>
+                        <th className="pb-3">Absent</th>
+                        <th className="pb-3">Late</th>
+                        <th className="pb-3">Professor</th>
+                        <th className="pb-3">Room</th>
+                        <th className="pb-3">Attendance %</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {facultyMembers.map((faculty) => {
-                        const logsForFaculty = facultyLogs.filter(log => log.erp_id === faculty.erpid);
-                        let lastLocation = 'N/A';
-                        if (logsForFaculty.length > 0) {
-                          logsForFaculty.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-                          lastLocation = logsForFaculty[0].classroom || 'N/A';
-                        }
+                      {(dashboardData.studentAttendance || []).map((course, index) => {
+                        const total = (course.present || 0) + (course.absent || 0);
+                        const percentage = calculatePercentage(course.present || 0, total);
+                        
                         return (
                           <motion.tr
-                            key={faculty.id}
+                            key={index}
                             variants={itemVariants}
-                            className="border-b border-gray-100 hover:bg-red-50 cursor-pointer"
+                            className="border-b border-gray-100 hover:bg-red-50"
                             whileHover={{ x: 5 }}
-                            onClick={() => handlePersonClick('faculty', faculty.id, faculty.name)}
                           >
-                            <td className="py-4 font-medium">{faculty.erpid || 'N/A'}</td>
-                            <td className="py-4">{faculty.name || 'Unknown'}</td>
-                            <td className="py-4">{faculty.email || 'N/A'}</td>
-                            <td className="py-4">{lastLocation}</td>
+                            <td className="py-4 font-medium">{course.course || 'Unknown Course'}</td>
+                            <td className="py-4 text-sm">{course.date || 'Unknown Date'}</td>
+                            <td className="py-4 text-green-600">{course.present || 0}</td>
+                            <td className="py-4 text-red-600">{course.absent || 0}</td>
+                            <td className="py-4 text-yellow-600">{course.late || 0}</td>
+                            <td className="py-4 text-sm">{course.professor || 'Unknown'}</td>
+                            <td className="py-4 text-sm">{course.room || 'Unknown'}</td>
+                            <td className="py-4">
+                              <div className="flex items-center">
+                                <div className="w-16 bg-gray-200 rounded-full h-2 mr-2">
+                                  <div 
+                                    className={`h-2 rounded-full ${
+                                      percentage >= 90 ? 'bg-green-500' :
+                                      percentage >= 75 ? 'bg-yellow-500' : 'bg-red-500'
+                                    }`}
+                                    style={{ width: `${percentage}%` }}
+                                  ></div>
+                                </div>
+                                <span>{percentage}%</span>
+                              </div>
+                            </td>
                           </motion.tr>
                         );
                       })}
                     </tbody>
                   </table>
                 </div>
-              )}
-            </motion.div>
-          </motion.div>
-        )}
+              </motion.div>
 
-        {/* Non-Teaching Staff Tab */}
-        {activeTab === 'nonteaching' && (
-          <motion.div
-            variants={containerVariants}
-            initial="hidden"
-            animate="visible"
-          >
-            <motion.div
-              ref={nonTeachingStaffRef}
-              variants={itemVariants}
-              className="bg-white rounded-xl shadow-sm p-6 border border-gray-100 mb-6"
-            >
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl font-bold flex items-center">
-                  <FiUsers className={`mr-2 ${theme.text}`} />
-                  Non-Teaching Staff ({nonTeachingStaff.length})
-                </h2>
-              </div>
-              {nonTeachingStaff.length === 0 ? (
-                <div className="text-center py-8">
-                  <p className="text-gray-500">No non-teaching staff found in your department.</p>
-                </div>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="text-left text-sm text-gray-500 border-b border-gray-200">
-                        <th className="pb-3">ERP ID</th>
-                        <th className="pb-3">Name</th>
-                        <th className="pb-3">Email</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {nonTeachingStaff.map((staff) => (
-                        <motion.tr
-                          key={staff.id}
-                          variants={itemVariants}
-                          className="border-b border-gray-100 hover:bg-red-50 cursor-pointer"
-                          whileHover={{ x: 5 }}
-                          onClick={() => handlePersonClick('staff', staff.id, staff.name)}
-                        >
-                          <td className="py-4 font-medium">{staff.erpid || 'N/A'}</td>
-                          <td className="py-4">{staff.name || 'Unknown'}</td>
-                          <td className="py-4">{staff.email || 'N/A'}</td>
-                        </motion.tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </motion.div>
-          </motion.div>
-        )}
-
-        {/* Faculty Modal */}
-        <AnimatePresence>
-          {showFacultyModal && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
-              onClick={() => setShowFacultyModal(false)}
-            >
+              {/* Student Performance */}
               <motion.div
-                initial={{ scale: 0.9, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0.9, opacity: 0 }}
-                className="bg-white rounded-xl shadow-lg w-full max-w-4xl max-h-[80vh] overflow-hidden"
-                onClick={e => e.stopPropagation()}
+                variants={itemVariants}
+                className="bg-white rounded-xl shadow-sm p-6 border border-gray-100"
               >
-                <div className="p-6 border-b border-gray-200 flex justify-between items-center">
+                <div className="flex justify-between items-center mb-6">
                   <h2 className="text-xl font-bold flex items-center">
-                    <FiUsers className="mr-2 text-red-600" />
-                    Department Faculty Members ({facultyMembers.length})
+                    <FiBarChart2 className={`mr-2 ${theme.text}`} />
+                    Student Performance
                   </h2>
-                  <button
-                    onClick={() => setShowFacultyModal(false)}
-                    className="text-gray-500 hover:text-gray-700 p-2 hover:bg-gray-100 rounded-full transition-colors"
-                  >
-                    <FiX size={24} />
+                  <button className={`text-sm ${theme.text} font-medium flex items-center`}>
+                    View All <FiChevronRight className="ml-1" />
                   </button>
                 </div>
-                
-                <div className="p-6 overflow-y-auto max-h-[calc(80vh-8rem)]">
-                  {facultyMembers.length === 0 ? (
-                    <div className="text-center py-8">
-                      <p className="text-gray-500">No faculty members found in your department.</p>
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {facultyMembers.map((faculty) => (
-                        <motion.div
-                          key={faculty.id}
-                          initial={{ opacity: 0, y: 20 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          className="bg-gray-50 rounded-lg p-4 hover:bg-red-50 transition-colors"
-                        >
-                          <div className="font-semibold text-lg mb-2">{faculty.name || 'N/A'}</div>
-                          <div className="text-sm text-gray-600 mb-1">ERP ID: {faculty.erpid || 'N/A'}</div>
-                          <div className="text-sm text-gray-600 mb-1">{faculty.email || 'N/A'}</div>
-                          <div className="flex items-center mt-2">
-                            <span className={`px-2 py-1 text-xs rounded-full ${
-                              faculty.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                            }`}>
-                              {faculty.is_active ? 'Active' : 'Inactive'}
-                            </span>
-                            <span className="text-xs text-gray-500 ml-2">
-                              Joined: {faculty.created_at ? new Date(faculty.created_at).toLocaleDateString() : 'N/A'}
-                            </span>
-                          </div>
-                        </motion.div>
-                      ))}
-                    </div>
-                  )}
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {(dashboardData.studentPerformance || []).map((course, index) => (
+                    <motion.div
+                      key={index}
+                      variants={itemVariants}
+                      whileHover="hover"
+                      className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
+                    >
+                      <h3 className="font-bold text-gray-900 mb-2">{course.course || 'Unknown Course'}</h3>
+                      <div className="flex justify-between mb-3">
+                        <span className="text-sm text-gray-600">Average Grade:</span>
+                        <span className="font-medium">{course.avgGrade || 0}%</span>
+                      </div>
+                      <div className="flex justify-between mb-3">
+                        <span className="text-sm text-gray-600">Top Performer:</span>
+                        <span className="font-medium">{course.topPerformer || 'Unknown'}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-sm text-gray-600">Improvement:</span>
+                        <span className={`font-medium ${
+                          (course.improvement || '').startsWith('+') ? 'text-green-600' : 'text-red-600'
+                        }`}>
+                          {course.improvement || '0%'}
+                        </span>
+                      </div>
+                    </motion.div>
+                  ))}
                 </div>
               </motion.div>
             </motion.div>
           )}
-        </AnimatePresence>
 
-        {/* Profile Modal */}
-        <AnimatePresence>
-          {showProfileModal && (
+          {/* Faculty Tab */}
+          {activeTab === 'faculty' && (
             <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
-              onClick={() => setShowProfileModal(false)}
+              variants={containerVariants}
+              initial="hidden"
+              animate="visible"
             >
+              {/* Department Faculty List */}
               <motion.div
-                initial={{ scale: 0.9, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0.9, opacity: 0 }}
-                className="bg-white rounded-xl shadow-lg w-full max-w-5xl max-h-[90vh] overflow-hidden"
-                onClick={e => e.stopPropagation()}
+                ref={nonTeachingStaffRef}
+                variants={itemVariants}
+                className="bg-white rounded-xl shadow-sm p-6 border border-gray-100 mb-6"
               >
-                <div className="p-6 border-b border-gray-200 flex justify-between items-center">
+                <div className="flex justify-between items-center mb-6">
                   <h2 className="text-xl font-bold flex items-center">
-                    {selectedPerson?.name || (selectedPerson?.type === 'faculty' ? 'Faculty' : 'Non-Teaching Staff')} Logs
+                    <FiUsers className={`mr-2 ${theme.text}`} />
+                    Department Faculty ({facultyMembers.length})
                   </h2>
-                  <button
-                    onClick={() => setShowProfileModal(false)}
-                    className="text-gray-500 hover:text-gray-700 p-2 hover:bg-gray-100 rounded-full transition-colors"
-                  >
-                    <FiX size={24} />
-                  </button>
                 </div>
-                <div className="p-6 overflow-y-auto max-h-[calc(90vh-8rem)]">
-                  <FacultyLogDisplay logs={profileLogs || []} loading={profileLoading} />
-                </div>
+                {facultyMembers.length === 0 ? (
+                  <div className="text-center py-8">
+                    <p className="text-gray-500">No faculty members found in your department.</p>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="text-left text-sm text-gray-500 border-b border-gray-200">
+                          <th className="pb-3">ERP ID</th>
+                          <th className="pb-3">Name</th>
+                          <th className="pb-3">Email</th>
+                          <th className="pb-3">Last Active Location</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {facultyMembers.map((faculty) => {
+                          const logsForFaculty = facultyLogs.filter(log => log.erp_id === faculty.erpid);
+                          let lastLocation = 'N/A';
+                          if (logsForFaculty.length > 0) {
+                            logsForFaculty.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+                            lastLocation = logsForFaculty[0].classroom || 'N/A';
+                          }
+                          return (
+                            <motion.tr
+                              key={faculty.id}
+                              variants={itemVariants}
+                              className="border-b border-gray-100 hover:bg-red-50 cursor-pointer"
+                              whileHover={{ x: 5 }}
+                              onClick={() => handlePersonClick('faculty', faculty.id, faculty.name)}
+                            >
+                              <td className="py-4 font-medium">{faculty.erpid || 'N/A'}</td>
+                              <td className="py-4">{faculty.name || 'Unknown'}</td>
+                              <td className="py-4">{faculty.email || 'N/A'}</td>
+                              <td className="py-4">{lastLocation}</td>
+                            </motion.tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </motion.div>
             </motion.div>
           )}
-        </AnimatePresence>
-      </motion.div>
-    </div>
+
+          {/* Non-Teaching Staff Tab */}
+          {activeTab === 'nonteaching' && (
+            <motion.div
+              variants={containerVariants}
+              initial="hidden"
+              animate="visible"
+            >
+              <motion.div
+                ref={nonTeachingStaffRef}
+                variants={itemVariants}
+                className="bg-white rounded-xl shadow-sm p-6 border border-gray-100 mb-6"
+              >
+                <div className="flex justify-between items-center mb-6">
+                  <h2 className="text-xl font-bold flex items-center">
+                    <FiUsers className={`mr-2 ${theme.text}`} />
+                    Non-Teaching Staff ({nonTeachingStaff.length})
+                  </h2>
+                </div>
+                {nonTeachingStaff.length === 0 ? (
+                  <div className="text-center py-8">
+                    <p className="text-gray-500">No non-teaching staff found in your department.</p>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="text-left text-sm text-gray-500 border-b border-gray-200">
+                          <th className="pb-3">ERP ID</th>
+                          <th className="pb-3">Name</th>
+                          <th className="pb-3">Email</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {nonTeachingStaff.map((staff) => (
+                          <motion.tr
+                            key={staff.id}
+                            variants={itemVariants}
+                            className="border-b border-gray-100 hover:bg-red-50 cursor-pointer"
+                            whileHover={{ x: 5 }}
+                            onClick={() => handlePersonClick('staff', staff.id, staff.name)}
+                          >
+                            <td className="py-4 font-medium">{staff.erpid || 'N/A'}</td>
+                            <td className="py-4">{staff.name || 'Unknown'}</td>
+                            <td className="py-4">{staff.email || 'N/A'}</td>
+                          </motion.tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </motion.div>
+            </motion.div>
+          )}
+
+          {/* Faculty Modal */}
+          <AnimatePresence>
+            {showFacultyModal && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+                onClick={() => setShowFacultyModal(false)}
+              >
+                <motion.div
+                  initial={{ scale: 0.9, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  exit={{ scale: 0.9, opacity: 0 }}
+                  className="bg-white rounded-xl shadow-lg w-full max-w-4xl max-h-[80vh] overflow-hidden"
+                  onClick={e => e.stopPropagation()}
+                >
+                  <div className="p-6 border-b border-gray-200 flex justify-between items-center">
+                    <h2 className="text-xl font-bold flex items-center">
+                      <FiUsers className="mr-2 text-red-600" />
+                      Department Faculty Members ({facultyMembers.length})
+                    </h2>
+                    <button
+                      onClick={() => setShowFacultyModal(false)}
+                      className="text-gray-500 hover:text-gray-700 p-2 hover:bg-gray-100 rounded-full transition-colors"
+                    >
+                      <FiX size={24} />
+                    </button>
+                  </div>
+                  
+                  <div className="p-6 overflow-y-auto max-h-[calc(80vh-8rem)]">
+                    {facultyMembers.length === 0 ? (
+                      <div className="text-center py-8">
+                        <p className="text-gray-500">No faculty members found in your department.</p>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {facultyMembers.map((faculty) => (
+                          <motion.div
+                            key={faculty.id}
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="bg-gray-50 rounded-lg p-4 hover:bg-red-50 transition-colors"
+                          >
+                            <div className="font-semibold text-lg mb-2">{faculty.name || 'N/A'}</div>
+                            <div className="text-sm text-gray-600 mb-1">ERP ID: {faculty.erpid || 'N/A'}</div>
+                            <div className="text-sm text-gray-600 mb-1">{faculty.email || 'N/A'}</div>
+                            <div className="flex items-center mt-2">
+                              <span className={`px-2 py-1 text-xs rounded-full ${
+                                faculty.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                              }`}>
+                                {faculty.is_active ? 'Active' : 'Inactive'}
+                              </span>
+                              <span className="text-xs text-gray-500 ml-2">
+                                Joined: {faculty.created_at ? new Date(faculty.created_at).toLocaleDateString() : 'N/A'}
+                              </span>
+                            </div>
+                          </motion.div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Profile Modal */}
+          <AnimatePresence>
+            {showProfileModal && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+                onClick={() => setShowProfileModal(false)}
+              >
+                <motion.div
+                  initial={{ scale: 0.9, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  exit={{ scale: 0.9, opacity: 0 }}
+                  className="bg-white rounded-xl shadow-lg w-full max-w-5xl max-h-[90vh] overflow-hidden"
+                  onClick={e => e.stopPropagation()}
+                >
+                  <div className="p-6 border-b border-gray-200 flex justify-between items-center">
+                    <h2 className="text-xl font-bold flex items-center">
+                      {selectedPerson?.name || (selectedPerson?.type === 'faculty' ? 'Faculty' : 'Non-Teaching Staff')} Logs
+                    </h2>
+                    <button
+                      onClick={() => setShowProfileModal(false)}
+                      className="text-gray-500 hover:text-gray-700 p-2 hover:bg-gray-100 rounded-full transition-colors"
+                    >
+                      <FiX size={24} />
+                    </button>
+                  </div>
+                  <div className="p-6 overflow-y-auto max-h-[calc(90vh-8rem)]">
+                    <FacultyLogDisplay logs={profileLogs || []} loading={profileLoading} />
+                  </div>
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </motion.div>
+      </div>
+      {isMobile && <MobileBottomTabsHOD />}
+    </>
   );
 };
 
@@ -987,7 +1030,7 @@ function RecentFacultyLogs({ facultyMembers = [], handlePersonClick }) {
       setError(null);
       try {
         const token = localStorage.getItem('token');
-        const res = await fetch('http://69.62.83.14:9000/api/hod/recent-faculty-logs', {
+        const res = await fetch('http://localhost:5000/api/hod/recent-faculty-logs', {
           headers: { 'Authorization': `Bearer ${token}` },
         });
         if (!res.ok) throw new Error('Failed to fetch logs');
@@ -1058,7 +1101,7 @@ function RecentLeaveApprovals() {
     const fetchLeaves = async () => {
       try {
         setLoading(true);
-        const res = await axios.get('http://69.62.83.14:9000/api/hod/leave-approval');
+        const res = await axios.get('http://localhost:5000/api/hod/leave-approval');
         setLeaveApplications(Array.isArray(res.data) ? res.data.filter(app => app.HodApproval === 'Pending').slice(0, 5) : []);
       } catch (err) {
         setError('Could not load leave requests');
@@ -1072,7 +1115,7 @@ function RecentLeaveApprovals() {
   const handleAction = async (application, action) => {
     setActionLoading(application.ErpStaffId);
     try {
-      await axios.put(`http://69.62.83.14:9000/api/hod/leave-approval/${application.ErpStaffId}`, {
+      await axios.put(`http://localhost:5000/api/hod/leave-approval/${application.ErpStaffId}`, {
         HodApproval: action === 'approve' ? 'Approved' : 'Rejected',
       });
       setLeaveApplications(prev => prev.filter(app => app.ErpStaffId !== application.ErpStaffId));

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import FacultyLogDisplay from "../components/faculty/FacultyLogDisplay"
+import HeaderFaculty from '../components/common/HeaderFaculty';
 // import { FaBell, FaTasks, FaUserGraduate, FaChalkboardTeacher } from 'react-icons/fa';
 // import FacultyLogDisplay from "../components/faculty/FacultyLogDisplay"
 
@@ -20,7 +21,7 @@ const FacultyDashboard = () => {
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
-        const response = await axios.get('http://69.62.83.14:9000/api/faculty/dashboard', {
+        const response = await axios.get('http://localhost:5000/api/faculty/dashboard', {
           headers: {
             Authorization: `Bearer ${localStorage.getItem('token')}`
           }
@@ -67,11 +68,17 @@ const FacultyDashboard = () => {
   }
 
   return (
-    <div className="p-8">
-      <h1 className="text-3xl font-bold mb-4">Welcome, {dashboardData.name}!</h1>
-      <p className="text-gray-600 mb-6">Your Erp id is : {dashboardData.erpStaffId}</p>
-      <FacultyLogDisplay logs={dashboardData.logs || null} facultyName={dashboardData.name} />
-    </div>
+    <>
+      <HeaderFaculty />
+      
+      <div className="px-2 sm:px-4 md:px-8 lg:px-16 mt-16 sm:mt-8 w-full max-w-4xl mx-auto">
+        <h1 className="text-xl sm:text-2xl md:text-3xl font-bold mb-2 sm:mb-4">Welcome, {dashboardData.name}!</h1>
+        <p className="text-gray-600 mb-4 sm:mb-6 text-sm sm:text-base">Your Erp id is : {dashboardData.erpStaffId}</p>
+        <div className="bg-white rounded-lg shadow p-2 sm:p-4 mb-4">
+          <FacultyLogDisplay logs={dashboardData.logs || null} facultyName={dashboardData.name} />
+        </div>
+      </div>
+    </>
   );
 };
 

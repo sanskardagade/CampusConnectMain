@@ -122,7 +122,7 @@ const LandingPage = () => {
               onClick={() => navigate("/signin")}
               className="bg-red-900 text-white px-14 py-5 rounded-xl text-xl font-semibold hover:bg-red-800 transition-all shadow-lg mb-10 mx-auto"
             >
-              SignIn
+              Sign In
             </button>
 
             {/* News & Notices Section */}

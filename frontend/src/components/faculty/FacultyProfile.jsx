@@ -4,6 +4,7 @@ import { useUser } from '../../context/UserContext'
 import { AiOutlineLogout } from 'react-icons/ai'
 import { FaUserCircle } from 'react-icons/fa'
 import axios from 'axios'
+import { useIsMobile } from '../hooks/use-mobile'
 
 const FacultyProfile = () => {
   const navigate = useNavigate()
@@ -11,6 +12,7 @@ const FacultyProfile = () => {
   const [faculty, setFaculty] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const isMobile = useIsMobile()
 
   const handleLogout = () => {
     try {
@@ -33,7 +35,7 @@ const FacultyProfile = () => {
         console.log('Fetching faculty profile...')
         console.log('Token:', token) // Debug token
 
-        const response = await axios.get('http://69.62.83.14:9000/api/faculty/dashboard', {
+        const response = await axios.get('http://localhost:5000/api/faculty/dashboard', {
           headers: {
             Authorization: `Bearer ${token}`
           }
@@ -85,30 +87,35 @@ const FacultyProfile = () => {
   }
 
   return (
-    <div className="p-6 max-w-xl mx-auto bg-white rounded-2xl shadow-lg border border-red-100">
-      <div className="flex flex-col items-center mb-6">
-        <FaUserCircle className="text-[80px] text-red-700 mb-2" />
-        <h1 className="text-3xl font-extrabold text-red-800">Faculty Profile</h1>
-        <p className="text-gray-500">Welcome back, {faculty.name || 'Faculty'}!</p>
-      </div>
+    <>
+      {isMobile && (
+        <div className="block sm:hidden w-full bg-red-700 text-white text-lg font-bold py-3 px-4 shadow">Profile</div>
+      )}
+      <div className="p-6 max-w-xl mx-auto bg-white rounded-2xl shadow-lg border border-red-100">
+        <div className="flex flex-col items-center mb-6">
+          <FaUserCircle className="text-[80px] text-red-700 mb-2" />
+          <h1 className="text-3xl font-extrabold text-red-800">Faculty Profile</h1>
+          <p className="text-gray-500">Welcome back, {faculty.name || 'Faculty'}!</p>
+        </div>
 
-      <div className="space-y-4 px-2">
-        <ProfileField label="Name" value={faculty.name} />
-        <ProfileField label="Faculty ID" value={faculty.erpStaffId} />
-        <ProfileField label="Department" value={faculty.department} />
-        <ProfileField label="Email" value={faculty.email} />
-      </div>
+        <div className="space-y-4 px-2">
+          <ProfileField label="Name" value={faculty.name} />
+          <ProfileField label="Faculty ID" value={faculty.erpStaffId} />
+          <ProfileField label="Department" value={faculty.department} />
+          <ProfileField label="Email" value={faculty.email} />
+        </div>
 
-      <div className="mt-6 flex justify-center">
-        <button
-          onClick={handleLogout}
-          className="flex items-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-        >
-          <AiOutlineLogout className="mr-2" />
-          Logout
-        </button>
+        <div className="mt-6 flex justify-center">
+          <button
+            onClick={handleLogout}
+            className="flex items-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+          >
+            <AiOutlineLogout className="mr-2" />
+            Logout
+          </button>
+        </div>
       </div>
-    </div>
+    </>
   )
 }
 

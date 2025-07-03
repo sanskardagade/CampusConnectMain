@@ -1,4 +1,4 @@
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate, useLocation } from "react-router-dom";
 import { FaBars, FaHome, FaUser } from "react-icons/fa";
 import { BiAnalyse, BiSearch } from "react-icons/bi";
 import { SlCalender } from "react-icons/sl";
@@ -14,6 +14,7 @@ import {
 import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import SidebarMenu from "./SideBarMenu";
+import { useIsMobile } from "../hooks/use-mobile";
 
 
   const routes = [
@@ -80,7 +81,43 @@ import SidebarMenu from "./SideBarMenu";
   ];
   
 
+function MobileBottomTabsFaculty() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const tabs = [
+    { path: "/faculty", label: "Dashboard", icon: <FaHome /> },
+    { path: "/faculty/student-stress-level", label: "Stress", icon: <BiAnalyse /> },
+    { path: "/faculty/leave-apply", label: "Leaves", icon: <AiFillContainer /> },
+    { path: "/faculty/faculty-profile", label: "Profile", icon: <FaUser /> },
+    { path: "/faculty/faculty-settings", label: "Settings", icon: <AiOutlineSetting /> },
+    { path: "/", label: "Logout", icon: <AiOutlineLogout /> },
+  ];
+  return (
+    <nav className="fixed bottom-0 left-0 right-0 z-20 bg-red-900 text-white flex justify-between items-center px-1 py-1 shadow-t border-t border-red-800">
+      {tabs.map((tab) => (
+        <button
+          key={tab.path}
+          onClick={() => navigate(tab.path)}
+          className={`flex flex-col items-center flex-1 px-1 py-1 focus:outline-none ${location.pathname === tab.path ? 'text-yellow-300' : ''}`}
+        >
+          <span className="text-lg">{tab.icon}</span>
+          <span className="text-[10px] leading-none">{tab.label}</span>
+        </button>
+      ))}
+    </nav>
+  );
+}
+
 const FacultySideBar = ({ children }) => {
+  const isMobile = useIsMobile();
+  if (isMobile) {
+    return (
+      <div className="relative min-h-screen bg-gray-100 pb-14">
+        <main className="flex-1 p-2 sm:p-4 overflow-auto">{children}</main>
+        <MobileBottomTabsFaculty />
+      </div>
+    );
+  }
   // Sidebar should always be open
   const isOpen = true;
 

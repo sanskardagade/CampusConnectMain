@@ -14,7 +14,9 @@ import {
 import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import SidebarMenu from "./SideBarMenu";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
+import { useIsMobile } from "../hooks/use-mobile";
+import { FiActivity } from "react-icons/fi";
 
 
   const routes = [
@@ -95,10 +97,39 @@ import { useLocation } from "react-router-dom";
   ];
   
 
+// Mobile bottom tab bar component
+function MobileBottomTabs() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const tabs = [
+    { path: "/principal", label: "Dashboard", icon: <FaHome /> },
+    { path: "/principal/faculty-leave-approval", label: "Leaves", icon: <AiFillBell /> },
+    { path: "/principal/faculty-report", label: "Report", icon: <AiOutlineFilePdf /> },
+    { path: "/principal/view-stress-level", label: "Stress", icon: <FiActivity /> },
+    { path: "/principal/principal-settings", label: "Settings", icon: <AiOutlineSetting /> },
+    { path: "/", label: "Logout", icon: <AiOutlineLogout /> },
+  ];
+  return (
+    <nav className="fixed bottom-0 left-0 right-0 z-20 bg-red-900 text-white flex justify-between items-center px-1 py-1 shadow-t border-t border-red-800">
+      {tabs.map((tab) => (
+        <button
+          key={tab.path}
+          onClick={() => navigate(tab.path)}
+          className={`flex flex-col items-center flex-1 px-1 py-1 focus:outline-none ${location.pathname === tab.path ? 'text-yellow-300' : ''}`}
+        >
+          <span className="text-lg">{tab.icon}</span>
+          <span className="text-[10px] leading-none">{tab.label}</span>
+        </button>
+      ))}
+    </nav>
+  );
+}
+
 const PrincipalSideBar = ({ children }) => {
+  const isMobile = useIsMobile();
+  const location = useLocation();
   // Sidebar should always be open
   const isOpen = true;
-  const location = useLocation();
 
   const inputAnimation = {
     hidden: { width: 0, padding: 0, transition: { duration: 0.2 } },
@@ -117,6 +148,15 @@ const PrincipalSideBar = ({ children }) => {
       transition: { duration: 0.3 },
     },
   };
+
+  if (isMobile) {
+    return (
+      <div className="w-screen min-h-screen bg-gray-100 pb-14">
+        <main className="flex-1 p-2 sm:p-4 overflow-auto">{children}</main>
+        <MobileBottomTabs />
+      </div>
+    );
+  }
 
   return (
     <div className="flex w-screen h-screen overflow-hidden">

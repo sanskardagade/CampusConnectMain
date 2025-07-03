@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { FiDownload, FiFileText, FiCalendar } from 'react-icons/fi';
 import axios from 'axios';
+import HeaderMobile from '../common/HeaderMobile';
 
 const formats = [
   { value: 'xlsx', label: 'Excel (.xlsx)' },
@@ -31,7 +32,7 @@ const HODFacultyReport = () => {
     const fetchFaculty = async () => {
       try {
         const token = localStorage.getItem('token');
-        const response = await axios.get('http://69.62.83.14:9000/api/hod/faculty', {
+        const response = await axios.get('http://localhost:5000/api/hod/faculty', {
           headers: { Authorization: `Bearer ${token}` }
         });
         setFaculty(response.data || []);
@@ -71,15 +72,15 @@ const HODFacultyReport = () => {
       };
       let endpoint;
       if (reportType === 'attendance') {
-        endpoint = 'http://69.62.83.14:9000/api/hod/faculty-attendance-report';
+        endpoint = 'http://localhost:5000/api/hod/faculty-attendance-report';
         params.from = fromDate;
         params.to = toDate;
       } else if (reportType === 'stress') {
-        endpoint = 'http://69.62.83.14:9000/api/hod/faculty-stress-report';
+        endpoint = 'http://localhost:5000/api/hod/faculty-stress-report';
         params.from = fromDate;
         params.to = toDate;
       } else if (reportType === 'leave') {
-        endpoint = 'http://69.62.83.14:9000/api/hod/faculty-leave-report';
+        endpoint = 'http://localhost:5000/api/hod/faculty-leave-report';
       }
       const response = await axios.get(endpoint, {
         params,
@@ -116,108 +117,109 @@ const HODFacultyReport = () => {
   };
 
   return (
-    <div className="max-w-4xl mx-auto bg-white rounded-xl shadow-lg p-10 my-8 border border-gray-200 transition-all duration-300 hover:shadow-xl">
-      <div className="flex flex-col h-full">
-        <div className="flex-grow">
-          <h2 className="text-3xl font-bold mb-10 flex items-center text-gray-800">
-            <FiFileText className="mr-4 text-red-800 text-4xl" />
-            <span className="bg-gradient-to-r from-red-800 to-red-600 bg-clip-text text-transparent">
-              Generate Faculty {reportType === 'attendance' ? 'Attendance' : reportType === 'stress' ? 'Stress' : 'Leave'} Report
-            </span>
-          </h2>
-          <div className="flex justify-center mb-8">
-            {reportTypes.map(rt => (
-              <button
-                key={rt.value}
-                className={`px-6 py-3 rounded-xl mx-2 text-lg font-semibold border-2 transition-all duration-200 ${
-                  reportType === rt.value
-                    ? 'bg-gradient-to-r from-red-800 to-red-600 text-white border-red-700 shadow-lg'
-                    : 'bg-white text-red-800 border-red-300 hover:border-red-600'
-                }`}
-                onClick={() => setReportType(rt.value)}
-              >
-                {rt.label}
-              </button>
-            ))}
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-10 mb-10">
-            <div className="space-y-3">
-              <label className="block text-lg font-medium text-gray-700 mb-3">Faculty</label>
-              <div className="relative" ref={facultyDropdownRef}>
-                <select
-                  className="w-full border-2 border-gray-300 rounded-xl px-5 py-4 text-lg bg-white focus:ring-2 focus:ring-red-600 focus:border-transparent transition-all duration-200 hover:border-red-400"
-                  value={selectedFaculty}
-                  onChange={e => setSelectedFaculty(e.target.value)}
+    <>
+      <HeaderMobile title="Report" />
+      <div className="max-w-4xl mx-auto bg-white rounded-xl shadow-lg p-4 sm:p-6 md:p-10 my-4 sm:my-8 border border-gray-200 transition-all duration-300 hover:shadow-xl w-full pt-16">
+        <div className="flex flex-col h-full">
+          <div className="flex-grow">
+            <h2 className="text-2xl sm:text-3xl font-bold mb-6 sm:mb-10 flex items-center text-gray-800">
+              <FiFileText className="mr-3 sm:mr-4 text-red-800 text-3xl sm:text-4xl" />
+              <span className="bg-gradient-to-r from-red-800 to-red-600 bg-clip-text text-transparent">
+                Generate Faculty {reportType === 'attendance' ? 'Attendance' : reportType === 'stress' ? 'Stress' : 'Leave'} Report
+              </span>
+            </h2>
+            <div className="flex flex-col sm:flex-row sm:justify-center sm:items-center gap-4 sm:gap-8 mb-6 sm:mb-8">
+              {reportTypes.map(rt => (
+                <button
+                  key={rt.value}
+                  className={`px-4 py-2 sm:px-6 sm:py-3 rounded-xl text-base sm:text-lg font-semibold border-2 transition-all duration-200 ${
+                    reportType === rt.value
+                      ? 'bg-gradient-to-r from-red-800 to-red-600 text-white border-red-700 shadow-lg'
+                      : 'bg-white text-red-800 border-red-300 hover:border-red-600'
+                  }`}
+                  onClick={() => setReportType(rt.value)}
                 >
-                  <option value="all">All Faculty</option>
-                  {faculty.map(f => (
-                    <option key={f.erpid} value={f.erpid}>{f.name} ({f.erpid})</option>
+                  {rt.label}
+                </button>
+              ))}
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-10 mb-8 sm:mb-10">
+              <div className="space-y-2 sm:space-y-3">
+                <label className="block text-base sm:text-lg font-medium text-gray-700 mb-1 sm:mb-3">Faculty</label>
+                <div className="relative" ref={facultyDropdownRef}>
+                  <select
+                    className="w-full border-2 border-gray-300 rounded-xl px-4 py-3 sm:px-5 sm:py-4 text-base sm:text-lg bg-white focus:ring-2 focus:ring-red-600 focus:border-transparent transition-all duration-200 hover:border-red-400"
+                    value={selectedFaculty}
+                    onChange={e => setSelectedFaculty(e.target.value)}
+                  >
+                    <option value="all">All Faculty</option>
+                    {faculty.map(f => (
+                      <option key={f.erpid} value={f.erpid}>{f.name} ({f.erpid})</option>
+                    ))}
+                  </select>
+                </div>
+                <p className="text-gray-500 text-xs sm:text-sm mt-1 sm:mt-2">Select a faculty or choose 'All Faculty' for the department.</p>
+              </div>
+              <div className="space-y-2 sm:space-y-3">
+                <label className="block text-base sm:text-lg font-medium text-gray-700 mb-1 sm:mb-3">Format</label>
+                <select
+                  className="w-full border-2 border-gray-300 rounded-xl px-4 py-3 sm:px-5 sm:py-4 text-base sm:text-lg focus:ring-2 focus:ring-red-600 focus:border-transparent transition-all duration-200 hover:border-red-400"
+                  value={format}
+                  onChange={e => setFormat(e.target.value)}
+                >
+                  {formats.map(f => (
+                    <option key={f.value} value={f.value} className="text-base sm:text-lg">{f.label}</option>
                   ))}
                 </select>
               </div>
-              <p className="text-gray-500 text-sm mt-2">Select a faculty or choose 'All Faculty' for the department.</p>
-            </div>
-            <div className="space-y-3">
-              <label className="block text-lg font-medium text-gray-700 mb-3">Format</label>
-              <select
-                className="w-full border-2 border-gray-300 rounded-xl px-5 py-4 text-lg focus:ring-2 focus:ring-red-600 focus:border-transparent transition-all duration-200 hover:border-red-400"
-                value={format}
-                onChange={e => setFormat(e.target.value)}
-              >
-                {formats.map(f => (
-                  <option key={f.value} value={f.value} className="text-lg">{f.label}</option>
-                ))}
-              </select>
-            </div>
-            <div className="space-y-3">
-              <label className="block text-lg font-medium text-gray-700 mb-3">From Date</label>
-              <div className="relative">
-                <FiCalendar className="absolute left-4 top-4 text-red-700 text-2xl" />
-                <input
-                  type="date"
-                  className="w-full border-2 border-gray-300 rounded-xl pl-14 pr-5 py-4 text-lg focus:ring-2 focus:ring-red-600 focus:border-transparent transition-all duration-200 hover:border-red-400"
-                  value={fromDate}
-                  onChange={e => setFromDate(e.target.value)}
-                />
+              <div className="space-y-2 sm:space-y-3">
+                <label className="block text-base sm:text-lg font-medium text-gray-700 mb-1 sm:mb-3">From Date</label>
+                <div className="relative">
+                  <FiCalendar className="absolute left-4 top-3 sm:top-4 text-red-700 text-xl sm:text-2xl" />
+                  <input
+                    type="date"
+                    className="w-full border-2 border-gray-300 rounded-xl pl-12 sm:pl-14 pr-4 sm:pr-5 py-3 sm:py-4 text-base sm:text-lg focus:ring-2 focus:ring-red-600 focus:border-transparent transition-all duration-200 hover:border-red-400"
+                    value={fromDate}
+                    onChange={e => setFromDate(e.target.value)}
+                  />
+                </div>
+              </div>
+              <div className="space-y-2 sm:space-y-3">
+                <label className="block text-base sm:text-lg font-medium text-gray-700 mb-1 sm:mb-3">To Date</label>
+                <div className="relative">
+                  <FiCalendar className="absolute left-4 top-3 sm:top-4 text-red-700 text-xl sm:text-2xl" />
+                  <input
+                    type="date"
+                    className="w-full border-2 border-gray-300 rounded-xl pl-12 sm:pl-14 pr-4 sm:pr-5 py-3 sm:py-4 text-base sm:text-lg focus:ring-2 focus:ring-red-600 focus:border-transparent transition-all duration-200 hover:border-red-400"
+                    value={toDate}
+                    onChange={e => setToDate(e.target.value)}
+                  />
+                </div>
               </div>
             </div>
-            <div className="space-y-3">
-              <label className="block text-lg font-medium text-gray-700 mb-3">To Date</label>
-              <div className="relative">
-                <FiCalendar className="absolute left-4 top-4 text-red-700 text-2xl" />
-                <input
-                  type="date"
-                  className="w-full border-2 border-gray-300 rounded-xl pl-14 pr-5 py-4 text-lg focus:ring-2 focus:ring-red-600 focus:border-transparent transition-all duration-200 hover:border-red-400"
-                  value={toDate}
-                  onChange={e => setToDate(e.target.value)}
-                />
+            {error && (
+              <div className="mb-6 sm:mb-8 p-4 sm:p-5 bg-red-100 border-l-4 border-red-800 text-red-700 text-base sm:text-lg rounded-lg animate-pulse">
+                {error}
               </div>
-            </div>
-          </div>
-          {error && (
-            <div className="mb-8 p-5 bg-red-100 border-l-4 border-red-800 text-red-700 text-lg rounded-lg animate-pulse">
-              {error}
-            </div>
-          )}
-          <div className="mt-10 flex items-center justify-center">
+            )}
             <button
-              className={`flex items-center px-10 py-5 text-xl bg-gradient-to-r from-red-800 to-red-600 text-white rounded-xl hover:from-red-700 hover:to-red-800 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1 focus:outline-none focus:ring-4 focus:ring-red-700 focus:ring-opacity-50 ${downloading ? 'opacity-75 cursor-not-allowed' : ''}`}
+              className={`w-full mt-2 sm:mt-4 flex items-center justify-center gap-2 px-4 py-3 sm:px-6 sm:py-4 rounded-xl text-lg sm:text-xl font-bold bg-gradient-to-r from-red-700 to-red-900 text-white shadow-lg transition-all duration-200 hover:from-red-800 hover:to-red-950 focus:ring-2 focus:ring-red-700 focus:ring-opacity-50 ${downloading ? 'opacity-75 cursor-not-allowed' : ''}`}
               onClick={handleDownload}
               disabled={downloading}
             >
-              <FiDownload className="mr-4 text-2xl animate-bounce" />
+              <FiDownload className="mr-2 text-2xl animate-bounce" />
               {downloading ? 'Generating Report...' : 'Download Report'}
               {downloading && (
-                <svg className="animate-spin ml-4 h-7 w-7 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <svg className="animate-spin ml-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
                 </svg>
               )}
             </button>
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 };
 

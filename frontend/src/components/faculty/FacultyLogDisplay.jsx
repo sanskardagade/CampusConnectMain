@@ -323,12 +323,12 @@ const FacultyLogDisplay = ({ logs = [], facultyName }) => {
               </div>
             </div>
             <div className="flex items-center space-x-3">
-              <button className="flex items-center space-x-2 px-4 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors" onClick={() => window.location.reload()}>
+              <button className="hidden sm:inline-flex items-center space-x-2 px-4 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors" onClick={() => window.location.reload()}>
                 <RefreshCw size={16} />
                 <span>Refresh</span>
               </button>
               <button
-                className="flex items-center space-x-2 px-4 py-2 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-colors"
+                className="hidden sm:inline-flex items-center space-x-2 px-4 py-2 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-colors"
                 onClick={handleExportCSV}
               >
                 <Download size={16} />

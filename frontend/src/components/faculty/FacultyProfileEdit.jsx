@@ -24,7 +24,7 @@ const FacultyProfileEdit = () => {
         }
 
         console.log('Fetching faculty profile...')
-        const response = await axios.get('http://69.62.83.14:9000/api/faculty/dashboard', {
+        const response = await axios.get('http://localhost:5000/api/faculty/dashboard', {
           headers: {
             Authorization: `Bearer ${token}`
           }
@@ -73,7 +73,7 @@ const FacultyProfileEdit = () => {
 
       console.log('Submitting update with data:', { email: formData.email })
       const response = await axios.put(
-        'http://69.62.83.14:9000/api/faculty/profile',
+        'http://localhost:5000/api/faculty/profile',
         { email: formData.email },
         {
           headers: {
@@ -115,16 +115,16 @@ const FacultyProfileEdit = () => {
   }
 
   return (
-    <div className="max-w-xl mx-auto mt-8 bg-white p-6 rounded-xl shadow-md border border-red-100">
-      <h1 className="text-2xl font-bold text-red-800 mb-6 text-center">Edit Faculty Profile</h1>
+    <div className="max-w-xl w-full mx-auto mt-6 sm:mt-8 bg-white p-4 sm:p-6 rounded-xl shadow-md border border-red-100 min-h-[60vh] flex flex-col justify-center">
+      <h1 className="text-xl sm:text-2xl font-bold text-red-800 mb-4 sm:mb-6 text-center">Edit Faculty Profile</h1>
       
       {updateError && (
-        <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+        <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded text-sm sm:text-base">
           {updateError}
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-5">
+      <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5">
         <InputField 
           label="Name" 
           name="name" 
@@ -160,7 +160,7 @@ const FacultyProfileEdit = () => {
 
         <button
           type="submit"
-          className="w-full flex items-center justify-center gap-2 bg-red-700 text-white py-2 rounded-lg hover:bg-red-800 transition transform hover:scale-105"
+          className="w-full flex items-center justify-center gap-2 bg-red-700 text-white py-2 sm:py-2.5 rounded-lg hover:bg-red-800 transition transform hover:scale-105 text-base sm:text-lg mt-2"
         >
           <AiOutlineSave />
           Save Changes
@@ -172,7 +172,7 @@ const FacultyProfileEdit = () => {
 
 const InputField = ({ label, name, value, onChange, readOnly = false, type = "text", tooltip, required = false }) => (
   <div className="relative group">
-    <label htmlFor={name} className="block text-red-800 font-medium mb-1">
+    <label htmlFor={name} className="block text-red-800 font-medium mb-1 text-sm sm:text-base">
       {label}
       {required && <span className="text-red-500 ml-1">*</span>}
     </label>
@@ -184,12 +184,12 @@ const InputField = ({ label, name, value, onChange, readOnly = false, type = "te
       onChange={onChange}
       readOnly={readOnly}
       required={required}
-      className={`w-full px-4 py-2 border rounded-lg shadow-sm ${
+      className={`w-full px-3 sm:px-4 py-2 border rounded-lg shadow-sm text-sm sm:text-base ${
         readOnly ? 'bg-gray-100 cursor-not-allowed' : 'focus:outline-none focus:ring-2 focus:ring-red-300'
       }`}
     />
     {readOnly && tooltip && (
-      <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white px-2 py-1 rounded text-sm opacity-0 group-hover:opacity-100 transition-opacity">
+      <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white px-2 py-1 rounded text-xs sm:text-sm opacity-0 group-hover:opacity-100 transition-opacity z-10">
         {tooltip}
       </div>
     )}

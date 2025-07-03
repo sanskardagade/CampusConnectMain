@@ -10,6 +10,7 @@ import {
 import ProfileView from './ProfileView';
 import FacultyLogDisplay from '../components/faculty/FacultyLogDisplay';
 import dayjs from 'dayjs';
+import HeaderPrincipal from '../components/common/HeaderPrincipal';
 
 const PrincipalDashboard = () => {
   const [loading, setLoading] = useState(true);
@@ -59,7 +60,7 @@ const PrincipalDashboard = () => {
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
-      const response = await axios.get('http://69.62.83.14:9000/api/principal/dashboard', {
+      const response = await axios.get('http://localhost:5000/api/principal/dashboard', {
         headers: { Authorization: `Bearer ${token}` }
       });
       setStats(response.data.stats);
@@ -75,7 +76,7 @@ const PrincipalDashboard = () => {
   const fetchPendingLeaves = async () => {
     try {
       const token = localStorage.getItem('token');
-      const res = await axios.get('http://69.62.83.14:9000/api/principal/faculty-leave-approval', {
+      const res = await axios.get('http://localhost:5000/api/principal/faculty-leave-approval', {
         headers: { Authorization: `Bearer ${token}` }
       });
       const pending = (res.data || []).filter(l => l.PrincipalApproval === 'Pending').length;
@@ -89,7 +90,7 @@ const PrincipalDashboard = () => {
     try {
       const token = localStorage.getItem('token');
       // Faculty logs
-      const facultyRes = await axios.get('http://69.62.83.14:9000/api/principal/faculty-logs', {
+      const facultyRes = await axios.get('http://localhost:5000/api/principal/faculty-logs', {
         headers: { Authorization: `Bearer ${token}` }
       });
       const today = dayjs().format('YYYY-MM-DD');
@@ -101,7 +102,7 @@ const PrincipalDashboard = () => {
       });
       setPresentFaculty(facultyToday.size);
       // Staff logs
-      const staffRes = await axios.get('http://69.62.83.14:9000/api/principal/staff-logs', {
+      const staffRes = await axios.get('http://localhost:5000/api/principal/staff-logs', {
         headers: { Authorization: `Bearer ${token}` }
       });
       const staffToday = new Set();
@@ -112,7 +113,7 @@ const PrincipalDashboard = () => {
       });
       setPresentStaff(staffToday.size);
       // Students: fetch from backend endpoint
-      const studentRes = await axios.get('http://69.62.83.14:9000/api/principal/student-attendance-today', {
+      const studentRes = await axios.get('http://localhost:5000/api/principal/student-attendance-today', {
         headers: { Authorization: `Bearer ${token}` }
       });
       setPresentStudents(studentRes.data.count || 0);
@@ -126,7 +127,7 @@ const PrincipalDashboard = () => {
   const fetchPresentFacultyStaffSummary = async () => {
     try {
       const token = localStorage.getItem('token');
-      const res = await axios.get('http://69.62.83.14:9000/api/principal/present-faculty-staff-summary', {
+      const res = await axios.get('http://localhost:5000/api/principal/present-faculty-staff-summary', {
         headers: { Authorization: `Bearer ${token}` }
       });
       // Find today's date in the summary
@@ -156,7 +157,7 @@ const PrincipalDashboard = () => {
     try {
       const token = localStorage.getItem('token');
       const response = await axios.get(
-        'http://69.62.83.14:9000/api/principal/all-members',
+        'http://localhost:5000/api/principal/all-members',
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setMembers(response.data.members);
@@ -170,7 +171,7 @@ const PrincipalDashboard = () => {
       setSelectedType(type);
       const token = localStorage.getItem('token');
       const response = await axios.get(
-        `http://69.62.83.14:9000/api/principal/members?deptId=${deptId}&type=${type}`,
+        `http://localhost:5000/api/principal/members?deptId=${deptId}&type=${type}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setMembers(response.data.members);
@@ -185,7 +186,7 @@ const PrincipalDashboard = () => {
       setProfileLoading(true);
       const token = localStorage.getItem('token');
       const response = await axios.get(
-        `http://69.62.83.14:9000/api/principal/profile/${memberId}?type=${selectedType}`,
+        `http://localhost:5000/api/principal/profile/${memberId}?type=${selectedType}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setProfileData(response.data);
@@ -195,7 +196,7 @@ const PrincipalDashboard = () => {
         setShowFacultyLogs(false);
         try {
           const logsRes = await axios.get(
-            `http://69.62.83.14:9000/api/principal/faculty-logs/${memberId}`,
+            `http://localhost:5000/api/principal/faculty-logs/${memberId}`,
             { headers: { Authorization: `Bearer ${token}` } }
           );
           setFacultyLogs(logsRes.data.logs || []);
@@ -210,7 +211,7 @@ const PrincipalDashboard = () => {
         setShowStaffLogs(false);
         try {
           const logsRes = await axios.get(
-            `http://69.62.83.14:9000/api/principal/staff-logs/${memberId}`,
+            `http://localhost:5000/api/principal/staff-logs/${memberId}`,
             { headers: { Authorization: `Bearer ${token}` } }
           );
           setStaffLogs(logsRes.data.logs || []);
@@ -287,7 +288,7 @@ const PrincipalDashboard = () => {
     setDownloading(true);
     try {
         const token = localStorage.getItem('token');
-        const response = await axios.get('http://69.62.83.14:9000/api/principal/faculty-attendance-report', {
+        const response = await axios.get('http://localhost:5000/api/principal/faculty-attendance-report', {
             headers: { Authorization: `Bearer ${token}` },
             params: { departmentId: reportDept, fromDate, toDate, format },
             responseType: 'blob',
@@ -327,523 +328,527 @@ const PrincipalDashboard = () => {
   }
 
   return (
-    <div className="flex-1 overflow-auto bg-gray-50 p-4 sm:p-6">
-      {/* Header */}
-      <motion.header
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ type: "spring", stiffness: 300 }}
-        className="bg-white rounded-xl shadow-lg p-6 mb-6 border border-gray-200"
-      >
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <motion.div 
-            initial={{ x: -20 }}
-            animate={{ x: 0 }}
-            transition={{ delay: 0.1 }}
-          >
-            <h1 className="text-2xl font-bold text-gray-900 bg-gradient-to-r from-red-600 to-red-800 bg-clip-text text-transparent">
-              Dashboard
-            </h1>
-            <p className="text-gray-600">Dr. D. Y. Patil Institute of Technology, Pimpri, Pune</p>
-          </motion.div>
-          
-          <motion.button
-            whileHover={{ scale: 1.05, backgroundColor: "#f3f4f6" }}
-            whileTap={{ scale: 0.98 }}
-            onClick={fetchDashboardData}
-            className="px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium flex items-center gap-2 shadow-sm"
-          >
-            <FiRefreshCw className="text-red-600" />
-            <span>Refresh Data</span>
-          </motion.button>
-        </div>
-      </motion.header>
+    <>
+      <HeaderPrincipal />
+     
+      <div className="flex-1 overflow-auto bg-gray-50 p-4 sm:p-6">
+        {/* Header */}
+        <motion.header
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ type: "spring", stiffness: 300 }}
+          className="bg-white rounded-xl shadow-lg p-6 mb-6 border border-gray-200"
+        >
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <motion.div 
+              initial={{ x: -20 }}
+              animate={{ x: 0 }}
+              transition={{ delay: 0.1 }}
+            >
+              <h1 className="text-2xl font-bold text-gray-900 bg-gradient-to-r from-red-600 to-red-800 bg-clip-text text-transparent">
+                Dashboard
+              </h1>
+              <p className="text-gray-600">Dr. D. Y. Patil Institute of Technology, Pimpri, Pune</p>
+            </motion.div>
+            
+            <motion.button
+              whileHover={{ scale: 1.05, backgroundColor: "#f3f4f6" }}
+              whileTap={{ scale: 0.98 }}
+              onClick={fetchDashboardData}
+              className="px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium flex items-center gap-2 shadow-sm"
+            >
+              <FiRefreshCw className="text-red-600" />
+              <span>Refresh Data</span>
+            </motion.button>
+          </div>
+        </motion.header>
 
-      {/* Stats Overview */}
-      <motion.div 
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.2 }}
-        className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8"
-      >
-        <button
-          onClick={handleScrollToDepartments}
-          style={{ background: 'none', border: 'none', padding: 0, margin: 0, width: '100%', textAlign: 'left', cursor: 'pointer' }}
+        {/* Stats Overview */}
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.2 }}
+          className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8"
+        >
+          <button
+            onClick={handleScrollToDepartments}
+            style={{ background: 'none', border: 'none', padding: 0, margin: 0, width: '100%', textAlign: 'left', cursor: 'pointer' }}
+          >
+            <StatCard 
+              icon={<FiBook size={20} />}
+              title="Departments"
+              value={stats.departments}
+              color="from-blue-500 to-blue-600"
+              delay={0.1}
+            />
+          </button>
+          <button
+            onClick={handleShowStudentUnavailable}
+            style={{ background: 'none', border: 'none', padding: 0, margin: 0, width: '100%', textAlign: 'left', cursor: 'pointer' }}
+          >
+            <StatCard 
+              icon={<FiUsers size={20} />}
+              title="Students"
+              value="3000+"
+              color="from-green-500 to-green-600"
+              delay={0.2}
+            />
+          </button>
+          <button
+            onClick={handleScrollToMemberType}
+            style={{ background: 'none', border: 'none', padding: 0, margin: 0, width: '100%', textAlign: 'left', cursor: 'pointer' }}
+          >
+            <StatCard 
+              icon={<FiUser size={20} />}
+              title="Faculty"
+              value={stats.faculty}
+              color="from-red-500 to-red-600"
+              delay={0.3}
+            />
+          </button>
+          <button
+            onClick={handleScrollToMemberType}
+            style={{ background: 'none', border: 'none', padding: 0, margin: 0, width: '100%', textAlign: 'left', cursor: 'pointer' }}
+          >
+            <StatCard 
+              icon={<FiBriefcase size={20} />}
+              title="Non-Teaching Staff"
+              value={stats.staff}
+              color="from-purple-500 to-purple-600"
+              delay={0.4}
+            />
+          </button>
+        </motion.div>
+
+        {/* Live Overview */}
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.2 }}
+          className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8"
         >
           <StatCard 
             icon={<FiBook size={20} />}
-            title="Departments"
-            value={stats.departments}
+            title="Pending Leave Approvals"
+            value={pendingLeaves}
             color="from-blue-500 to-blue-600"
             delay={0.1}
           />
-        </button>
-        <button
-          onClick={handleShowStudentUnavailable}
-          style={{ background: 'none', border: 'none', padding: 0, margin: 0, width: '100%', textAlign: 'left', cursor: 'pointer' }}
-        >
           <StatCard 
             icon={<FiUsers size={20} />}
-            title="Students"
-            value="3000+"
+            title="Present Students"
+            value={presentStudents}
             color="from-green-500 to-green-600"
             delay={0.2}
           />
-        </button>
-        <button
-          onClick={handleScrollToMemberType}
-          style={{ background: 'none', border: 'none', padding: 0, margin: 0, width: '100%', textAlign: 'left', cursor: 'pointer' }}
-        >
           <StatCard 
             icon={<FiUser size={20} />}
-            title="Faculty"
-            value={stats.faculty}
+            title="Present Faculty"
+            value={presentFaculty}
             color="from-red-500 to-red-600"
             delay={0.3}
           />
-        </button>
-        <button
-          onClick={handleScrollToMemberType}
-          style={{ background: 'none', border: 'none', padding: 0, margin: 0, width: '100%', textAlign: 'left', cursor: 'pointer' }}
-        >
           <StatCard 
             icon={<FiBriefcase size={20} />}
-            title="Non-Teaching Staff"
-            value={stats.staff}
+            title="Present Non-Teaching Staff"
+            value={presentStaff}
             color="from-purple-500 to-purple-600"
             delay={0.4}
           />
-        </button>
-      </motion.div>
-
-      {/* Live Overview */}
-      <motion.div 
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.2 }}
-        className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8"
-      >
-        <StatCard 
-          icon={<FiBook size={20} />}
-          title="Pending Leave Approvals"
-          value={pendingLeaves}
-          color="from-blue-500 to-blue-600"
-          delay={0.1}
-        />
-        <StatCard 
-          icon={<FiUsers size={20} />}
-          title="Present Students"
-          value={presentStudents}
-          color="from-green-500 to-green-600"
-          delay={0.2}
-        />
-        <StatCard 
-          icon={<FiUser size={20} />}
-          title="Present Faculty"
-          value={presentFaculty}
-          color="from-red-500 to-red-600"
-          delay={0.3}
-        />
-        <StatCard 
-          icon={<FiBriefcase size={20} />}
-          title="Present Non-Teaching Staff"
-          value={presentStaff}
-          color="from-purple-500 to-purple-600"
-          delay={0.4}
-        />
-      </motion.div>
-
-      {showStudentUnavailable && (
-        <div className="mb-4 text-center text-red-700 font-semibold bg-red-50 border border-red-200 rounded p-3 animate-fadeIn">
-          Currently the students data is unavailable
-        </div>
-      )}
-
-      {/* Search Bar
-      <motion.div 
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.3 }}
-        className="relative mb-6"
-      >
-        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-          <FiSearch className="text-gray-400" />
-        </div>
-        <input
-          type="text"
-          placeholder="Search by name or ERP ID (works without department selection)"
-          className="pl-10 pr-4 py-3 w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 shadow-sm"
-          value={searchTerm}
-          onChange={handleSearch}
-        />
-        {searchTerm && (
-          <button
-            onClick={() => {
-              setSearchTerm('');
-              setIsSearching(false);
-              if (!selectedDept) setMembers([]);
-            }}
-            className="absolute inset-y-0 right-0 pr-3 flex items-center"
-          >
-            <FiX className="text-gray-400 hover:text-gray-600" />
-          </button>
-        )}
-      </motion.div> */}
-
-      {/* Department Selection - Vertical */}
-      <motion.div 
-        ref={departmentsRef}
-        className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden mb-4"
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.4 }}
-      >
-        <div className="p-4 border-b border-gray-200 flex justify-between items-center">
-          <h3 className="font-bold text-gray-900">Departments</h3>
-          <span className="text-sm text-gray-500">
-            {selectedDept ? departments.find(d => d.id === selectedDept)?.name : 'Select a department'}
-          </span>
-        </div>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-2 p-2">
-          {departments.map((dept) => (
-            <motion.button
-              key={dept.id}
-              whileHover={{ scale: 1.03 }}
-              whileTap={{ scale: 0.97 }}
-              onClick={() => handleDepartmentSelect(dept.id)}
-              className={`flex-shrink-0 m-2 p-3 rounded-lg flex flex-col items-center transition-all ${
-                selectedDept === dept.id 
-                  ? 'bg-red-100 border-2 border-red-500 shadow-md' 
-                  : 'bg-gray-50 border border-gray-200 hover:shadow-sm'
-              }`}
-            >
-              <div className={`w-10 h-10 rounded-md flex items-center justify-center mb-2 transition-colors ${
-                selectedDept === dept.id 
-                  ? 'bg-red-600 text-white' 
-                  : 'bg-red-100 text-red-600'
-              }`}>
-                <FiBook size={16} />
-              </div>
-              <span className="text-sm font-medium text-center max-w-[120px] whitespace-normal break-words">
-                {dept.name}
-              </span>
-            </motion.button>
-          ))}
-        </div>
-      </motion.div>
-
-      {/* Member Type Selection */}
-      {selectedDept && (
-        <motion.div 
-          ref={memberTypeRef}
-          initial={{ opacity: 0, height: 0 }}
-          animate={{ opacity: 1, height: 'auto' }}
-          exit={{ opacity: 0, height: 0 }}
-          transition={{ duration: 0.3 }}
-          className="bg-white rounded-xl shadow-lg border border-gray-200 mb-4 overflow-hidden"
-        >
-          <div className="w-full p-4 border-b border-gray-200 flex justify-between items-center bg-gray-50">
-            <h3 className="font-bold text-gray-900">Member Type</h3>
-          </div>
-          <div className="grid grid-cols-3 gap-2 p-3">
-            <MemberTypeButton
-              active={selectedType === 'students'}
-              onClick={() => fetchDepartmentMembers(selectedDept, 'students')}
-              icon={<FiUsers size={16} />}
-              label="Students"
-              color="bg-blue-600"
-            />
-            <MemberTypeButton
-              active={selectedType === 'faculty'}
-              onClick={() => fetchDepartmentMembers(selectedDept, 'faculty')}
-              icon={<FiUser size={16} />}
-              label="Faculty"
-              color="bg-red-600"
-            />
-            <MemberTypeButton
-              active={selectedType === 'staff'}
-              onClick={() => fetchDepartmentMembers(selectedDept, 'staff')}
-              icon={<FiBriefcase size={16} />}
-              label="Non-Teaching Staff"
-              color="bg-purple-600"
-            />
-          </div>
-          {/* Search Bar inside Member Type */}
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-            className="relative mb-6 px-3"
-          >
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <FiSearch className="text-gray-400" />
-            </div>
-            <input
-              type="text"
-              placeholder="Search by name or ERP ID (works without department selection)"
-              className="pl-10 pr-4 py-3 w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 shadow-sm"
-              value={searchTerm}
-              onChange={handleSearch}
-            />
-            {searchTerm && (
-              <button
-                onClick={() => {
-                  setSearchTerm('');
-                  setIsSearching(false);
-                  if (!selectedDept) setMembers([]);
-                }}
-                className="absolute inset-y-0 right-0 pr-3 flex items-center"
-              >
-                <FiX className="text-gray-400 hover:text-gray-600" />
-              </button>
-            )}
-          </motion.div>
         </motion.div>
-      )}
 
-      {/* Members List */}
-      {(selectedType || isSearching) && (members.length > 0 || isSearching) && (
+        {showStudentUnavailable && (
+          <div className="mb-4 text-center text-red-700 font-semibold bg-red-50 border border-red-200 rounded p-3 animate-fadeIn">
+            Currently the students data is unavailable
+          </div>
+        )}
+
+        {/* Search Bar
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.6 }}
-          className="bg-white rounded-xl shadow-lg border border-gray-200 mb-6 overflow-hidden"
+          transition={{ delay: 0.3 }}
+          className="relative mb-6"
         >
-          <button
-            onClick={() => setShowMembersList(!showMembersList)}
-            className="w-full p-4 border-b border-gray-200 flex justify-between items-center hover:bg-gray-50"
-          >
-            <div className="flex items-center">
-              <h3 className="font-bold text-gray-900 mr-2">
-                {selectedType 
-                  ? `${selectedType.charAt(0).toUpperCase() + selectedType.slice(1)} Members` 
-                  : 'Search Results'}
-              </h3>
-              <span className="text-xs bg-gray-100 px-2 py-1 rounded-full">
-                {filteredMembers.length} {filteredMembers.length === 1 ? 'item' : 'Strength'}
-              </span>
-            </div>
-            <motion.div
-              animate={{ rotate: showMembersList ? 180 : 0 }}
-              transition={{ duration: 0.2 }}
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <FiSearch className="text-gray-400" />
+          </div>
+          <input
+            type="text"
+            placeholder="Search by name or ERP ID (works without department selection)"
+            className="pl-10 pr-4 py-3 w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 shadow-sm"
+            value={searchTerm}
+            onChange={handleSearch}
+          />
+          {searchTerm && (
+            <button
+              onClick={() => {
+                setSearchTerm('');
+                setIsSearching(false);
+                if (!selectedDept) setMembers([]);
+              }}
+              className="absolute inset-y-0 right-0 pr-3 flex items-center"
             >
-              <FiChevronDown className="text-gray-500" />
-            </motion.div>
-          </button>
+              <FiX className="text-gray-400 hover:text-gray-600" />
+            </button>
+          )}
+        </motion.div> */}
 
-          <AnimatePresence>
-            {showMembersList && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-                transition={{ duration: 0.3 }}
+        {/* Department Selection - Vertical */}
+        <motion.div 
+          ref={departmentsRef}
+          className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden mb-4"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4 }}
+        >
+          <div className="p-4 border-b border-gray-200 flex justify-between items-center">
+            <h3 className="font-bold text-gray-900">Departments</h3>
+            <span className="text-sm text-gray-500">
+              {selectedDept ? departments.find(d => d.id === selectedDept)?.name : 'Select a department'}
+            </span>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-2 p-2">
+            {departments.map((dept) => (
+              <motion.button
+                key={dept.id}
+                whileHover={{ scale: 1.03 }}
+                whileTap={{ scale: 0.97 }}
+                onClick={() => handleDepartmentSelect(dept.id)}
+                className={`flex-shrink-0 m-2 p-3 rounded-lg flex flex-col items-center transition-all ${
+                  selectedDept === dept.id 
+                    ? 'bg-red-100 border-2 border-red-500 shadow-md' 
+                    : 'bg-gray-50 border border-gray-200 hover:shadow-sm'
+                }`}
               >
-                <div className="divide-y divide-gray-200 max-h-96 overflow-y-auto">
-                  {filteredMembers.length > 0 ? (
-                    filteredMembers.map((member) => (
-                      <motion.div
-                        key={member.id}
-                        whileHover={{ scale: 1.01 }}
-                        whileTap={{ scale: 0.99 }}
-                        initial={{ opacity: 0, x: -10 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        className={`p-3 cursor-pointer transition-colors ${
-                          selectedMember === member.id 
-                            ? 'bg-red-50' 
-                            : 'hover:bg-gray-50'
-                        }`}
-                        onClick={() => fetchMemberProfile(member.id)}
-                      >
-                        <div className="flex items-center">
-                          <div className={`w-8 h-8 rounded-full flex items-center justify-center mr-3 ${
-                            selectedType === 'students' ? 'bg-blue-100 text-blue-600' :
-                            selectedType === 'faculty' ? 'bg-red-100 text-red-600' :
-                            'bg-purple-100 text-purple-600'
-                          }`}>
-                            {selectedType === 'students' ? <FiUsers size={14} /> :
-                             selectedType === 'faculty' ? <FiUser size={14} /> :
-                             <FiBriefcase size={14} />}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <h4 className="font-medium truncate">{member.name}</h4>
-                            <div className="flex items-center text-sm text-gray-600">
-                              <FiMail className="mr-1 flex-shrink-0" size={12} />
-                              <span className="truncate">{member.email}</span>
-                            </div>
-                            {member.erpid && (
-                              <div className="text-xs text-gray-500 mt-1">
-                                ERP ID: {member.erpid}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </motion.div>
-                    ))
-                  ) : (
-                    <div className="p-4 text-center text-gray-500">
-                      No matching {selectedType || 'members'} found
-                    </div>
-                  )}
+                <div className={`w-10 h-10 rounded-md flex items-center justify-center mb-2 transition-colors ${
+                  selectedDept === dept.id 
+                    ? 'bg-red-600 text-white' 
+                    : 'bg-red-100 text-red-600'
+                }`}>
+                  <FiBook size={16} />
                 </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+                <span className="text-sm font-medium text-center max-w-[120px] whitespace-normal break-words">
+                  {dept.name}
+                </span>
+              </motion.button>
+            ))}
+          </div>
         </motion.div>
-      )}
 
-      {/* Profile View */}
-      <AnimatePresence mode="wait">
-        {profileData ? (
-          <motion.div
-            key="profile"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
+        {/* Member Type Selection */}
+        {selectedDept && (
+          <motion.div 
+            ref={memberTypeRef}
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.3 }}
-            className="bg-white rounded-xl shadow-lg border border-gray-200"
+            className="bg-white rounded-xl shadow-lg border border-gray-200 mb-4 overflow-hidden"
           >
-            <ProfileView 
-              data={profileData} 
-              type={selectedType} 
-              loading={profileLoading} 
-            />
-            {selectedType === 'faculty' && showFacultyLogs && (
-              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-                <div className="bg-white rounded-xl shadow-lg max-w-6xl w-full max-h-[100vh] overflow-y-auto relative p-6">
-                  <button
-                    className="absolute top-2 right-2 text-gray-500 hover:text-red-600 text-2xl font-bold"
-                    onClick={() => setShowFacultyLogs(false)}
-                  >
-                    &times;
-                  </button>
-                  <h2 className="text-xl font-bold mb-4 text-red-700">Faculty Attendance Logs</h2>
-                  {facultyLogsLoading ? (
-                    <div className="text-center py-8 text-gray-400">Loading logs...</div>
-                  ) : (
-                    <FacultyLogDisplay logs={facultyLogs} />
-                  )}
-                </div>
-              </div>
-            )}
-            {selectedType === 'staff' && showStaffLogs && (
-              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-                <div className="bg-white rounded-xl shadow-lg max-w-6xl w-full max-h-[100vh] overflow-y-auto relative p-6">
-                  <button
-                    className="absolute top-2 right-2 text-gray-500 hover:text-red-600 text-2xl font-bold"
-                    onClick={() => setShowStaffLogs(false)}
-                  >
-                    &times;
-                  </button>
-                  <h2 className="text-xl font-bold mb-4 text-purple-700">Staff Activity Logs</h2>
-                  {staffLogsLoading ? (
-                    <div className="text-center py-8 text-gray-400">Loading logs...</div>
-                  ) : (
-                    <FacultyLogDisplay logs={staffLogs} />
-                  )}
-                </div>
-              </div>
-            )}
-          </motion.div>
-        ) : (
-          <motion.div
-            key="empty"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="bg-white rounded-xl shadow-lg border border-gray-200 h-64 flex items-center justify-center"
-          >
-            <div className="text-center p-8">
-              <motion.div
-                animate={{ 
-                  scale: [1, 1.05, 1],
-                  rotate: [0, 5, -5, 0]
-                }}
-                transition={{ repeat: Infinity, duration: 4 }}
-                className="mx-auto w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4"
-              >
-                <FiUser className="text-gray-400" size={24} />
-              </motion.div>
-              <h3 className="text-lg font-medium text-gray-900 mb-1">No Profile Selected</h3>
-              <p className="text-gray-500">
-                {selectedType 
-                  ? `Select a ${selectedType.slice(0, -1)} to view details` 
-                  : "Select a member to view profile"}
-              </p>
+            <div className="w-full p-4 border-b border-gray-200 flex justify-between items-center bg-gray-50">
+              <h3 className="font-bold text-gray-900">Member Type</h3>
             </div>
+            <div className="grid grid-cols-3 gap-2 p-3">
+              <MemberTypeButton
+                active={selectedType === 'students'}
+                onClick={() => fetchDepartmentMembers(selectedDept, 'students')}
+                icon={<FiUsers size={16} />}
+                label="Students"
+                color="bg-blue-600"
+              />
+              <MemberTypeButton
+                active={selectedType === 'faculty'}
+                onClick={() => fetchDepartmentMembers(selectedDept, 'faculty')}
+                icon={<FiUser size={16} />}
+                label="Faculty"
+                color="bg-red-600"
+              />
+              <MemberTypeButton
+                active={selectedType === 'staff'}
+                onClick={() => fetchDepartmentMembers(selectedDept, 'staff')}
+                icon={<FiBriefcase size={16} />}
+                label="Non-Teaching Staff"
+                color="bg-purple-600"
+              />
+            </div>
+            {/* Search Bar inside Member Type */}
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+              className="relative mb-6 px-3"
+            >
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <FiSearch className="text-gray-400" />
+              </div>
+              <input
+                type="text"
+                placeholder="Search by name or ERP ID (works without department selection)"
+                className="pl-10 pr-4 py-3 w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 shadow-sm"
+                value={searchTerm}
+                onChange={handleSearch}
+              />
+              {searchTerm && (
+                <button
+                  onClick={() => {
+                    setSearchTerm('');
+                    setIsSearching(false);
+                    if (!selectedDept) setMembers([]);
+                  }}
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                >
+                  <FiX className="text-gray-400 hover:text-gray-600" />
+                </button>
+              )}
+            </motion.div>
           </motion.div>
         )}
-      </AnimatePresence>
 
-      {/* <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.5 }}
-        className="bg-white rounded-xl shadow-lg p-6 mb-6 border border-gray-200"
-      >
-        <h2 className="text-xl font-bold text-gray-800 mb-4">Download Reports</h2>
-        <div className="flex flex-col sm:flex-row items-center gap-4">
-          <div className="w-full sm:w-1/2">
-            <label htmlFor="report-dept" className="block text-sm font-medium text-gray-700 mb-1">
-              Select Department
-            </label>
-            <select
-              id="report-dept"
-              value={reportDept}
-              onChange={(e) => setReportDept(e.target.value)}
-              className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
+        {/* Members List */}
+        {(selectedType || isSearching) && (members.length > 0 || isSearching) && (
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.6 }}
+            className="bg-white rounded-xl shadow-lg border border-gray-200 mb-6 overflow-hidden"
+          >
+            <button
+              onClick={() => setShowMembersList(!showMembersList)}
+              className="w-full p-4 border-b border-gray-200 flex justify-between items-center hover:bg-gray-50"
             >
-              <option value="all">All Departments</option>
-              {departments.map((dept) => (
-                <option key={dept.id} value={dept.id}>
-                  {dept.name}
-                </option>
-              ))}
-            </select>
-            <div className="flex gap-2 mt-4">
-              <div className="flex-1">
-                <label className="block text-xs text-gray-600 mb-1">From Date</label>
-                <input
-                  type="date"
-                  value={fromDate}
-                  onChange={e => setFromDate(e.target.value)}
-                  className="w-full p-2 border border-gray-300 rounded-lg"
-                  max={toDate || undefined}
-                />
+              <div className="flex items-center">
+                <h3 className="font-bold text-gray-900 mr-2">
+                  {selectedType 
+                    ? `${selectedType.charAt(0).toUpperCase() + selectedType.slice(1)} Members` 
+                    : 'Search Results'}
+                </h3>
+                <span className="text-xs bg-gray-100 px-2 py-1 rounded-full">
+                  {filteredMembers.length} {filteredMembers.length === 1 ? 'item' : 'Strength'}
+                </span>
               </div>
-              <div className="flex-1">
-                <label className="block text-xs text-gray-600 mb-1">To Date</label>
-                <input
-                  type="date"
-                  value={toDate}
-                  onChange={e => setToDate(e.target.value)}
-                  className="w-full p-2 border border-gray-300 rounded-lg"
-                  min={fromDate || undefined}
-                />
+              <motion.div
+                animate={{ rotate: showMembersList ? 180 : 0 }}
+                transition={{ duration: 0.2 }}
+              >
+                <FiChevronDown className="text-gray-500" />
+              </motion.div>
+            </button>
+
+            <AnimatePresence>
+              {showMembersList && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <div className="divide-y divide-gray-200 max-h-96 overflow-y-auto">
+                    {filteredMembers.length > 0 ? (
+                      filteredMembers.map((member) => (
+                        <motion.div
+                          key={member.id}
+                          whileHover={{ scale: 1.01 }}
+                          whileTap={{ scale: 0.99 }}
+                          initial={{ opacity: 0, x: -10 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          className={`p-3 cursor-pointer transition-colors ${
+                            selectedMember === member.id 
+                              ? 'bg-red-50' 
+                              : 'hover:bg-gray-50'
+                          }`}
+                          onClick={() => fetchMemberProfile(member.id)}
+                        >
+                          <div className="flex items-center">
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center mr-3 ${
+                              selectedType === 'students' ? 'bg-blue-100 text-blue-600' :
+                              selectedType === 'faculty' ? 'bg-red-100 text-red-600' :
+                              'bg-purple-100 text-purple-600'
+                            }`}>
+                              {selectedType === 'students' ? <FiUsers size={14} /> :
+                               selectedType === 'faculty' ? <FiUser size={14} /> :
+                               <FiBriefcase size={14} />}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <h4 className="font-medium truncate">{member.name}</h4>
+                              <div className="flex items-center text-sm text-gray-600">
+                                <FiMail className="mr-1 flex-shrink-0" size={12} />
+                                <span className="truncate">{member.email}</span>
+                              </div>
+                              {member.erpid && (
+                                <div className="text-xs text-gray-500 mt-1">
+                                  ERP ID: {member.erpid}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </motion.div>
+                      ))
+                    ) : (
+                      <div className="p-4 text-center text-gray-500">
+                        No matching {selectedType || 'members'} found
+                      </div>
+                    )}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </motion.div>
+        )}
+
+        {/* Profile View */}
+        <AnimatePresence mode="wait">
+          {profileData ? (
+            <motion.div
+              key="profile"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.3 }}
+              className="bg-white rounded-xl shadow-lg border border-gray-200"
+            >
+              <ProfileView 
+                data={profileData} 
+                type={selectedType} 
+                loading={profileLoading} 
+              />
+              {selectedType === 'faculty' && showFacultyLogs && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+                  <div className="bg-white rounded-xl shadow-lg max-w-6xl w-full max-h-[100vh] overflow-y-auto relative p-6">
+                    <button
+                      className="absolute top-2 right-2 text-gray-500 hover:text-red-600 text-2xl font-bold"
+                      onClick={() => setShowFacultyLogs(false)}
+                    >
+                      &times;
+                    </button>
+                    <h2 className="text-xl font-bold mb-4 text-red-700">Faculty Attendance Logs</h2>
+                    {facultyLogsLoading ? (
+                      <div className="text-center py-8 text-gray-400">Loading logs...</div>
+                    ) : (
+                      <FacultyLogDisplay logs={facultyLogs} />
+                    )}
+                  </div>
+                </div>
+              )}
+              {selectedType === 'staff' && showStaffLogs && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+                  <div className="bg-white rounded-xl shadow-lg max-w-6xl w-full max-h-[100vh] overflow-y-auto relative p-6">
+                    <button
+                      className="absolute top-2 right-2 text-gray-500 hover:text-red-600 text-2xl font-bold"
+                      onClick={() => setShowStaffLogs(false)}
+                    >
+                      &times;
+                    </button>
+                    <h2 className="text-xl font-bold mb-4 text-purple-700">Staff Activity Logs</h2>
+                    {staffLogsLoading ? (
+                      <div className="text-center py-8 text-gray-400">Loading logs...</div>
+                    ) : (
+                      <FacultyLogDisplay logs={staffLogs} />
+                    )}
+                  </div>
+                </div>
+              )}
+            </motion.div>
+          ) : (
+            <motion.div
+              key="empty"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="bg-white rounded-xl shadow-lg border border-gray-200 h-64 flex items-center justify-center"
+            >
+              <div className="text-center p-8">
+                <motion.div
+                  animate={{ 
+                    scale: [1, 1.05, 1],
+                    rotate: [0, 5, -5, 0]
+                  }}
+                  transition={{ repeat: Infinity, duration: 4 }}
+                  className="mx-auto w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4"
+                >
+                  <FiUser className="text-gray-400" size={24} />
+                </motion.div>
+                <h3 className="text-lg font-medium text-gray-900 mb-1">No Profile Selected</h3>
+                <p className="text-gray-500">
+                  {selectedType 
+                    ? `Select a ${selectedType.slice(0, -1)} to view details` 
+                    : "Select a member to view profile"}
+                </p>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5 }}
+          className="bg-white rounded-xl shadow-lg p-6 mb-6 border border-gray-200"
+        >
+          <h2 className="text-xl font-bold text-gray-800 mb-4">Download Reports</h2>
+          <div className="flex flex-col sm:flex-row items-center gap-4">
+            <div className="w-full sm:w-1/2">
+              <label htmlFor="report-dept" className="block text-sm font-medium text-gray-700 mb-1">
+                Select Department
+              </label>
+              <select
+                id="report-dept"
+                value={reportDept}
+                onChange={(e) => setReportDept(e.target.value)}
+                className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
+              >
+                <option value="all">All Departments</option>
+                {departments.map((dept) => (
+                  <option key={dept.id} value={dept.id}>
+                    {dept.name}
+                  </option>
+                ))}
+              </select>
+              <div className="flex gap-2 mt-4">
+                <div className="flex-1">
+                  <label className="block text-xs text-gray-600 mb-1">From Date</label>
+                  <input
+                    type="date"
+                    value={fromDate}
+                    onChange={e => setFromDate(e.target.value)}
+                    className="w-full p-2 border border-gray-300 rounded-lg"
+                    max={toDate || undefined}
+                  />
+                </div>
+                <div className="flex-1">
+                  <label className="block text-xs text-gray-600 mb-1">To Date</label>
+                  <input
+                    type="date"
+                    value={toDate}
+                    onChange={e => setToDate(e.target.value)}
+                    className="w-full p-2 border border-gray-300 rounded-lg"
+                    min={fromDate || undefined}
+                  />
+                </div>
               </div>
             </div>
+            <div className="w-full sm:w-auto mt-auto flex gap-2">
+              <button
+                onClick={() => handleDownloadAttendance('csv')}
+                disabled={downloading}
+                className="w-full px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center justify-center gap-2 disabled:bg-gray-400"
+              >
+                <FiDownload />
+                <span>{downloading ? 'Downloading CSV...' : 'Download CSV'}</span>
+              </button>
+              <button
+                onClick={() => handleDownloadAttendance('pdf')}
+                disabled={downloading}
+                className="w-full px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center justify-center gap-2 disabled:bg-gray-400"
+              >
+                <FiDownload />
+                <span>{downloading ? 'Downloading PDF...' : 'Download PDF'}</span>
+              </button>
+            </div>
           </div>
-          <div className="w-full sm:w-auto mt-auto flex gap-2">
-            <button
-              onClick={() => handleDownloadAttendance('csv')}
-              disabled={downloading}
-              className="w-full px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center justify-center gap-2 disabled:bg-gray-400"
-            >
-              <FiDownload />
-              <span>{downloading ? 'Downloading CSV...' : 'Download CSV'}</span>
-            </button>
-            <button
-              onClick={() => handleDownloadAttendance('pdf')}
-              disabled={downloading}
-              className="w-full px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center justify-center gap-2 disabled:bg-gray-400"
-            >
-              <FiDownload />
-              <span>{downloading ? 'Downloading PDF...' : 'Download PDF'}</span>
-            </button>
-          </div>
-        </div>
-      </motion.div> */}
-    </div>
+        </motion.div> */}
+      </div>
+    </>
   );
 };
 

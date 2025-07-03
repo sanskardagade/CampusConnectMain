@@ -13,81 +13,114 @@ import {
 import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import SidebarMenu from "./SideBarMenu";
+import { useIsMobile } from '../hooks/use-mobile';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { FiHome, FiActivity } from 'react-icons/fi';
+import { AiOutlineFilePdf } from 'react-icons/ai';
 
-
-  const routes = [
-    {
-      path: "/hod",
-      name: "Dashboard",
-      icon: <FaHome />,
-    },
-    // {
-    //   path: "/hod/view-student",
-    //   name: "View Faculty Attendance",
-    //   icon: <FaUser />,
-    // },
-    // {
-    //   path: "/hod/faculty-log",
-    //   name: "Faculty Attendance",
-    //   icon: <BiAnalyse />,
-    // },
-    
-    {
-      path: "/hod/view-stress-level",
-      name: "View Faculty Stress Level",
-      icon: <AiTwotoneFileExclamation />,
-    },
-    // {
-    //   path: "/hod/view-faculty",
-    //   name: "View Faculty Attendance",
-    //   icon: <AiOutlinePlus />,
-    // },
-    {
-      path: "/hod/leave-approval",
-      name: "Faculty Leave Approval",
-      icon: <AiFillBell />,
-    },
-    {
-      path: "/hod/report",
-      name: "Faculty Report",
-      icon: <AiFillDatabase />,
-    },
-    
-    // {
-    //     path: "/hod/view-student-location",
-    //     name: "View Student Location",
-    //     icon: <BiAnalyse />,
-    //   },
-    
-    
-    {
-      path: "/hod/hod-profile",
-      name: "Profile",
-      icon: <FaUser />,
-    },
-    {
-      path: "/hod/hod-settings",
-      name: "Settings",
-      icon: <AiOutlineSetting />,
-      subRoutes: [
-        {
-          path: "/hod/hod-settings/edit-profile",
-          name: "Edit Profile",
-          icon: <AiFillDatabase />,
-        },
-        {
-          path: "/hod/hod-settings/change-password",
-          name: "Change Password",
-          icon: <AiFillEye />,
-        },
-      ],
-    },
-   
-    { path: "/", name: "Logout", icon: <AiOutlineLogout /> },
-  ];
+const routes = [
+  {
+    path: "/hod",
+    name: "Dashboard",
+    icon: <FaHome />,
+  },
+  // {
+  //   path: "/hod/view-student",
+  //   name: "View Faculty Attendance",
+  //   icon: <FaUser />,
+  // },
+  // {
+  //   path: "/hod/faculty-log",
+  //   name: "Faculty Attendance",
+  //   icon: <BiAnalyse />,
+  // },
   
+  {
+    path: "/hod/view-stress-level",
+    name: "View Faculty Stress Level",
+    icon: <AiTwotoneFileExclamation />,
+  },
+  // {
+  //   path: "/hod/view-faculty",
+  //   name: "View Faculty Attendance",
+  //   icon: <AiOutlinePlus />,
+  // },
+  {
+    path: "/hod/leave-approval",
+    name: "Faculty Leave Approval",
+    icon: <AiFillBell />,
+  },
+  {
+    path: "/hod/report",
+    name: "Faculty Report",
+    icon: <AiFillDatabase />,
+  },
+  
+  // {
+  //     path: "/hod/view-student-location",
+  //     name: "View Student Location",
+  //     icon: <BiAnalyse />,
+  //   },
+  
+  
+  {
+    path: "/hod/hod-profile",
+    name: "Profile",
+    icon: <FaUser />,
+  },
+  {
+    path: "/hod/hod-settings",
+    name: "Settings",
+    icon: <AiOutlineSetting />,
+    subRoutes: [
+      {
+        path: "/hod/hod-settings/edit-profile",
+        name: "Edit Profile",
+        icon: <AiFillDatabase />,
+      },
+      {
+        path: "/hod/hod-settings/change-password",
+        name: "Change Password",
+        icon: <AiFillEye />,
+      },
+    ],
+  },
+ 
+  { path: "/", name: "Logout", icon: <AiOutlineLogout /> },
+];
+
+function MobileBottomTabsHOD() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const tabs = [
+    { path: '/hod', label: 'Dashboard', icon: <FiHome /> },
+    { path: '/hod/leave-approval', label: 'Leaves', icon: <AiFillBell /> },
+    { path: '/hod/report', label: 'Report', icon: <AiOutlineFilePdf /> },
+    { path: '/hod/view-stress-level', label: 'Stress', icon: <FiActivity /> },
+    { path: '/hod/hod-settings', label: 'Settings', icon: <AiOutlineSetting /> },
+    { path: '/', label: 'Logout', icon: <AiOutlineLogout /> },
+  ];
+  return (
+    <nav className="fixed bottom-0 left-0 right-0 z-20 bg-red-900 text-white flex justify-between items-center px-1 py-1 shadow-t border-t border-red-800">
+      {tabs.map((tab) => (
+        <button
+          key={tab.path}
+          onClick={() => navigate(tab.path)}
+          className={`flex flex-col items-center flex-1 px-1 py-1 focus:outline-none ${location.pathname === tab.path ? 'text-yellow-300' : ''}`}
+        >
+          <span className="text-lg">{tab.icon}</span>
+          <span className="text-[10px] leading-none">{tab.label}</span>
+        </button>
+      ))}
+    </nav>
+  );
+}
 
 const HODSideBar = ({ children }) => {
+  const isMobile = useIsMobile();
+  if (isMobile) {
+    return <div className="relative min-h-screen pb-14"><main className="flex-1 bg-gray-100 p-4 overflow-auto">{children}</main><MobileBottomTabsHOD /></div>;
+  }
   // Sidebar should always be open
   const isOpen = true;
 

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Users, GraduationCap, Building, Search, RefreshCw, BarChart3, Calendar, User, Clock, TrendingUp, Activity, AlertTriangle, CheckCircle } from 'lucide-react';
 import axios from 'axios';
 import { BarChart as ReBarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import HeaderMobile from '../common/HeaderMobile';
 
 function StressDisplay() {
   const [loading, setLoading] = useState(false);
@@ -28,7 +29,7 @@ function StressDisplay() {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get('http://69.62.83.14:9000/api/principal/dashboard', {
+      const response = await axios.get('http://localhost:5000/api/principal/dashboard', {
         headers: { Authorization: `Bearer ${token}` }
       });
       setDepartments(response.data.departments || []);
@@ -52,7 +53,7 @@ function StressDisplay() {
     try {
       const token = localStorage.getItem('token');
       const response = await axios.get(
-        `http://69.62.83.14:9000/api/principal/members?deptId=${deptId}&type=${type}`,
+        `http://localhost:5000/api/principal/members?deptId=${deptId}&type=${type}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       const members = response.data.members || [];
@@ -81,7 +82,7 @@ function StressDisplay() {
     try {
       const token = localStorage.getItem('token');
       const response = await axios.get(
-        `http://69.62.83.14:9000/api/principal/view-stress-level?facultyId=${facultyErpid}`,
+        `http://localhost:5000/api/principal/view-stress-level?facultyId=${facultyErpid}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       // Convert timestamps to Date objects for easier handling
@@ -198,522 +199,526 @@ function StressDisplay() {
 
   if (loading) {
     return (
-      <div className="flex-1 overflow-auto bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-6">
-        <div className="flex items-center justify-center h-full">
+      <>
+        <HeaderMobile title="Stress" />
+        <div className="pt-16 flex items-center justify-center min-h-[60vh]">
           <div className="text-center">
             <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-indigo-600 mx-auto mb-4"></div>
             <h3 className="text-lg font-semibold text-gray-900">Loading Dashboard...</h3>
             <p className="text-gray-600">Please wait while we fetch the data</p>
           </div>
         </div>
-      </div>
+      </>
     );
   }
 
   // --- Main Render ---
   return (
-    <div className="flex-1 overflow-auto bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-6">
-      {/* Glassmorphism Header */}
-      <div className="backdrop-blur-xl bg-white/30 rounded-2xl border border-white/20 shadow-2xl p-8 mb-8">
-        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
-          <div className="space-y-2">
-            <div className="flex items-center gap-3">
-              <div className="p-3 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-xl shadow-lg">
-                <BarChart3 className="text-white" size={24} />
-              </div>
-              <div>
-                <h1 className="text-3xl font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-blue-600 bg-clip-text text-transparent">
-                  Faculty & Staff Stress Levels
-                </h1>
-                <p className="text-slate-600 font-medium">Department-wise stress monitoring and insights</p>
-              </div>
-            </div>
-          </div>
-          <div className="flex items-center gap-4">
-            <button
-              onClick={fetchDepartments}
-              className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
-            >
-              <RefreshCw size={18} />
-              Refresh
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Department Selection */}
-      <div className="backdrop-blur-xl bg-white/40 rounded-2xl border border-white/20 shadow-xl overflow-hidden mb-8">
-        <div className="p-6 border-b border-white/20">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <GraduationCap className="text-indigo-600" size={24} />
-              <h3 className="text-xl font-bold text-slate-800">Departments</h3>
-            </div>
-            <span className="text-sm text-slate-600 bg-white/50 px-3 py-1 rounded-full">
-              {selectedDept ? departments.find(d => d.id === selectedDept)?.name : 'Select a department'}
-            </span>
-          </div>
-        </div>
-        <div className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-4">
-            {departments.map((dept) => (
-              <button
-                key={dept.id}
-                onClick={() => fetchFacultyOrStaff(dept.id, selectedTab, true)}
-                className={`group p-4 rounded-xl transition-all duration-300 ${
-                  selectedDept === dept.id
-                    ? 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-lg scale-105'
-                    : 'bg-white/60 hover:bg-white/80 text-slate-700 hover:shadow-lg hover:scale-105'
-                }`}
-              >
-                <div className="text-center">
-                  <div className={`w-12 h-12 mx-auto rounded-xl flex items-center justify-center mb-3 transition-colors ${
-                    selectedDept === dept.id
-                      ? 'bg-white/20 text-white'
-                      : 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white group-hover:scale-110'
-                  }`}>
-                    <Building size={20} />
-                  </div>
-                  <h4 className="font-semibold text-sm mb-2">{dept.name}</h4>
-                </div>
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Tab Bar for Faculty/Staff */}
-      <div className="flex justify-center mb-4">
-        <div className="inline-flex rounded-xl bg-white/70 shadow border border-white/30 overflow-hidden">
-          <button
-            className={`px-6 py-3 font-semibold transition-all duration-200 ${selectedTab === 'faculty' ? 'bg-indigo-500 text-white shadow' : 'text-indigo-700 hover:bg-indigo-100'}`}
-            onClick={async () => {
-              if (selectedTab === 'faculty') return;
-              setSelectedTab('faculty');
-              if (selectedDept) {
-                const newList = await fetchFacultyOrStaff(selectedDept, 'faculty', false);
-                if (modalOpen && selectedFaculty) {
-                  const found = newList.find(member => member.erpid === selectedFaculty);
-                  if (found) {
-                    fetchStressData(selectedFaculty);
-                  } else {
-                    setModalOpen(false);
-                    setSelectedFaculty(null);
-                    setStressData([]);
-                  }
-                }
-              }
-            }}
-          >
-            Faculty
-          </button>
-          <button
-            className={`px-6 py-3 font-semibold transition-all duration-200 ${selectedTab === 'staff' ? 'bg-purple-600 text-white shadow' : 'text-purple-700 hover:bg-purple-100'}`}
-            onClick={async () => {
-              if (selectedTab === 'staff') return;
-              setSelectedTab('staff');
-              if (selectedDept) {
-                const newList = await fetchFacultyOrStaff(selectedDept, 'staff', false);
-                if (modalOpen && selectedFaculty) {
-                  const found = newList.find(member => member.erpid === selectedFaculty);
-                  if (found) {
-                    fetchStressData(selectedFaculty);
-                  } else {
-                    setModalOpen(false);
-                    setSelectedFaculty(null);
-                    setStressData([]);
-                  }
-                }
-              }
-            }}
-          >
-            Non-Teaching Staff
-          </button>
-        </div>
-      </div>
-
-      {/* Faculty/Staff List */}
-      {selectedDept && faculty.length > 0 && (
-        <div ref={facultyListRef} className="backdrop-blur-xl bg-white/40 rounded-2xl border border-white/20 shadow-xl mb-8 relative">
-          {/* Loading overlay when switching tabs or departments */}
-          {profileLoading && !modalOpen && (
-            <div className="absolute inset-0 z-20 flex items-center justify-center bg-white/70 backdrop-blur rounded-2xl">
-              <div className="flex flex-col items-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mb-4"></div>
-                <span className="text-indigo-700 font-semibold text-lg">Loading...</span>
-              </div>
-            </div>
-          )}
-          <div className="p-6 border-b border-white/20">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+    <>
+      <HeaderMobile title="Stress" />
+      <div className="pt-16 px-2 sm:px-4 md:px-8 max-w-6xl mx-auto w-full">
+        {/* Glassmorphism Header */}
+        <div className="backdrop-blur-xl bg-white/30 rounded-2xl border border-white/20 shadow-2xl p-8 mb-8">
+          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
+            <div className="space-y-2">
               <div className="flex items-center gap-3">
-                <Users className="text-indigo-600" size={24} />
-                <h3 className="text-xl font-bold text-slate-800">{selectedTab === 'faculty' ? 'Faculty Members' : 'Non-Teaching Staff'}</h3>
-                <span className="bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full text-sm font-medium">
-                  {filteredFaculty.length} members
-                </span>
-              </div>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" size={18} />
-                <input
-                  type="text"
-                  placeholder={`Search ${selectedTab === 'faculty' ? 'faculty' : 'staff'}...`}
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 pr-4 py-2 bg-white/60 border border-white/30 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                />
+                <div className="p-3 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-xl shadow-lg">
+                  <BarChart3 className="text-white" size={24} />
+                </div>
+                <div>
+                  <h1 className="text-3xl font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-blue-600 bg-clip-text text-transparent">
+                    Faculty & Staff Stress Levels
+                  </h1>
+                  <p className="text-slate-600 font-medium">Department-wise stress monitoring and insights</p>
+                </div>
               </div>
             </div>
-          </div>
-          <div className="max-h-96 overflow-y-auto">
-            {filteredFaculty.map((member) => (
-              <div
-                key={member.id}
-                onClick={() => handleFacultyClick(member.erpid)}
-                className={`p-4 cursor-pointer transition-all duration-200 border-b border-red-100 last:border-b-0 ${
-                  selectedFaculty === member.erpid
-                    ? 'bg-gradient-to-r from-red-100 to-white shadow-md scale-105'
-                    : 'hover:bg-red-50'
-                }`}
-                style={{ background: selectedFaculty === member.erpid ? 'linear-gradient(90deg, #fff0f0 0%, #fff 100%)' : undefined }}
+            <div className="flex items-center gap-4">
+              <button
+                onClick={fetchDepartments}
+                className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
               >
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-r from-red-700 to-red-500 flex items-center justify-center text-white font-semibold">
-                    {member.name.split(' ').map(n => n[0]).join('')}
-                  </div>
-                  <div>
-                    <h4 className="font-semibold text-red-900">{member.name}</h4>
-                    <div className="flex items-center gap-2 text-sm text-red-700 mt-1">
-                      <span>{member.email}</span>
-                    </div>
-                    <div className="text-xs text-red-500 mt-1">
-                      ERP ID: {member.erpid}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))}
+                <RefreshCw size={18} />
+                Refresh
+              </button>
+            </div>
           </div>
         </div>
-      )}
 
-      {/* Modal Overlay for Analytics and Records */}
-      {modalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm">
-          <div className="relative w-full max-w-5xl mx-auto bg-white rounded-2xl shadow-2xl p-6 overflow-y-auto max-h-[90vh] animate-fadeIn">
-            {/* Close Button (fixed) */}
+        {/* Department Selection */}
+        <div className="backdrop-blur-xl bg-white/40 rounded-2xl border border-white/20 shadow-xl overflow-hidden mb-8">
+          <div className="p-6 border-b border-white/20">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <GraduationCap className="text-indigo-600" size={24} />
+                <h3 className="text-xl font-bold text-slate-800">Departments</h3>
+              </div>
+              <span className="text-sm text-slate-600 bg-white/50 px-3 py-1 rounded-full">
+                {selectedDept ? departments.find(d => d.id === selectedDept)?.name : 'Select a department'}
+              </span>
+            </div>
+          </div>
+          <div className="p-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-4">
+              {departments.map((dept) => (
+                <button
+                  key={dept.id}
+                  onClick={() => fetchFacultyOrStaff(dept.id, selectedTab, true)}
+                  className={`group p-4 rounded-xl transition-all duration-300 ${
+                    selectedDept === dept.id
+                      ? 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-lg scale-105'
+                      : 'bg-white/60 hover:bg-white/80 text-slate-700 hover:shadow-lg hover:scale-105'
+                  }`}
+                >
+                  <div className="text-center">
+                    <div className={`w-12 h-12 mx-auto rounded-xl flex items-center justify-center mb-3 transition-colors ${
+                      selectedDept === dept.id
+                        ? 'bg-white/20 text-white'
+                        : 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white group-hover:scale-110'
+                    }`}>
+                      <Building size={20} />
+                    </div>
+                    <h4 className="font-semibold text-sm mb-2">{dept.name}</h4>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Tab Bar for Faculty/Staff */}
+        <div className="flex justify-center mb-4">
+          <div className="inline-flex rounded-xl bg-white/70 shadow border border-white/30 overflow-hidden">
             <button
-              onClick={handleCloseModal}
-              className="fixed top-8 right-8 text-gray-500 hover:text-red-600 bg-gray-100 hover:bg-red-100 rounded-full p-2 transition-colors z-50"
-              aria-label="Close"
-              style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}
+              className={`px-6 py-3 font-semibold transition-all duration-200 ${selectedTab === 'faculty' ? 'bg-indigo-500 text-white shadow' : 'text-indigo-700 hover:bg-indigo-100'}`}
+              onClick={async () => {
+                if (selectedTab === 'faculty') return;
+                setSelectedTab('faculty');
+                if (selectedDept) {
+                  const newList = await fetchFacultyOrStaff(selectedDept, 'faculty', false);
+                  if (modalOpen && selectedFaculty) {
+                    const found = newList.find(member => member.erpid === selectedFaculty);
+                    if (found) {
+                      fetchStressData(selectedFaculty);
+                    } else {
+                      setModalOpen(false);
+                      setSelectedFaculty(null);
+                      setStressData([]);
+                    }
+                  }
+                }
+              }}
             >
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-              </svg>
+              Faculty
             </button>
-            {profileLoading ? (
-              <div className="flex items-center justify-center h-64">
-                <div className="text-center">
-                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
-                  <h3 className="text-lg font-semibold text-slate-800">Loading Stress Data...</h3>
+            <button
+              className={`px-6 py-3 font-semibold transition-all duration-200 ${selectedTab === 'staff' ? 'bg-purple-600 text-white shadow' : 'text-purple-700 hover:bg-purple-100'}`}
+              onClick={async () => {
+                if (selectedTab === 'staff') return;
+                setSelectedTab('staff');
+                if (selectedDept) {
+                  const newList = await fetchFacultyOrStaff(selectedDept, 'staff', false);
+                  if (modalOpen && selectedFaculty) {
+                    const found = newList.find(member => member.erpid === selectedFaculty);
+                    if (found) {
+                      fetchStressData(selectedFaculty);
+                    } else {
+                      setModalOpen(false);
+                      setSelectedFaculty(null);
+                      setStressData([]);
+                    }
+                  }
+                }
+              }}
+            >
+              Non-Teaching Staff
+            </button>
+          </div>
+        </div>
+
+        {/* Faculty/Staff List */}
+        {selectedDept && faculty.length > 0 && (
+          <div ref={facultyListRef} className="backdrop-blur-xl bg-white/40 rounded-2xl border border-white/20 shadow-xl mb-8 relative">
+            {/* Loading overlay when switching tabs or departments */}
+            {profileLoading && !modalOpen && (
+              <div className="absolute inset-0 z-20 flex items-center justify-center bg-white/70 backdrop-blur rounded-2xl">
+                <div className="flex flex-col items-center">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mb-4"></div>
+                  <span className="text-indigo-700 font-semibold text-lg">Loading...</span>
                 </div>
               </div>
-            ) : (selectedFaculty && stressData.length > 0) ? (
-              <div className="max-w-7xl mx-auto space-y-8">
-                {/* Animated Header */}
-                <div className="relative bg-white rounded-2xl shadow-xl border border-white/20 overflow-hidden">
-                  <div className="absolute inset-0 bg-gradient-to-r from-blue-600/5 to-indigo-600/5"></div>
-                  <div className="relative p-8">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-6">
-                        <div className="relative">
-                          <div className="bg-gradient-to-r from-blue-500 to-indigo-600 p-4 rounded-2xl shadow-lg">
-                            <User className="h-10 w-10 text-white" />
+            )}
+            <div className="p-6 border-b border-white/20">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <Users className="text-indigo-600" size={24} />
+                  <h3 className="text-xl font-bold text-slate-800">{selectedTab === 'faculty' ? 'Faculty Members' : 'Non-Teaching Staff'}</h3>
+                  <span className="bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full text-sm font-medium">
+                    {filteredFaculty.length} members
+                  </span>
+                </div>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" size={18} />
+                  <input
+                    type="text"
+                    placeholder={`Search ${selectedTab === 'faculty' ? 'faculty' : 'staff'}...`}
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10 pr-4 py-2 bg-white/60 border border-white/30 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  />
+                </div>
+              </div>
+            </div>
+            <div className="max-h-96 overflow-y-auto">
+              {filteredFaculty.map((member) => (
+                <div
+                  key={member.id}
+                  onClick={() => handleFacultyClick(member.erpid)}
+                  className={`p-4 cursor-pointer transition-all duration-200 border-b border-red-100 last:border-b-0 ${
+                    selectedFaculty === member.erpid
+                      ? 'bg-gradient-to-r from-red-100 to-white shadow-md scale-105'
+                      : 'hover:bg-red-50'
+                  }`}
+                  style={{ background: selectedFaculty === member.erpid ? 'linear-gradient(90deg, #fff0f0 0%, #fff 100%)' : undefined }}
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-full bg-gradient-to-r from-red-700 to-red-500 flex items-center justify-center text-white font-semibold">
+                      {member.name.split(' ').map(n => n[0]).join('')}
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-red-900">{member.name}</h4>
+                      <div className="flex items-center gap-2 text-sm text-red-700 mt-1">
+                        <span>{member.email}</span>
+                      </div>
+                      <div className="text-xs text-red-500 mt-1">
+                        ERP ID: {member.erpid}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Modal Overlay for Analytics and Records */}
+        {modalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm">
+            <div className="relative w-full max-w-5xl mx-auto bg-white rounded-2xl shadow-2xl p-6 overflow-y-auto max-h-[90vh] animate-fadeIn">
+              {/* Close Button (fixed) */}
+              <button
+                onClick={handleCloseModal}
+                className="fixed top-8 right-8 text-gray-500 hover:text-red-600 bg-gray-100 hover:bg-red-100 rounded-full p-2 transition-colors z-50"
+                aria-label="Close"
+                style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+              {profileLoading ? (
+                <div className="flex items-center justify-center h-64">
+                  <div className="text-center">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
+                    <h3 className="text-lg font-semibold text-slate-800">Loading Stress Data...</h3>
+                  </div>
+                </div>
+              ) : (selectedFaculty && stressData.length > 0) ? (
+                <div className="max-w-7xl mx-auto space-y-8">
+                  {/* Animated Header */}
+                  <div className="relative bg-white rounded-2xl shadow-xl border border-white/20 overflow-hidden">
+                    <div className="absolute inset-0 bg-gradient-to-r from-blue-600/5 to-indigo-600/5"></div>
+                    <div className="relative p-8">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-6">
+                          <div className="relative">
+                            <div className="bg-gradient-to-r from-blue-500 to-indigo-600 p-4 rounded-2xl shadow-lg">
+                              <User className="h-10 w-10 text-white" />
+                            </div>
+                            <div className="absolute -top-1 -right-1 w-6 h-6 bg-green-500 rounded-full border-2 border-white animate-pulse"></div>
                           </div>
-                          <div className="absolute -top-1 -right-1 w-6 h-6 bg-green-500 rounded-full border-2 border-white animate-pulse"></div>
+                          <div>
+                            <h1 className="text-4xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
+                              {facultyName}
+                            </h1>
+                            <div className="flex items-center mt-2 space-x-2">
+                              <span className="text-gray-600">ERP ID:</span>
+                              <span className="font-mono bg-gradient-to-r from-blue-100 to-indigo-100 px-3 py-1 rounded-lg text-sm font-semibold text-blue-800 border border-blue-200">
+                                {erpId}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="bg-gradient-to-r from-indigo-500 to-purple-600 rounded-2xl p-4 text-white shadow-lg">
+                            <p className="text-sm opacity-90">Total Records</p>
+                            <p className="text-3xl font-bold">{filteredData.length}</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Enhanced Statistics Cards */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="bg-white rounded-2xl shadow-xl p-6 border border-white/20 hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-gray-600 text-sm font-medium">Stressed Sessions</p>
+                          <p className="text-3xl font-bold text-red-600">{stats.stressed}</p>
+                          <p className="text-sm text-red-500 font-medium">{stats.stressPercentage}% of total</p>
+                        </div>
+                        <div className="bg-gradient-to-r from-red-500 to-red-600 p-3 rounded-xl">
+                          <AlertTriangle className="h-8 w-8 text-white" />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="bg-white rounded-2xl shadow-xl p-6 border border-white/20 hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-gray-600 text-sm font-medium">Active Sessions</p>
+                          <p className="text-3xl font-bold text-green-600">{stats.active}</p>
+                          <p className="text-sm text-green-500 font-medium">{stats.activePercentage}% of total</p>
+                        </div>
+                        <div className="bg-gradient-to-r from-green-500 to-green-600 p-3 rounded-xl">
+                          <Activity className="h-8 w-8 text-white" />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="bg-white rounded-2xl shadow-xl p-6 border border-white/20 hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-gray-600 text-sm font-medium">Wellness Score</p>
+                          <p className="text-3xl font-bold text-blue-600">
+                            {stats.total > 0 ? Math.max(0, 100 - stats.stressPercentage) : 0}
+                          </p>
+                          <p className="text-sm text-blue-500 font-medium">Out of 100</p>
+                        </div>
+                        <div className="bg-gradient-to-r from-blue-500 to-blue-600 p-3 rounded-xl">
+                          <TrendingUp className="h-8 w-8 text-white" />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Enhanced Date Selection */}
+                  <div className="bg-white rounded-2xl shadow-xl border border-white/20 p-6">
+                    <div className="flex items-center space-x-4 mb-4 justify-between flex-wrap">
+                      <div className="flex items-center space-x-4 min-w-fit">
+                        <div className="bg-gradient-to-r from-purple-500 to-pink-600 p-3 rounded-xl">
+                          <Calendar className="h-6 w-6 text-white" />
+                        </div>
+                        <label className="text-xl font-bold text-gray-900">
+                          Select Date Range:
+                        </label>
+                      </div>
+                      {/* Compact Stress Level Indicators - inline */}
+                      <div className="text-xs md:text-sm text-gray-600 bg-gray-50 border border-gray-200 rounded-lg px-4 py-2 shadow-sm text-center max-w-xl ml-auto mt-2 md:mt-0">
+                        <div className="font-semibold text-gray-700 mb-1">Stress Level Indicators:</div>
+                        <div>
+                          <span className="text-red-700 font-semibold">STRESS:</span> <strong> L1 - 70-80 % | L2 - 80-90 % | L3 - 90-100 %</strong>
                         </div>
                         <div>
-                          <h1 className="text-4xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
-                            {facultyName}
-                          </h1>
-                          <div className="flex items-center mt-2 space-x-2">
-                            <span className="text-gray-600">ERP ID:</span>
-                            <span className="font-mono bg-gradient-to-r from-blue-100 to-indigo-100 px-3 py-1 rounded-lg text-sm font-semibold text-blue-800 border border-blue-200">
-                              {erpId}
-                            </span>
+                          <span className="text-green-700 font-semibold">UNSTRESS:</span> <strong>A1 - 90-100 % | A2 - 80-90 % | A3 - 70-80 %</strong>
+                        </div>  
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label htmlFor="from-date" className="block text-sm font-medium text-gray-700 mb-2">
+                          From Date:
+                        </label>
+                        <input
+                          id="from-date"
+                          type="date"
+                          value={fromDate}
+                          onChange={(e) => setFromDate(e.target.value)}
+                          className="w-full px-6 py-3 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 text-lg font-medium bg-gradient-to-r from-white to-gray-50"
+                        />
+                      </div>
+                      <div>
+                        <label htmlFor="to-date" className="block text-sm font-medium text-gray-700 mb-2">
+                          To Date:
+                        </label>
+                        <input
+                          id="to-date"
+                          type="date"
+                          value={toDate}
+                          onChange={(e) => setToDate(e.target.value)}
+                          min={fromDate}
+                          className="w-full px-6 py-3 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 text-lg font-medium bg-gradient-to-r from-white to-gray-50"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Enhanced Charts Section */}
+                  {filteredData.length > 0 && (
+                    <div className="bg-white rounded-2xl shadow-xl border border-white/20 overflow-hidden">
+                      <div className="bg-gradient-to-r from-indigo-600 to-purple-700 p-6">
+                        <div className="flex items-center space-x-3">
+                          <BarChart3 className="h-6 w-6 text-white" />
+                          <h2 className="text-2xl font-bold text-white">Stress Level Distribution</h2>
+                        </div>
+                      </div>
+                      <div className="p-6">
+                        <div className="h-96">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <ReBarChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                              <XAxis 
+                                dataKey="level" 
+                                tick={{ fontSize: 14, fontWeight: 'bold' }}
+                                axisLine={{ stroke: '#d1d5db', strokeWidth: 2 }}
+                              />
+                              <YAxis 
+                                tick={{ fontSize: 14, fontWeight: 'bold' }}
+                                axisLine={{ stroke: '#d1d5db', strokeWidth: 2 }}
+                              />
+                              <Tooltip 
+                                formatter={(value, name) => [value, 'Count']}
+                                labelFormatter={(label) => `Level: ${label}`}
+                                contentStyle={{
+                                  backgroundColor: 'white',
+                                  border: '2px solid #e5e7eb',
+                                  borderRadius: '12px',
+                                  boxShadow: '0 10px 25px rgba(0,0,0,0.1)'
+                                }}
+                              />
+                              <Bar 
+                                dataKey="count" 
+                                radius={[8, 8, 0, 0]}
+                                className="hover:opacity-80 transition-opacity"
+                              >
+                                {chartData.map((entry, index) => (
+                                  <Cell key={`cell-${index}`} fill={entry.color} />
+                                ))}
+                              </Bar>
+                            </ReBarChart>
+                          </ResponsiveContainer>
+                        </div>
+                        {/* Compact Stress Level Indicators - single line */}
+                        {/* <div className="mt-4 mb-2 flex justify-center">
+                          <div className="text-xs md:text-sm text-gray-600 bg-gray-50 border border-gray-200 rounded-lg px-4 py-2 shadow-sm text-center max-w-2xl">
+                            <div className="font-semibold text-gray-700 mb-1">Stress Level Indicators:</div>
+                            <div>
+                              <span className="text-red-700 font-semibold">STRESS:</span> L1 - 70-80 | L2 - 80-90 | L3 - 90-100
+                            </div>
+                            <div>
+                              <span className="text-green-700 font-semibold">UNSTRESS:</span> A1 - 90-100 | A2 - 80-90 | A3 - 70-80
+                            </div>
+                          </div>
+                        </div> */}
+                        {/* End Compact Info Box */}
+                        <div className="flex justify-center space-x-12 mt-6">
+                          <div className="flex items-center space-x-3">
+                            <div className="w-6 h-6 bg-gradient-to-r from-red-500 to-red-600 rounded-full shadow-lg"></div>
+                            <span className="text-lg font-semibold text-gray-700">Stressed Levels (L1, L2, L3)</span>
+                          </div>
+                          <div className="flex items-center space-x-3">
+                            <div className="w-6 h-6 bg-gradient-to-r from-green-500 to-green-600 rounded-full shadow-lg"></div>
+                            <span className="text-lg font-semibold text-gray-700">Active Levels (A1, A2, A3)</span>
                           </div>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <div className="bg-gradient-to-r from-indigo-500 to-purple-600 rounded-2xl p-4 text-white shadow-lg">
-                          <p className="text-sm opacity-90">Total Records</p>
-                          <p className="text-3xl font-bold">{filteredData.length}</p>
-                        </div>
-                      </div>
                     </div>
-                  </div>
-                </div>
+                  )}
 
-                {/* Enhanced Statistics Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div className="bg-white rounded-2xl shadow-xl p-6 border border-white/20 hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-gray-600 text-sm font-medium">Stressed Sessions</p>
-                        <p className="text-3xl font-bold text-red-600">{stats.stressed}</p>
-                        <p className="text-sm text-red-500 font-medium">{stats.stressPercentage}% of total</p>
-                      </div>
-                      <div className="bg-gradient-to-r from-red-500 to-red-600 p-3 rounded-xl">
-                        <AlertTriangle className="h-8 w-8 text-white" />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="bg-white rounded-2xl shadow-xl p-6 border border-white/20 hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-gray-600 text-sm font-medium">Active Sessions</p>
-                        <p className="text-3xl font-bold text-green-600">{stats.active}</p>
-                        <p className="text-sm text-green-500 font-medium">{stats.activePercentage}% of total</p>
-                      </div>
-                      <div className="bg-gradient-to-r from-green-500 to-green-600 p-3 rounded-xl">
-                        <Activity className="h-8 w-8 text-white" />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="bg-white rounded-2xl shadow-xl p-6 border border-white/20 hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-gray-600 text-sm font-medium">Wellness Score</p>
-                        <p className="text-3xl font-bold text-blue-600">
-                          {stats.total > 0 ? Math.max(0, 100 - stats.stressPercentage) : 0}
-                        </p>
-                        <p className="text-sm text-blue-500 font-medium">Out of 100</p>
-                      </div>
-                      <div className="bg-gradient-to-r from-blue-500 to-blue-600 p-3 rounded-xl">
-                        <TrendingUp className="h-8 w-8 text-white" />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Enhanced Date Selection */}
-                <div className="bg-white rounded-2xl shadow-xl border border-white/20 p-6">
-                  <div className="flex items-center space-x-4 mb-4 justify-between flex-wrap">
-                    <div className="flex items-center space-x-4 min-w-fit">
-                      <div className="bg-gradient-to-r from-purple-500 to-pink-600 p-3 rounded-xl">
-                        <Calendar className="h-6 w-6 text-white" />
-                      </div>
-                      <label className="text-xl font-bold text-gray-900">
-                        Select Date Range:
-                      </label>
-                    </div>
-                    {/* Compact Stress Level Indicators - inline */}
-                    <div className="text-xs md:text-sm text-gray-600 bg-gray-50 border border-gray-200 rounded-lg px-4 py-2 shadow-sm text-center max-w-xl ml-auto mt-2 md:mt-0">
-                      <div className="font-semibold text-gray-700 mb-1">Stress Level Indicators:</div>
-                      <div>
-                        <span className="text-red-700 font-semibold">STRESS:</span> <strong> L1 - 70-80 % | L2 - 80-90 % | L3 - 90-100 %</strong>
-                      </div>
-                      <div>
-                        <span className="text-green-700 font-semibold">UNSTRESS:</span> <strong>A1 - 90-100 % | A2 - 80-90 % | A3 - 70-80 %</strong>
-                      </div>  
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label htmlFor="from-date" className="block text-sm font-medium text-gray-700 mb-2">
-                        From Date:
-                      </label>
-                      <input
-                        id="from-date"
-                        type="date"
-                        value={fromDate}
-                        onChange={(e) => setFromDate(e.target.value)}
-                        className="w-full px-6 py-3 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 text-lg font-medium bg-gradient-to-r from-white to-gray-50"
-                      />
-                    </div>
-                    <div>
-                      <label htmlFor="to-date" className="block text-sm font-medium text-gray-700 mb-2">
-                        To Date:
-                      </label>
-                      <input
-                        id="to-date"
-                        type="date"
-                        value={toDate}
-                        onChange={(e) => setToDate(e.target.value)}
-                        min={fromDate}
-                        className="w-full px-6 py-3 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 text-lg font-medium bg-gradient-to-r from-white to-gray-50"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Enhanced Charts Section */}
-                {filteredData.length > 0 && (
+                  {/* Enhanced Data Records */}
                   <div className="bg-white rounded-2xl shadow-xl border border-white/20 overflow-hidden">
-                    <div className="bg-gradient-to-r from-indigo-600 to-purple-700 p-6">
+                    <div className="bg-gradient-to-r from-teal-600 to-cyan-700 p-6">
                       <div className="flex items-center space-x-3">
-                        <BarChart3 className="h-6 w-6 text-white" />
-                        <h2 className="text-2xl font-bold text-white">Stress Level Distribution</h2>
+                        <TrendingUp className="h-6 w-6 text-white" />
+                        <h2 className="text-2xl font-bold text-white">
+                          Records from {new Date(fromDate).toLocaleDateString('en-US', { 
+                            year: 'numeric', 
+                            month: 'long', 
+                            day: 'numeric' 
+                          })} to {new Date(toDate).toLocaleDateString('en-US', { 
+                            year: 'numeric', 
+                            month: 'long', 
+                            day: 'numeric' 
+                          })}
+                        </h2>
                       </div>
                     </div>
+                    
                     <div className="p-6">
-                      <div className="h-96">
-                        <ResponsiveContainer width="100%" height="100%">
-                          <ReBarChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                            <XAxis 
-                              dataKey="level" 
-                              tick={{ fontSize: 14, fontWeight: 'bold' }}
-                              axisLine={{ stroke: '#d1d5db', strokeWidth: 2 }}
-                            />
-                            <YAxis 
-                              tick={{ fontSize: 14, fontWeight: 'bold' }}
-                              axisLine={{ stroke: '#d1d5db', strokeWidth: 2 }}
-                            />
-                            <Tooltip 
-                              formatter={(value, name) => [value, 'Count']}
-                              labelFormatter={(label) => `Level: ${label}`}
-                              contentStyle={{
-                                backgroundColor: 'white',
-                                border: '2px solid #e5e7eb',
-                                borderRadius: '12px',
-                                boxShadow: '0 10px 25px rgba(0,0,0,0.1)'
-                              }}
-                            />
-                            <Bar 
-                              dataKey="count" 
-                              radius={[8, 8, 0, 0]}
-                              className="hover:opacity-80 transition-opacity"
-                            >
-                              {chartData.map((entry, index) => (
-                                <Cell key={`cell-${index}`} fill={entry.color} />
-                              ))}
-                            </Bar>
-                          </ReBarChart>
-                        </ResponsiveContainer>
-                      </div>
-                      {/* Compact Stress Level Indicators - single line */}
-                      {/* <div className="mt-4 mb-2 flex justify-center">
-                        <div className="text-xs md:text-sm text-gray-600 bg-gray-50 border border-gray-200 rounded-lg px-4 py-2 shadow-sm text-center max-w-2xl">
-                          <div className="font-semibold text-gray-700 mb-1">Stress Level Indicators:</div>
-                          <div>
-                            <span className="text-red-700 font-semibold">STRESS:</span> L1 - 70-80 | L2 - 80-90 | L3 - 90-100
+                      {filteredData.length === 0 ? (
+                        <div className="text-center py-16">
+                          <div className="bg-gradient-to-r from-gray-400 to-gray-500 p-4 rounded-full w-20 h-20 mx-auto mb-6 flex items-center justify-center">
+                            <Clock className="h-10 w-10 text-white" />
                           </div>
-                          <div>
-                            <span className="text-green-700 font-semibold">UNSTRESS:</span> A1 - 90-100 | A2 - 80-90 | A3 - 70-80
-                          </div>
+                          <p className="text-gray-600 text-xl font-semibold mb-2">No records found for the selected date range</p>
+                          <p className="text-gray-400 text-lg">Try selecting a different date range to view data</p>
                         </div>
-                      </div> */}
-                      {/* End Compact Info Box */}
-                      <div className="flex justify-center space-x-12 mt-6">
-                        <div className="flex items-center space-x-3">
-                          <div className="w-6 h-6 bg-gradient-to-r from-red-500 to-red-600 rounded-full shadow-lg"></div>
-                          <span className="text-lg font-semibold text-gray-700">Stressed Levels (L1, L2, L3)</span>
-                        </div>
-                        <div className="flex items-center space-x-3">
-                          <div className="w-6 h-6 bg-gradient-to-r from-green-500 to-green-600 rounded-full shadow-lg"></div>
-                          <span className="text-lg font-semibold text-gray-700">Active Levels (A1, A2, A3)</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Enhanced Data Records */}
-                <div className="bg-white rounded-2xl shadow-xl border border-white/20 overflow-hidden">
-                  <div className="bg-gradient-to-r from-teal-600 to-cyan-700 p-6">
-                    <div className="flex items-center space-x-3">
-                      <TrendingUp className="h-6 w-6 text-white" />
-                      <h2 className="text-2xl font-bold text-white">
-                        Records from {new Date(fromDate).toLocaleDateString('en-US', { 
-                          year: 'numeric', 
-                          month: 'long', 
-                          day: 'numeric' 
-                        })} to {new Date(toDate).toLocaleDateString('en-US', { 
-                          year: 'numeric', 
-                          month: 'long', 
-                          day: 'numeric' 
-                        })}
-                      </h2>
-                    </div>
-                  </div>
-                  
-                  <div className="p-6">
-                    {filteredData.length === 0 ? (
-                      <div className="text-center py-16">
-                        <div className="bg-gradient-to-r from-gray-400 to-gray-500 p-4 rounded-full w-20 h-20 mx-auto mb-6 flex items-center justify-center">
-                          <Clock className="h-10 w-10 text-white" />
-                        </div>
-                        <p className="text-gray-600 text-xl font-semibold mb-2">No records found for the selected date range</p>
-                        <p className="text-gray-400 text-lg">Try selecting a different date range to view data</p>
-                      </div>
-                    ) : (
-                      <div className="space-y-4">
-                        {filteredData.map((record, index) => {
-                          const statusBadge = getStatusBadge(record.stress_status);
-                          const levelBadge = getLevelBadge(record.stress_level);
-                          const StatusIcon = statusBadge.icon;
-                          
-                          return (
-                            <div 
-                              key={record.id} 
-                              className="group relative bg-gradient-to-r from-white to-gray-50 p-6 border-2 border-gray-100 rounded-2xl hover:border-blue-200 hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
-                              style={{ animationDelay: `${index * 100}ms` }}
-                            >
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center space-x-6">
-                                  <div className="flex items-center space-x-3">
-                                    <div className="bg-gradient-to-r from-blue-100 to-indigo-100 p-2 rounded-lg">
-                                      <Clock className="h-5 w-5 text-blue-600" />
+                      ) : (
+                        <div className="space-y-4">
+                          {filteredData.map((record, index) => {
+                            const statusBadge = getStatusBadge(record.stress_status);
+                            const levelBadge = getLevelBadge(record.stress_level);
+                            const StatusIcon = statusBadge.icon;
+                            
+                            return (
+                              <div 
+                                key={record.id} 
+                                className="group relative bg-gradient-to-r from-white to-gray-50 p-6 border-2 border-gray-100 rounded-2xl hover:border-blue-200 hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
+                                style={{ animationDelay: `${index * 100}ms` }}
+                              >
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center space-x-6">
+                                    <div className="flex items-center space-x-3">
+                                      <div className="bg-gradient-to-r from-blue-100 to-indigo-100 p-2 rounded-lg">
+                                        <Clock className="h-5 w-5 text-blue-600" />
+                                      </div>
+                                      <span className="font-mono text-lg font-bold text-gray-700 bg-gray-100 px-3 py-1 rounded-lg">
+                                        {formatTime(record.timestamp)}
+                                      </span>
                                     </div>
-                                    <span className="font-mono text-lg font-bold text-gray-700 bg-gray-100 px-3 py-1 rounded-lg">
-                                      {formatTime(record.timestamp)}
+                                    
+                                    <div className={`flex items-center space-x-2 px-4 py-2 rounded-xl ${statusBadge.className} transition-all duration-200`}>
+                                      <StatusIcon className="h-4 w-4" />
+                                      <span className="font-bold text-sm">{record.stress_status}</span>
+                                    </div>
+                                    
+                                    <div className={`px-3 py-2 rounded-xl font-bold text-sm ${levelBadge.className} ${levelBadge.pulse ? 'animate-pulse' : ''}`}> 
+                                      {record.stress_level}
+                                    </div>
+                                  </div>
+                                  
+                                  <div className="flex items-center space-x-3">
+                                    <span className="text-sm text-gray-500 font-medium">ID:</span>
+                                    <span className="bg-gradient-to-r from-indigo-100 to-purple-100 px-3 py-1 rounded-lg font-mono font-bold text-indigo-800">
+                                      {record.id}
                                     </span>
                                   </div>
-                                  
-                                  <div className={`flex items-center space-x-2 px-4 py-2 rounded-xl ${statusBadge.className} transition-all duration-200`}>
-                                    <StatusIcon className="h-4 w-4" />
-                                    <span className="font-bold text-sm">{record.stress_status}</span>
-                                  </div>
-                                  
-                                  <div className={`px-3 py-2 rounded-xl font-bold text-sm ${levelBadge.className} ${levelBadge.pulse ? 'animate-pulse' : ''}`}> 
-                                    {record.stress_level}
-                                  </div>
                                 </div>
-                                
-                                <div className="flex items-center space-x-3">
-                                  <span className="text-sm text-gray-500 font-medium">ID:</span>
-                                  <span className="bg-gradient-to-r from-indigo-100 to-purple-100 px-3 py-1 rounded-lg font-mono font-bold text-indigo-800">
-                                    {record.id}
-                                  </span>
-                                </div>
+                                {/* Hover effect indicator */}
+                                <div className="absolute left-0 top-0 h-full w-1 bg-gradient-to-b from-blue-500 to-indigo-600 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                               </div>
-                              {/* Hover effect indicator */}
-                              <div className="absolute left-0 top-0 h-full w-1 bg-gradient-to-b from-blue-500 to-indigo-600 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ) : selectedFaculty ? (
-              <div className="flex flex-col items-center justify-center min-h-[40vh]">
-                <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <BarChart3 className="text-slate-400" size={32} />
+              ) : selectedFaculty ? (
+                <div className="flex flex-col items-center justify-center min-h-[40vh]">
+                  <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <BarChart3 className="text-slate-400" size={32} />
+                  </div>
+                  <h3 className="text-xl font-semibold text-slate-800 mb-2">No Stress Data</h3>
+                  <p className="text-slate-600">No stress records found for this faculty member.</p>
                 </div>
-                <h3 className="text-xl font-semibold text-slate-800 mb-2">No Stress Data</h3>
-                <p className="text-slate-600">No stress records found for this faculty member.</p>
-              </div>
-            ) : null}
+              ) : null}
+            </div>
           </div>
-        </div>
-      )}
-    </div>
+        )}
+      </div>
+    </>
   );
 }
 
