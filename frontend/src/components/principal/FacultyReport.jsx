@@ -32,7 +32,7 @@ const FacultyReport = () => {
     const fetchDepartments = async () => {
       try {
         const token = localStorage.getItem('token');
-        const response = await axios.get('http://localhost:5000/api/principal/dashboard', {
+        const response = await axios.get('http://69.62.83.14:9000/api/principal/dashboard', {
           headers: { Authorization: `Bearer ${token}` }
         });
         setDepartments(response.data.departments || []);
@@ -72,11 +72,11 @@ const FacultyReport = () => {
       };
       let endpoint;
       if (reportType === 'attendance') {
-        endpoint = 'http://localhost:5000/api/principal/faculty-attendance-report';
+        endpoint = 'http://69.62.83.14:9000/api/principal/faculty-attendance-report';
       } else if (reportType === 'stress') {
-        endpoint = 'http://localhost:5000/api/principal/faculty-stress-report';
+        endpoint = 'http://69.62.83.14:9000/api/principal/faculty-stress-report';
       } else if (reportType === 'leave') {
-        endpoint = 'http://localhost:5000/api/principal/faculty-leave-report';
+        endpoint = 'http://69.62.83.14:9000/api/principal/faculty-leave-report';
       }
       const response = await axios.get(endpoint, {
         params,
