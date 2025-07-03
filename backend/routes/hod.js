@@ -937,28 +937,37 @@ router.get('/faculty-stress-members', authenticateToken, async (req, res) => {
 });
 
 // Endpoint to fetch today's faculty attendance count for HOD's department
+// Update the faculty-today-attendance-count endpoint
 router.get('/faculty-today-attendance-count', authenticateToken, async (req, res) => {
   try {
     const departmentId = req.user.departmentId;
-    // Get today's date in YYYY-MM-DD format
-    const today = new Date();
-    const yyyy = today.getFullYear();
-    const mm = String(today.getMonth() + 1).padStart(2, '0');
-    const dd = String(today.getDate()).padStart(2, '0');
-    const todayStr = `${yyyy}-${mm}-${dd}`;
+    
+    // Get current date in IST (Indian Standard Time)
+    const now = new Date();
+    const istOffset = 5.5 * 60 * 60 * 1000; // IST is UTC+5:30
+    const istDate = new Date(now.getTime() + istOffset);
+    const todayStr = istDate.toISOString().split('T')[0]; // YYYY-MM-DD
 
-    // Count unique faculty erp_id with a log today in this department
+    // Count unique faculty who have logs today
     const result = await sql`
-      SELECT COUNT(DISTINCT fl.erp_id) AS count
-      FROM faculty_logs fl
-      JOIN faculty f ON fl.erp_id = f.erpid
+      SELECT COUNT(DISTINCT f.erpid) AS count
+      FROM faculty f
       WHERE f.department_id = ${departmentId}
-        AND fl.timestamp::date = ${todayStr}
+        AND f.is_active = true
+        AND EXISTS (
+          SELECT 1 FROM faculty_logs fl
+          WHERE fl.erp_id = f.erpid
+            AND fl.timestamp::date = ${todayStr}::date
+        )
     `;
+    
     res.json({ count: result[0]?.count || 0 });
   } catch (error) {
     console.error('Error fetching today faculty attendance count:', error);
-    res.status(500).json({ message: 'Error fetching today faculty attendance count' });
+    res.status(500).json({ 
+      message: 'Error fetching today faculty attendance count',
+      error: error.message 
+    });
   }
 });
 

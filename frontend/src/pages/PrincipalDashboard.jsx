@@ -62,12 +62,16 @@ const PrincipalDashboard = () => {
   const [staffDeptDropdownOpen, setStaffDeptDropdownOpen] = useState(false);
   const staffDeptDropdownRef = useRef(null);
   const navigate = useNavigate();
+  const [facultyDeptTotals, setFacultyDeptTotals] = useState({});
+  const [staffDeptTotals, setStaffDeptTotals] = useState({});
 
   useEffect(() => {
     fetchDashboardData();
     fetchPendingLeaves();
     fetchTodayPresence();
     fetchPresentFacultyStaffSummary();
+    fetchFacultyDeptTotals();
+    fetchStaffDeptTotals();
   }, []);
 
   useEffect(() => {
@@ -390,6 +394,42 @@ const PrincipalDashboard = () => {
   // Handler for navigating to faculty leave approval
   const handleNavigateLeaveApproval = () => {
     navigate('/principal/faculty-leave-approval');
+  };
+
+  // Fetch faculty totals per department
+  const fetchFacultyDeptTotals = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await axios.get('http://69.62.83.14:9000/api/principal/faculty-department-counts', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      // Convert to map: { department_id: count }
+      const map = {};
+      (res.data || []).forEach(row => {
+        map[row.department_id] = Number(row.count);
+      });
+      setFacultyDeptTotals(map);
+    } catch (e) {
+      setFacultyDeptTotals({});
+    }
+  };
+
+  // Fetch staff totals per department
+  const fetchStaffDeptTotals = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await axios.get('http://69.62.83.14:9000/api/principal/staff-department-counts', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      // Convert to map: { department_id: count }
+      const map = {};
+      (res.data || []).forEach(row => {
+        map[row.department_id] = Number(row.count);
+      });
+      setStaffDeptTotals(map);
+    } catch (e) {
+      setStaffDeptTotals({});
+    }
   };
 
   if (loading) {
@@ -960,7 +1000,7 @@ const PrincipalDashboard = () => {
                 <h3 className="font-semibold mb-2">Branch-wise Present Faculty Count</h3>
                 <ul className="grid grid-cols-2 gap-2">
                   {departments.map(dept => {
-                    const count = presentFacultyList.filter(f => {
+                    const presentCount = presentFacultyList.filter(f => {
                       const facDeptId = f.departmentId ?? f.department_id;
                       const facDeptName = f.department_name ?? f.departmentName;
                       return (
@@ -968,10 +1008,11 @@ const PrincipalDashboard = () => {
                         (facDeptName && facDeptName.trim().toLowerCase() === dept.name.trim().toLowerCase())
                       );
                     }).length;
+                    const totalCount = facultyDeptTotals[dept.id] || 0;
                     return (
                       <li key={dept.id} className="flex justify-between bg-gray-50 rounded p-2">
                         <span>{dept.name}</span>
-                        <span className="font-bold">{count}</span>
+                        <span className="font-bold">{presentCount}/{totalCount}</span>
                       </li>
                     );
                   })}
@@ -1021,7 +1062,7 @@ const PrincipalDashboard = () => {
                 <h3 className="font-semibold mb-2">Branch-wise Present Non-Teaching Staff Count</h3>
                 <ul className="grid grid-cols-2 gap-2">
                   {departments.map(dept => {
-                    const count = presentStaffList.filter(s => {
+                    const presentCount = presentStaffList.filter(s => {
                       const staffDeptId = s.departmentId ?? s.department_id;
                       const staffDeptName = s.department_name ?? s.departmentName;
                       return (
@@ -1029,10 +1070,11 @@ const PrincipalDashboard = () => {
                         (staffDeptName && staffDeptName.trim().toLowerCase() === dept.name.trim().toLowerCase())
                       );
                     }).length;
+                    const totalCount = staffDeptTotals[dept.id] || 0;
                     return (
                       <li key={dept.id} className="flex justify-between bg-gray-50 rounded p-2">
                         <span>{dept.name}</span>
-                        <span className="font-bold">{count}</span>
+                        <span className="font-bold">{presentCount}/{totalCount}</span>
                       </li>
                     );
                   })}

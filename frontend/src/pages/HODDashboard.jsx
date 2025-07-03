@@ -389,25 +389,39 @@ const HODDashboard = () => {
       .catch(() => setProfileLoading(false));
   };
 
+  //fetch today counts for faculty, students, and non-teaching staff
   useEffect(() => {
     const fetchTodayCounts = async () => {
       try {
         const token = localStorage.getItem('token');
         const [facultyRes, studentRes, staffRes] = await Promise.all([
-          axios.get('http://69.62.83.14:9000/api/hod/faculty-today-attendance-count', { headers: { Authorization: `Bearer ${token}` } }),
-          axios.get('http://69.62.83.14:9000/api/hod/student-today-attendance-count', { headers: { Authorization: `Bearer ${token}` } }),
-          axios.get('http://69.62.83.14:9000/api/hod/nonteaching-today-attendance-count', { headers: { Authorization: `Bearer ${token}` } })
+          axios.get('http://69.62.83.14:9000/api/hod/faculty-today-attendance-count', { 
+            headers: { Authorization: `Bearer ${token}` } 
+          }).catch(e => ({ data: { count: 0 } })), // Fallback if error
+          axios.get('http://69.62.83.14:9000/api/hod/student-today-attendance-count', { 
+            headers: { Authorization: `Bearer ${token}` } 
+          }).catch(e => ({ data: { count: 0 } })),
+          axios.get('http://69.62.83.14:9000/api/hod/nonteaching-today-attendance-count', { 
+            headers: { Authorization: `Bearer ${token}` } 
+          }).catch(e => ({ data: { count: 0 } }))
         ]);
+        
         setTodayCounts({
-          faculty: facultyRes.data.count || 0,
-          students: studentRes.data.count || 0,
-          staff: staffRes.data.count || 0
+          faculty: facultyRes.data?.count || 0,
+          students: studentRes.data?.count || 0,
+          staff: staffRes.data?.count || 0
         });
       } catch (e) {
+        console.error('Error fetching today counts:', e);
         setTodayCounts({ students: 0, faculty: 0, staff: 0 });
       }
     };
+    
     fetchTodayCounts();
+    
+    // Refresh every 5 minutes
+    const interval = setInterval(fetchTodayCounts, 5 * 60 * 1000);
+    return () => clearInterval(interval);
   }, []);
 
   if (loading) {
