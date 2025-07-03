@@ -13,6 +13,7 @@ const Chatbot = () => {
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [showHelpText, setShowHelpText] = useState(false);
   const messagesEndRef = useRef(null);
 
   const scrollToBottom = () => {
@@ -69,12 +70,12 @@ const Chatbot = () => {
     <>
       {/* Show 'How may I help you?' above the chat button when chat is closed */}
       <AnimatePresence>
-        {!isOpen && (
+        {!isOpen && showHelpText && (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 10 }}
-            className="fixed bottom-20 right-6 z-50 flex justify-center w-60"
+            className="fixed bottom-20 right-6 z-50 flex justify-center w-60 pointer-events-none"
           >
             <div className="bg-red-100 text-red-700 px-4 py-2 rounded-t-lg font-semibold shadow text-center w-full">
               How may I help you?
@@ -89,6 +90,8 @@ const Chatbot = () => {
         whileHover={{ scale: 1.1 }}
         whileTap={{ scale: 0.9 }}
         onClick={() => setIsOpen(true)}
+        onMouseEnter={() => setShowHelpText(true)}
+        onMouseLeave={() => setShowHelpText(false)}
       >
         <FiMessageCircle size={24} />
       </motion.button>

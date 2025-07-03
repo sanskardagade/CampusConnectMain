@@ -587,18 +587,18 @@ const HODDashboard = () => {
                   <h3 className="text-xl font-bold mb-1">{todayCounts.students}</h3>
                   <p className="text-sm text-gray-600">Students Present Today</p>
                 </div>
-                <div className="bg-white rounded-xl p-5 shadow flex flex-col items-start border border-gray-100">
+                <div className="bg-white rounded-xl p-5 shadow flex flex-col items-start border border-gray-100 cursor-pointer hover:bg-red-50 transition" onClick={() => navigate('/hod/report')}>
                   <div className="w-10 h-10 rounded-lg bg-red-100 flex items-center justify-center mb-3">
                     <FiUserCheck className="text-red-600" size={22} />
                   </div>
                   <h3 className="text-xl font-bold mb-1">{todayCounts.faculty}</h3>
                   <p className="text-sm text-gray-600">Faculty Present Today</p>
                 </div>
-                <div className="bg-white rounded-xl p-5 shadow flex flex-col items-start border border-gray-100">
+                <div className="bg-white rounded-xl p-5 shadow flex flex-col items-start border border-gray-100 cursor-pointer hover:bg-red-50 transition" onClick={() => navigate('/hod/report')}>
                   <div className="w-10 h-10 rounded-lg bg-red-100 flex items-center justify-center mb-3">
                     <FiUsers className="text-red-600" size={22} />
                   </div>
-                  <h3 className="text-xl font-bold mb-1">{dashboardData.todayStats?.nonTeachingPresent || 0}</h3>
+                  <h3 className="text-xl font-bold mb-1">{todayCounts.staff}</h3>
                   <p className="text-sm text-gray-600">Non-Teaching Staff Present Today</p>
                 </div>
                 <div className="bg-white rounded-xl p-5 shadow flex flex-col items-start border border-gray-100">

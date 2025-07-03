@@ -7,7 +7,7 @@ import { BarChart as ReBarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Resp
 function HODFacultyStressLevel() {
   const [loading, setLoading] = useState(false);
   const [faculty, setFaculty] = useState([]);
-  const [selectedFaculty, setSelectedFaculty] = useState([]);
+  const [selectedFaculty, setSelectedFaculty] = useState(null);
   const [stressData, setStressData] = useState([]);
   const [profileLoading, setProfileLoading] = useState(false);
   const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().split('T')[0]);
@@ -50,25 +50,19 @@ function HODFacultyStressLevel() {
 
   // Optimized stress data fetching with debouncing
   useEffect(() => {
-    if (!selectedFaculty || selectedFaculty.length === 0) {
+    if (!selectedFaculty) {
       setStressData([]);
       return;
     }
-
     const fetchStressData = async () => {
       setProfileLoading(true);
       try {
         const token = localStorage.getItem('token');
-        const promises = selectedFaculty.map(fac =>
-          axios.get(
-            `http://69.62.83.14:9000/api/hod/view-stress-level?facultyId=${fac.value}`,
-            { headers: { Authorization: `Bearer ${token}` } }
-          ).then(res => (res.data || []).map(item => ({ ...item, name: fac.label })))
+        const res = await axios.get(
+          `http://69.62.83.14:9000/api/hod/view-stress-level?facultyId=${selectedFaculty.value}`,
+          { headers: { Authorization: `Bearer ${token}` } }
         );
-        
-        const results = await Promise.all(promises);
-        const combined = results.flat().sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-        setStressData(combined);
+        setStressData((res.data || []).map(item => ({ ...item, name: selectedFaculty.label })));
       } catch (err) {
         console.error('Error fetching stress data:', err);
         setStressData([]);
@@ -76,8 +70,6 @@ function HODFacultyStressLevel() {
         setProfileLoading(false);
       }
     };
-
-    // Add a small delay to prevent rapid API calls
     const timeoutId = setTimeout(fetchStressData, 300);
     return () => clearTimeout(timeoutId);
   }, [selectedFaculty]);
@@ -243,7 +235,7 @@ function HODFacultyStressLevel() {
         <div className="bg-white rounded-2xl shadow-xl border border-white/20 overflow-hidden p-8">
           <label className="block text-lg font-semibold mb-2 text-gray-900">Select Faculty</label>
           <Select
-            isMulti
+            isMulti={false}
             isSearchable
             options={facultyOptions}
             value={selectedFaculty}
@@ -264,11 +256,11 @@ function HODFacultyStressLevel() {
           <div className="flex items-center justify-center py-12">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600"></div>
           </div>
-        ) : selectedFaculty.length === 0 ? (
+        ) : !selectedFaculty ? (
           <div className="text-center py-12">
             <Users className="mx-auto text-gray-400" size={48} />
             <h3 className="text-xl font-semibold text-gray-600 mt-4">No Faculty Selected</h3>
-            <p className="text-gray-500">Please select at least one faculty member to view stress logs.</p>
+            <p className="text-gray-500">Please select a faculty member to view stress logs.</p>
           </div>
         ) : (
           <>
