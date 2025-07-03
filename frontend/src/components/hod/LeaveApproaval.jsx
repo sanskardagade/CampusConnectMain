@@ -10,6 +10,7 @@ export default function LeaveApprovalDashboard() {
   const [loading, setLoading] = useState(true);
   const [leaveApplications, setLeaveApplications] = useState([]);
   const [recentActions, setRecentActions] = useState([]);
+  const [selectedTab, setSelectedTab] = useState('Pending');
 
   // Load recent actions from sessionStorage on component mount
   useEffect(() => {
@@ -157,19 +158,6 @@ export default function LeaveApprovalDashboard() {
       <HeaderMobile title="Leaves" />
       <div className="pt-16">
         <div className="flex flex-col min-h-screen bg-gray-50">
-          {/* Header */}
-          <header className="bg-red-900 text-white p-4 shadow-md">
-            <div className="container mx-auto flex justify-between items-center">
-              <h1 className="text-2xl font-bold">HOD Leave Approval Dashboard</h1>
-              <div className="flex items-center space-x-4">
-                <span className="text-sm">Welcome, Department Head</span>
-                <div className="h-10 w-10 rounded-full bg-red-700 flex items-center justify-center">
-                  <span className="font-semibold">HD</span>
-                </div>
-              </div>
-            </div>
-          </header>
-
           {/* Main Content */}
           <main className="container mx-auto flex-grow p-4 md:p-6">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -180,11 +168,26 @@ export default function LeaveApprovalDashboard() {
                   <div className="flex items-center justify-between mb-4">
                     <h2 className="text-xl font-semibold text-red-900">Pending Approvals</h2>
                     <span className="bg-red-100 text-red-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
-                      {leaveApplications.filter(app => app.HodApproval === "Pending").length} pending
+                      {leaveApplications.filter(app => app.status === selectedTab).length} {selectedTab.toLowerCase()}
                     </span>
                   </div>
                   <div className="space-y-3">
-                    {leaveApplications.filter(app => app.HodApproval === "Pending").map((application, index) => (
+                    <div className="flex mb-4 rounded-lg overflow-hidden shadow divide-x divide-gray-200 bg-white">
+                      {['Pending', 'Approved', 'Rejected'].map(tab => (
+                        <button
+                          key={tab}
+                          onClick={() => setSelectedTab(tab)}
+                          className={`flex-1 px-4 py-2 font-semibold text-sm transition-colors duration-150 ${
+                            selectedTab === tab
+                              ? (tab === 'Pending' ? 'bg-yellow-100 text-yellow-800' : tab === 'Approved' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800')
+                              : 'bg-white text-gray-600 hover:bg-gray-100'
+                          }`}
+                        >
+                          {tab}
+                        </button>
+                      ))}
+                    </div>
+                    {leaveApplications.filter(app => app.status === selectedTab).map((application, index) => (
                       <div 
                         key={`pending-${application.ErpStaffId || index}`}
                         className={`border rounded-lg p-3 cursor-pointer transition-all duration-200 ${
@@ -218,11 +221,11 @@ export default function LeaveApprovalDashboard() {
                       </div>
                     ))}
                     
-                    {leaveApplications.filter(app => app.HodApproval === "Pending").length === 0 && (
+                    {leaveApplications.filter(app => app.status === selectedTab).length === 0 && (
                       <div className="text-center py-8 text-gray-500 bg-gray-50 rounded-lg">
                         <AlertCircle className="mx-auto h-8 w-8 text-gray-400 mb-2" />
-                        <p>No pending approvals</p>
-                        <p className="text-sm mt-1">All leave applications have been processed</p>
+                        <p>No {selectedTab.toLowerCase()} applications</p>
+                        <p className="text-sm mt-1">{selectedTab === 'Pending' ? 'All leave applications have been processed' : `No ${selectedTab.toLowerCase()} leave applications found`}</p>
                       </div>
                     )}
                   </div>

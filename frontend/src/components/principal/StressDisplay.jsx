@@ -124,12 +124,12 @@ function StressDisplay() {
       }
     });
     return [
-      { level: 'L1', count: counts.L1, type: 'stressed', color: '#991b1b' },
-      { level: 'L2', count: counts.L2, type: 'stressed', color: '#dc2626' },
-      { level: 'L3', count: counts.L3, type: 'stressed', color: '#fca5a5' },
-      { level: 'A1', count: counts.A1, type: 'active', color: '#065f46' },
-      { level: 'A2', count: counts.A2, type: 'active', color: '#22c55e' },
-      { level: 'A3', count: counts.A3, type: 'active', color: '#bbf7d0' }
+      { level: 'L1', count: counts.L1, type: 'stressed', color: '#7f1d1d' },
+      { level: 'L2', count: counts.L2, type: 'stressed', color: '#991b1b' },
+      { level: 'L3', count: counts.L3, type: 'stressed', color: '#b91c1c' },
+      { level: 'A1', count: counts.A1, type: 'unstress', color: '#22c55e' },
+      { level: 'A2', count: counts.A2, type: 'unstress', color: '#4ade80' },
+      { level: 'A3', count: counts.A3, type: 'unstress', color: '#86efac' }
     ];
   }, [filteredData]);
 
@@ -222,21 +222,21 @@ function StressDisplay() {
           <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
             <div className="space-y-2">
               <div className="flex items-center gap-3">
-                <div className="p-3 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-xl shadow-lg">
+                <div className="p-3 bg-gradient-to-r from-red-800 to-red-900 rounded-xl shadow-lg">
                   <BarChart3 className="text-white" size={24} />
                 </div>
                 <div>
-                  <h1 className="text-3xl font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-blue-600 bg-clip-text text-transparent">
+                  <h1 className="text-3xl font-bold bg-gradient-to-r from-red-900 via-red-800 to-red-700 bg-clip-text text-transparent">
                     Faculty & Staff Stress Levels
                   </h1>
-                  <p className="text-slate-600 font-medium">Department-wise stress monitoring and insights</p>
+                  <p className="text-red-700 font-medium">Department-wise stress monitoring and insights</p>
                 </div>
               </div>
             </div>
             <div className="flex items-center gap-4">
               <button
                 onClick={fetchDepartments}
-                className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
+                className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-red-800 to-red-900 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
               >
                 <RefreshCw size={18} />
                 Refresh
@@ -250,10 +250,10 @@ function StressDisplay() {
           <div className="p-6 border-b border-white/20">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <GraduationCap className="text-indigo-600" size={24} />
-                <h3 className="text-xl font-bold text-slate-800">Departments</h3>
+                <GraduationCap className="text-red-800" size={24} />
+                <h3 className="text-xl font-bold text-red-900">Departments</h3>
               </div>
-              <span className="text-sm text-slate-600 bg-white/50 px-3 py-1 rounded-full">
+              <span className="text-sm text-red-700 bg-white/50 px-3 py-1 rounded-full">
                 {selectedDept ? departments.find(d => d.id === selectedDept)?.name : 'Select a department'}
               </span>
             </div>
@@ -266,15 +266,15 @@ function StressDisplay() {
                   onClick={() => fetchFacultyOrStaff(dept.id, selectedTab, true)}
                   className={`group p-4 rounded-xl transition-all duration-300 ${
                     selectedDept === dept.id
-                      ? 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-lg scale-105'
-                      : 'bg-white/60 hover:bg-white/80 text-slate-700 hover:shadow-lg hover:scale-105'
+                      ? 'bg-gradient-to-r from-red-800 to-red-900 text-white shadow-lg scale-105'
+                      : 'bg-white/60 hover:bg-white/80 text-red-900 hover:shadow-lg hover:scale-105'
                   }`}
                 >
                   <div className="text-center">
                     <div className={`w-12 h-12 mx-auto rounded-xl flex items-center justify-center mb-3 transition-colors ${
                       selectedDept === dept.id
                         ? 'bg-white/20 text-white'
-                        : 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white group-hover:scale-110'
+                        : 'bg-gradient-to-r from-red-800 to-red-900 text-white group-hover:scale-110'
                     }`}>
                       <Building size={20} />
                     </div>
@@ -290,7 +290,7 @@ function StressDisplay() {
         <div className="flex justify-center mb-4">
           <div className="inline-flex rounded-xl bg-white/70 shadow border border-white/30 overflow-hidden">
             <button
-              className={`px-6 py-3 font-semibold transition-all duration-200 ${selectedTab === 'faculty' ? 'bg-indigo-500 text-white shadow' : 'text-indigo-700 hover:bg-indigo-100'}`}
+              className={`px-6 py-3 font-semibold transition-all duration-200 ${selectedTab === 'faculty' ? 'bg-red-800 text-white shadow' : 'text-red-800 hover:bg-red-100'}`}
               onClick={async () => {
                 if (selectedTab === 'faculty') return;
                 setSelectedTab('faculty');
@@ -312,7 +312,7 @@ function StressDisplay() {
               Faculty
             </button>
             <button
-              className={`px-6 py-3 font-semibold transition-all duration-200 ${selectedTab === 'staff' ? 'bg-purple-600 text-white shadow' : 'text-purple-700 hover:bg-purple-100'}`}
+              className={`px-6 py-3 font-semibold transition-all duration-200 ${selectedTab === 'staff' ? 'bg-red-900 text-white shadow' : 'text-red-900 hover:bg-red-100'}`}
               onClick={async () => {
                 if (selectedTab === 'staff') return;
                 setSelectedTab('staff');
@@ -403,8 +403,14 @@ function StressDisplay() {
 
         {/* Modal Overlay for Analytics and Records */}
         {modalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm">
-            <div className="relative w-full max-w-5xl mx-auto bg-white rounded-2xl shadow-2xl p-6 overflow-y-auto max-h-[90vh] animate-fadeIn">
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm"
+            onClick={handleCloseModal}
+          >
+            <div
+              className="relative w-full max-w-5xl mx-auto bg-white rounded-2xl shadow-2xl p-6 overflow-y-auto max-h-[90vh] animate-fadeIn"
+              onClick={e => e.stopPropagation()}
+            >
               {/* Close Button (fixed) */}
               <button
                 onClick={handleCloseModal}
@@ -465,10 +471,10 @@ function StressDisplay() {
                       <div className="flex items-center justify-between">
                         <div>
                           <p className="text-gray-600 text-sm font-medium">Stressed Sessions</p>
-                          <p className="text-3xl font-bold text-red-600">{stats.stressed}</p>
-                          <p className="text-sm text-red-500 font-medium">{stats.stressPercentage}% of total</p>
+                          <p className="text-3xl font-bold text-red-800">{stats.stressed}</p>
+                          <p className="text-sm text-red-700 font-medium">{stats.stressPercentage}% of total</p>
                         </div>
-                        <div className="bg-gradient-to-r from-red-500 to-red-600 p-3 rounded-xl">
+                        <div className="bg-gradient-to-r from-red-800 to-red-900 p-3 rounded-xl">
                           <AlertTriangle className="h-8 w-8 text-white" />
                         </div>
                       </div>
@@ -478,10 +484,10 @@ function StressDisplay() {
                       <div className="flex items-center justify-between">
                         <div>
                           <p className="text-gray-600 text-sm font-medium">Active Sessions</p>
-                          <p className="text-3xl font-bold text-green-600">{stats.active}</p>
-                          <p className="text-sm text-green-500 font-medium">{stats.activePercentage}% of total</p>
+                          <p className="text-3xl font-bold text-red-700">{stats.active}</p>
+                          <p className="text-sm text-red-500 font-medium">{stats.activePercentage}% of total</p>
                         </div>
-                        <div className="bg-gradient-to-r from-green-500 to-green-600 p-3 rounded-xl">
+                        <div className="bg-gradient-to-r from-red-700 to-red-800 p-3 rounded-xl">
                           <Activity className="h-8 w-8 text-white" />
                         </div>
                       </div>
@@ -491,12 +497,12 @@ function StressDisplay() {
                       <div className="flex items-center justify-between">
                         <div>
                           <p className="text-gray-600 text-sm font-medium">Wellness Score</p>
-                          <p className="text-3xl font-bold text-blue-600">
+                          <p className="text-3xl font-bold text-red-900">
                             {stats.total > 0 ? Math.max(0, 100 - stats.stressPercentage) : 0}
                           </p>
-                          <p className="text-sm text-blue-500 font-medium">Out of 100</p>
+                          <p className="text-sm text-red-700 font-medium">Out of 100</p>
                         </div>
-                        <div className="bg-gradient-to-r from-blue-500 to-blue-600 p-3 rounded-xl">
+                        <div className="bg-gradient-to-r from-red-900 to-red-800 p-3 rounded-xl">
                           <TrendingUp className="h-8 w-8 text-white" />
                         </div>
                       </div>
@@ -557,7 +563,7 @@ function StressDisplay() {
                   {/* Enhanced Charts Section */}
                   {filteredData.length > 0 && (
                     <div className="bg-white rounded-2xl shadow-xl border border-white/20 overflow-hidden">
-                      <div className="bg-gradient-to-r from-indigo-600 to-purple-700 p-6">
+                      <div className="bg-gradient-to-r from-red-900 to-red-800 p-6">
                         <div className="flex items-center space-x-3">
                           <BarChart3 className="h-6 w-6 text-white" />
                           <h2 className="text-2xl font-bold text-white">Stress Level Distribution</h2>
@@ -614,12 +620,12 @@ function StressDisplay() {
                         {/* End Compact Info Box */}
                         <div className="flex justify-center space-x-12 mt-6">
                           <div className="flex items-center space-x-3">
-                            <div className="w-6 h-6 bg-gradient-to-r from-red-500 to-red-600 rounded-full shadow-lg"></div>
-                            <span className="text-lg font-semibold text-gray-700">Stressed Levels (L1, L2, L3)</span>
+                            <div className="w-6 h-6 bg-gradient-to-r from-red-800 to-red-900 rounded-full shadow-lg"></div>
+                            <span className="text-lg font-semibold text-red-900">Stressed Levels (L1, L2, L3)</span>
                           </div>
                           <div className="flex items-center space-x-3">
-                            <div className="w-6 h-6 bg-gradient-to-r from-green-500 to-green-600 rounded-full shadow-lg"></div>
-                            <span className="text-lg font-semibold text-gray-700">Active Levels (A1, A2, A3)</span>
+                            <div className="w-6 h-6 bg-gradient-to-r from-green-400 to-green-500 rounded-full shadow-lg"></div>
+                            <span className="text-lg font-semibold text-green-700">Unstress Levels (A1, A2, A3)</span>
                           </div>
                         </div>
                       </div>
@@ -644,7 +650,6 @@ function StressDisplay() {
                         </h2>
                       </div>
                     </div>
-                    
                     <div className="p-6">
                       {filteredData.length === 0 ? (
                         <div className="text-center py-16">
@@ -655,21 +660,33 @@ function StressDisplay() {
                           <p className="text-gray-400 text-lg">Try selecting a different date range to view data</p>
                         </div>
                       ) : (
-                        <div className="space-y-4">
-                          {filteredData.map((record, index) => {
-                            const statusBadge = getStatusBadge(record.stress_status);
-                            const levelBadge = getLevelBadge(record.stress_level);
-                            const StatusIcon = statusBadge.icon;
-                            
-                            return (
-                              <div 
-                                key={record.id} 
-                                className="group relative bg-gradient-to-r from-white to-gray-50 p-6 border-2 border-gray-100 rounded-2xl hover:border-blue-200 hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
-                                style={{ animationDelay: `${index * 100}ms` }}
-                              >
-                                <div className="flex items-center justify-between">
-                                  <div className="flex items-center space-x-6">
-                                    <div className="flex items-center space-x-3">
+                        <>
+                          {/* Sub-header row for columns */}
+                          <div className="flex items-center justify-between px-4 py-2 mb-2 bg-gray-100 rounded-lg font-semibold text-gray-700 text-base">
+                            <div className="w-1/4">Date</div>
+                            <div className="w-1/4">Time</div>
+                            <div className="w-1/4">Status</div>
+                            <div className="w-1/4">Level</div>
+                          </div>
+                          <div className="space-y-4">
+                            {filteredData.map((record, index) => {
+                              const statusBadge = getStatusBadge(record.stress_status);
+                              const levelBadge = getLevelBadge(record.stress_level);
+                              const StatusIcon = statusBadge.icon;
+                              
+                              return (
+                                <div 
+                                  key={record.id} 
+                                  className="group relative bg-gradient-to-r from-white to-gray-50 p-6 border-2 border-gray-100 rounded-2xl hover:border-blue-200 hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
+                                  style={{ animationDelay: `${index * 100}ms` }}
+                                >
+                                  <div className="flex items-center justify-between">
+                                    {/* Date */}
+                                    <div className="w-1/4 flex items-center font-mono text-base text-gray-700">
+                                      {record.timestamp.toISOString().split('T')[0]}
+                                    </div>
+                                    {/* Time */}
+                                    <div className="w-1/4 flex items-center space-x-3">
                                       <div className="bg-gradient-to-r from-blue-100 to-indigo-100 p-2 rounded-lg">
                                         <Clock className="h-5 w-5 text-blue-600" />
                                       </div>
@@ -677,30 +694,23 @@ function StressDisplay() {
                                         {formatTime(record.timestamp)}
                                       </span>
                                     </div>
-                                    
-                                    <div className={`flex items-center space-x-2 px-4 py-2 rounded-xl ${statusBadge.className} transition-all duration-200`}>
+                                    {/* Status */}
+                                    <div className={`w-1/4 flex items-center justify-center space-x-2 px-4 py-2 rounded-xl ${statusBadge.className} transition-all duration-200`}>
                                       <StatusIcon className="h-4 w-4" />
                                       <span className="font-bold text-sm">{record.stress_status}</span>
                                     </div>
-                                    
-                                    <div className={`px-3 py-2 rounded-xl font-bold text-sm ${levelBadge.className} ${levelBadge.pulse ? 'animate-pulse' : ''}`}> 
+                                    {/* Level */}
+                                    <div className={`w-1/4 flex items-center justify-center px-3 py-2 rounded-xl font-bold text-sm ${levelBadge.className} ${levelBadge.pulse ? 'animate-pulse' : ''}`}> 
                                       {record.stress_level}
                                     </div>
                                   </div>
-                                  
-                                  <div className="flex items-center space-x-3">
-                                    <span className="text-sm text-gray-500 font-medium">ID:</span>
-                                    <span className="bg-gradient-to-r from-indigo-100 to-purple-100 px-3 py-1 rounded-lg font-mono font-bold text-indigo-800">
-                                      {record.id}
-                                    </span>
-                                  </div>
+                                  {/* Hover effect indicator */}
+                                  <div className="absolute left-0 top-0 h-full w-1 bg-gradient-to-b from-blue-500 to-indigo-600 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                                 </div>
-                                {/* Hover effect indicator */}
-                                <div className="absolute left-0 top-0 h-full w-1 bg-gradient-to-b from-blue-500 to-indigo-600 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                              </div>
-                            );
-                          })}
-                        </div>
+                              );
+                            })}
+                          </div>
+                        </>
                       )}
                     </div>
                   </div>

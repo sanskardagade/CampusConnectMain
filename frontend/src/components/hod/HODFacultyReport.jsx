@@ -12,13 +12,13 @@ const formats = [
 const reportTypes = [
   { value: 'attendance', label: 'Attendance Report' },
   { value: 'stress', label: 'Stress Report' },
-  { value: 'leave', label: 'Leave Report' },
+  { value: 'leave', label: 'Leave Report' },  
 ];
 
 const HODFacultyReport = () => {
   const [faculty, setFaculty] = useState([]);
   const [selectedFaculty, setSelectedFaculty] = useState('all');
-  const [format, setFormat] = useState('csv');
+  const [format, setFormat] = useState('pdf');
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
   const [downloading, setDownloading] = useState(false);
@@ -26,6 +26,7 @@ const HODFacultyReport = () => {
   const facultyDropdownOpen = useRef(false);
   const facultyDropdownRef = useRef(null);
   const [reportType, setReportType] = useState('attendance');
+  const [rangeType, setRangeType] = useState('daily');
 
   useEffect(() => {
     // Fetch faculty for dropdown
@@ -58,6 +59,30 @@ const HODFacultyReport = () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [facultyDropdownOpen.current]);
+
+  useEffect(() => {
+    // Set default date range based on rangeType
+    const today = new Date();
+    if (rangeType === 'daily') {
+      const d = today.toISOString().split('T')[0];
+      setFromDate(d);
+      setToDate(d);
+    } else if (rangeType === 'weekly') {
+      const day = today.getDay();
+      const diffToMonday = (day === 0 ? -6 : 1) - day;
+      const monday = new Date(today);
+      monday.setDate(today.getDate() + diffToMonday);
+      const sunday = new Date(monday);
+      sunday.setDate(monday.getDate() + 6);
+      setFromDate(monday.toISOString().split('T')[0]);
+      setToDate(sunday.toISOString().split('T')[0]);
+    } else if (rangeType === 'monthly') {
+      const first = new Date(today.getFullYear(), today.getMonth(), 1);
+      const last = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+      setFromDate(first.toISOString().split('T')[0]);
+      setToDate(last.toISOString().split('T')[0]);
+    }
+  }, [rangeType]);
 
   const handleDownload = async () => {
     setDownloading(true);
@@ -140,6 +165,21 @@ const HODFacultyReport = () => {
                   onClick={() => setReportType(rt.value)}
                 >
                   {rt.label}
+                </button>
+              ))}
+            </div>
+            <div className="flex gap-2 mb-6">
+              {['daily', 'weekly', 'monthly'].map(type => (
+                <button
+                  key={type}
+                  className={`px-4 py-2 rounded-xl font-semibold border-2 transition-all duration-200 ${
+                    rangeType === type
+                      ? 'bg-gradient-to-r from-red-800 to-red-600 text-white border-red-700 shadow-lg'
+                      : 'bg-white text-red-800 border-red-300 hover:border-red-600'
+                  }`}
+                  onClick={() => setRangeType(type)}
+                >
+                  {type.charAt(0).toUpperCase() + type.slice(1)}
                 </button>
               ))}
             </div>

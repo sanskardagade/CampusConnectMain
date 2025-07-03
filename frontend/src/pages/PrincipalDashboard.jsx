@@ -11,6 +11,7 @@ import ProfileView from './ProfileView';
 import FacultyLogDisplay from '../components/faculty/FacultyLogDisplay';
 import dayjs from 'dayjs';
 import HeaderPrincipal from '../components/common/HeaderPrincipal';
+import { useNavigate } from 'react-router-dom';
 
 const PrincipalDashboard = () => {
   const [loading, setLoading] = useState(true);
@@ -48,6 +49,13 @@ const PrincipalDashboard = () => {
   const [presentStudents, setPresentStudents] = useState(0);
   const [presentFaculty, setPresentFaculty] = useState(0);
   const [presentStaff, setPresentStaff] = useState(0);
+  const [showPresentFacultyModal, setShowPresentFacultyModal] = useState(false);
+  const [showPresentStaffModal, setShowPresentStaffModal] = useState(false);
+  const [presentFacultyList, setPresentFacultyList] = useState([]);
+  const [presentStaffList, setPresentStaffList] = useState([]);
+  const [facultyDeptFilter, setFacultyDeptFilter] = useState('all');
+  const [staffDeptFilter, setStaffDeptFilter] = useState('all');
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchDashboardData();
@@ -313,6 +321,39 @@ const PrincipalDashboard = () => {
     }
   };
 
+  // Handler to fetch and show present faculty modal
+  const handleShowPresentFaculty = async () => {
+    setShowPresentFacultyModal(true);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await axios.get('http://69.62.83.14:9000/api/principal/present-faculty-today', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setPresentFacultyList(res.data.presentFaculty || []);
+    } catch (e) {
+      setPresentFacultyList([]);
+    }
+  };
+
+  // Handler to fetch and show present staff modal
+  const handleShowPresentStaff = async () => {
+    setShowPresentStaffModal(true);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await axios.get('http://69.62.83.14:9000/api/principal/present-staff-today', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setPresentStaffList(res.data.presentStaff || []);
+    } catch (e) {
+      setPresentStaffList([]);
+    }
+  };
+
+  // Handler for navigating to faculty leave approval
+  const handleNavigateLeaveApproval = () => {
+    navigate('/principal/faculty-leave-approval');
+  };
+
   if (loading) {
     return (
       <div className="flex-1 overflow-auto bg-gray-50 p-4 sm:p-6 flex items-center justify-center">
@@ -378,7 +419,7 @@ const PrincipalDashboard = () => {
               icon={<FiBook size={20} />}
               title="Departments"
               value={stats.departments}
-              color="from-blue-500 to-blue-600"
+              color="from-red-700 to-red-900"
               delay={0.1}
             />
           </button>
@@ -390,7 +431,7 @@ const PrincipalDashboard = () => {
               icon={<FiUsers size={20} />}
               title="Students"
               value="3000+"
-              color="from-green-500 to-green-600"
+              color="from-red-700 to-red-900"
               delay={0.2}
             />
           </button>
@@ -402,7 +443,7 @@ const PrincipalDashboard = () => {
               icon={<FiUser size={20} />}
               title="Faculty"
               value={stats.faculty}
-              color="from-red-500 to-red-600"
+              color="from-red-700 to-red-900"
               delay={0.3}
             />
           </button>
@@ -414,7 +455,7 @@ const PrincipalDashboard = () => {
               icon={<FiBriefcase size={20} />}
               title="Non-Teaching Staff"
               value={stats.staff}
-              color="from-purple-500 to-purple-600"
+              color="from-red-700 to-red-900"
               delay={0.4}
             />
           </button>
@@ -427,34 +468,49 @@ const PrincipalDashboard = () => {
           transition={{ delay: 0.2 }}
           className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8"
         >
-          <StatCard 
-            icon={<FiBook size={20} />}
-            title="Pending Leave Approvals"
-            value={pendingLeaves}
-            color="from-blue-500 to-blue-600"
-            delay={0.1}
-          />
+          <button
+            onClick={handleNavigateLeaveApproval}
+            style={{ background: 'none', border: 'none', padding: 0, margin: 0, width: '100%', textAlign: 'left', cursor: 'pointer' }}
+          >
+            <StatCard 
+              icon={<FiBook size={20} />}
+              title="Pending Leave Approvals"
+              value={pendingLeaves}
+              color="from-red-700 to-red-900"
+              delay={0.1}
+            />
+          </button>
           <StatCard 
             icon={<FiUsers size={20} />}
             title="Present Students"
             value={presentStudents}
-            color="from-green-500 to-green-600"
+            color="from-red-700 to-red-900"
             delay={0.2}
           />
-          <StatCard 
-            icon={<FiUser size={20} />}
-            title="Present Faculty"
-            value={presentFaculty}
-            color="from-red-500 to-red-600"
-            delay={0.3}
-          />
-          <StatCard 
-            icon={<FiBriefcase size={20} />}
-            title="Present Non-Teaching Staff"
-            value={presentStaff}
-            color="from-purple-500 to-purple-600"
-            delay={0.4}
-          />
+          <button
+            onClick={handleShowPresentFaculty}
+            style={{ background: 'none', border: 'none', padding: 0, margin: 0, width: '100%', textAlign: 'left', cursor: 'pointer' }}
+          >
+            <StatCard 
+              icon={<FiUser size={20} />}
+              title="Present Faculty"
+              value={presentFaculty}
+              color="from-red-700 to-red-900"
+              delay={0.3}
+            />
+          </button>
+          <button
+            onClick={handleShowPresentStaff}
+            style={{ background: 'none', border: 'none', padding: 0, margin: 0, width: '100%', textAlign: 'left', cursor: 'pointer' }}
+          >
+            <StatCard 
+              icon={<FiBriefcase size={20} />}
+              title="Present Non-Teaching Staff"
+              value={presentStaff}
+              color="from-red-700 to-red-900"
+              delay={0.4}
+            />
+          </button>
         </motion.div>
 
         {showStudentUnavailable && (
@@ -848,6 +904,105 @@ const PrincipalDashboard = () => {
           </div>
         </motion.div> */}
       </div>
+
+      {/* Present Faculty Modal */}
+      <AnimatePresence>
+        {showPresentFacultyModal && (
+          <motion.div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+            <div className="bg-white rounded-xl shadow-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto relative p-6">
+              <button
+                className="absolute top-2 right-2 text-gray-500 hover:text-red-600 text-2xl font-bold"
+                onClick={() => setShowPresentFacultyModal(false)}
+              >
+                &times;
+              </button>
+              <h2 className="text-xl font-bold mb-4 text-red-700">Present Faculty Today</h2>
+              <div className="mb-4">
+                <label className="block text-sm font-medium mb-1">Filter by Department:</label>
+                <select
+                  value={facultyDeptFilter}
+                  onChange={e => setFacultyDeptFilter(e.target.value)}
+                  className="p-2 border rounded w-full"
+                >
+                  <option value="all">All Departments</option>
+                  {departments.map(dept => (
+                    <option key={dept.id} value={dept.id}>{dept.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="divide-y divide-gray-200">
+                {presentFacultyList.filter(f => facultyDeptFilter === 'all' || String(f.departmentId) === String(facultyDeptFilter)).length === 0 ? (
+                  <div className="p-4 text-center text-gray-500">No present faculty found for this department.</div>
+                ) : (
+                  presentFacultyList
+                    .filter(f => facultyDeptFilter === 'all' || String(f.departmentId) === String(facultyDeptFilter))
+                    .map(faculty => (
+                      <div key={faculty.id} className="p-3 flex items-center">
+                        <div className="w-8 h-8 rounded-full bg-red-100 text-red-600 flex items-center justify-center mr-3 font-bold">
+                          {faculty.name?.charAt(0) || 'F'}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-medium truncate">{faculty.name}</h4>
+                          <div className="text-xs text-gray-500">{faculty.email}</div>
+                          <div className="text-xs text-gray-400">Department: {faculty.departmentName || 'N/A'}</div>
+                        </div>
+                      </div>
+                    ))
+                )}
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+      {/* Present Staff Modal */}
+      <AnimatePresence>
+        {showPresentStaffModal && (
+          <motion.div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+            <div className="bg-white rounded-xl shadow-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto relative p-6">
+              <button
+                className="absolute top-2 right-2 text-gray-500 hover:text-purple-600 text-2xl font-bold"
+                onClick={() => setShowPresentStaffModal(false)}
+              >
+                &times;
+              </button>
+              <h2 className="text-xl font-bold mb-4 text-purple-700">Present Non-Teaching Staff Today</h2>
+              <div className="mb-4">
+                <label className="block text-sm font-medium mb-1">Filter by Department:</label>
+                <select
+                  value={staffDeptFilter}
+                  onChange={e => setStaffDeptFilter(e.target.value)}
+                  className="p-2 border rounded w-full"
+                >
+                  <option value="all">All Departments</option>
+                  {departments.map(dept => (
+                    <option key={dept.id} value={dept.id}>{dept.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="divide-y divide-gray-200">
+                {presentStaffList.filter(s => staffDeptFilter === 'all' || String(s.departmentId) === String(staffDeptFilter)).length === 0 ? (
+                  <div className="p-4 text-center text-gray-500">No present staff found for this department.</div>
+                ) : (
+                  presentStaffList
+                    .filter(s => staffDeptFilter === 'all' || String(s.departmentId) === String(staffDeptFilter))
+                    .map(staff => (
+                      <div key={staff.id} className="p-3 flex items-center">
+                        <div className="w-8 h-8 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center mr-3 font-bold">
+                          {staff.name?.charAt(0) || 'S'}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-medium truncate">{staff.name}</h4>
+                          <div className="text-xs text-gray-500">{staff.email}</div>
+                          <div className="text-xs text-gray-400">Department: {staff.departmentName || 'N/A'}</div>
+                        </div>
+                      </div>
+                    ))
+                )}
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </>
   );
 };

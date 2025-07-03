@@ -427,9 +427,9 @@ router.get('/faculty-attendance-report', async (req, res) => {
         }
         records = await sql`
             SELECT
-                f.name AS faculty_name,
-                f.erpid,
-                d.name AS department_name,
+                log_summary.person_name AS faculty_name,
+                log_summary.erp_id,
+                COALESCE(d.name, 'Unknown') AS department_name,
                 log_summary.attendance_date,
                 log_summary.first_log,
                 log_summary.last_log
@@ -437,6 +437,7 @@ router.get('/faculty-attendance-report', async (req, res) => {
                 (
                     SELECT
                         erp_id,
+                        COALESCE(NULLIF(person_name, ''), 'Unknown') AS person_name,
                         DATE(timestamp AT TIME ZONE 'Asia/Kolkata') AS attendance_date,
                         MIN(timestamp) AS first_log,
                         MAX(timestamp) AS last_log
@@ -447,21 +448,22 @@ router.get('/faculty-attendance-report', async (req, res) => {
                         DATE(timestamp AT TIME ZONE 'Asia/Kolkata') <= ${to}::date
                     GROUP BY
                         erp_id,
+                        person_name,
                         attendance_date
                 ) AS log_summary
-            JOIN
+            LEFT JOIN
                 faculty f ON log_summary.erp_id = f.erpid
-            JOIN
+            LEFT JOIN
                 departments d ON f.department_id = d.id
-            WHERE f.department_id = ANY(${deptIds})
-            ORDER BY d.name, f.name, log_summary.attendance_date
+            WHERE (f.department_id = ANY(${deptIds}) OR f.department_id IS NULL)
+            ORDER BY department_name, faculty_name, log_summary.attendance_date
         `;
       } else {
           records = await sql`
               SELECT
-                  f.name AS faculty_name,
-                  f.erpid,
-                  d.name AS department_name,
+                  log_summary.person_name AS faculty_name,
+                  log_summary.erp_id,
+                  COALESCE(d.name, 'Unknown') AS department_name,
                   log_summary.attendance_date,
                   log_summary.first_log,
                   log_summary.last_log
@@ -469,6 +471,7 @@ router.get('/faculty-attendance-report', async (req, res) => {
                   (
                       SELECT
                           erp_id,
+                          COALESCE(NULLIF(person_name, ''), 'Unknown') AS person_name,
                           DATE(timestamp AT TIME ZONE 'Asia/Kolkata') AS attendance_date,
                           MIN(timestamp) AS first_log,
                           MAX(timestamp) AS last_log
@@ -479,13 +482,14 @@ router.get('/faculty-attendance-report', async (req, res) => {
                           DATE(timestamp AT TIME ZONE 'Asia/Kolkata') <= ${to}::date
                       GROUP BY
                           erp_id,
+                          person_name,
                           attendance_date
                   ) AS log_summary
-              JOIN
+              LEFT JOIN
                   faculty f ON log_summary.erp_id = f.erpid
-              JOIN
+              LEFT JOIN
                   departments d ON f.department_id = d.id
-              ORDER BY d.name, f.name, log_summary.attendance_date
+              ORDER BY department_name, faculty_name, log_summary.attendance_date
           `;
       }
 
@@ -494,8 +498,23 @@ router.get('/faculty-attendance-report', async (req, res) => {
           return res.status(404).send('No attendance data found for the selected criteria.');
       }
 
+      // Helper functions for IST conversion
+      function toISTDateString(utcDateString) {
+        const date = new Date(utcDateString);
+        const utc = date.getTime() + (date.getTimezoneOffset() * 60000);
+        const istOffset = 5.5 * 60 * 60 * 1000;
+        const istDate = new Date(utc + istOffset);
+        return istDate.toISOString().split('T')[0];
+      }
+      function toISTTimeString(utcDateString) {
+        const date = new Date(utcDateString);
+        const utc = date.getTime() + (date.getTimezoneOffset() * 60000);
+        const istOffset = 5.5 * 60 * 60 * 1000;
+        const istDate = new Date(utc + istOffset);
+        return istDate.toTimeString().split(' ')[0];
+      }
+
       if (format === 'pdf') {
-        // Generate PDF with table formatting
         const doc = new PDFDocument({ margin: 30, size: 'A4', layout: 'landscape' });
         res.setHeader('Content-Type', 'application/pdf');
         res.setHeader('Content-Disposition', 'attachment; filename=faculty_attendance.pdf');
@@ -510,10 +529,8 @@ router.get('/faculty-attendance-report', async (req, res) => {
         const startX = doc.x;
         let y = doc.y;
 
-        // Draw header row
         function drawHeader() {
           let x = startX;
-          doc.font('Helvetica-Bold').fontSize(10);
           doc.font('Helvetica-Bold').fontSize(10);
           headers.forEach((header, i) => {
             doc.rect(x, y, colWidths[i], 20).stroke();
@@ -526,23 +543,6 @@ router.get('/faculty-attendance-report', async (req, res) => {
         }
         drawHeader();
 
-        // Robust UTC-to-IST conversion for time and date
-        function toISTTimeString(utcDateString) {
-          const date = new Date(utcDateString);
-          const utc = date.getTime() + (date.getTimezoneOffset() * 60000);
-          const istOffset = 5.5 * 60 * 60 * 1000;
-          const istDate = new Date(utc + istOffset);
-          return istDate.toTimeString().split(' ')[0];
-        }
-        function toISTDateString(utcDateString) {
-          const date = new Date(utcDateString);
-          const utc = date.getTime() + (date.getTimezoneOffset() * 60000);
-          const istOffset = 5.5 * 60 * 60 * 1000;
-          const istDate = new Date(utc + istOffset);
-          return istDate.toISOString().split('T')[0];
-        }
-
-        // Draw data rows
         let rowCount = 0;
         let serialNumber = 1;
         rows.forEach(r => {
@@ -565,7 +565,7 @@ router.get('/faculty-attendance-report', async (req, res) => {
             serialNumber.toString(),
             toISTDateString(r.first_log),
             r.faculty_name,
-            r.erpid,
+            r.erp_id,
             r.department_name,
             firstLog.toTimeString().split(' ')[0],
             lastLog.toTimeString().split(' ')[0],
@@ -581,7 +581,6 @@ router.get('/faculty-attendance-report', async (req, res) => {
           y += 18;
           rowCount++;
           serialNumber++;
-          // Add new page if needed (every 20 rows)
           if (rowCount % 20 === 0) {
             doc.addPage();
             y = doc.y;
@@ -594,7 +593,6 @@ router.get('/faculty-attendance-report', async (req, res) => {
       }
 
       if (format === 'xlsx') {
-        // Generate Excel file using exceljs
         const ExcelJS = require('exceljs');
         const workbook = new ExcelJS.Workbook();
         const worksheet = workbook.addWorksheet('Faculty Attendance');
@@ -602,27 +600,13 @@ router.get('/faculty-attendance-report', async (req, res) => {
           { header: 'S.No', key: 'serial_no', width: 10 },
           { header: 'Date', key: 'date', width: 15 },
           { header: 'Faculty Name', key: 'faculty_name', width: 25 },
-          { header: 'ERP ID', key: 'erpid', width: 15 },
+          { header: 'ERP ID', key: 'erp_id', width: 15 },
           { header: 'Department', key: 'department_name', width: 25 },
           { header: 'First Log', key: 'first_log', width: 15 },
           { header: 'Last Log', key: 'last_log', width: 15 },
           { header: 'Duration (HH:MM:SS)', key: 'duration', width: 18 },
           { header: 'Half/Full Day', key: 'half_full', width: 15 },
         ];
-        function toISTDateString(utcDateString) {
-          const date = new Date(utcDateString);
-          const utc = date.getTime() + (date.getTimezoneOffset() * 60000);
-          const istOffset = 5.5 * 60 * 60 * 1000;
-          const istDate = new Date(utc + istOffset);
-          return istDate.toISOString().split('T')[0];
-        }
-        function toISTTimeString(utcDateString) {
-          const date = new Date(utcDateString);
-          const utc = date.getTime() + (date.getTimezoneOffset() * 60000);
-          const istOffset = 5.5 * 60 * 60 * 1000;
-          const istDate = new Date(utc + istOffset);
-          return istDate.toTimeString().split(' ')[0];
-        }
         let serialNumber = 1;
         rows.forEach(r => {
           const firstLog = new Date(r.first_log);
@@ -644,7 +628,7 @@ router.get('/faculty-attendance-report', async (req, res) => {
             serial_no: serialNumber,
             date: toISTDateString(r.first_log),
             faculty_name: r.faculty_name,
-            erpid: r.erpid,
+            erp_id: r.erp_id,
             department_name: r.department_name,
             first_log: firstLog.toTimeString().split(' ')[0],
             last_log: lastLog.toTimeString().split(' ')[0],
@@ -661,21 +645,6 @@ router.get('/faculty-attendance-report', async (req, res) => {
       }
 
       // CSV generation
-      function toISTDateString(utcDateString) {
-        const date = new Date(utcDateString);
-        const utc = date.getTime() + (date.getTimezoneOffset() * 60000);
-        const istOffset = 5.5 * 60 * 60 * 1000;
-        const istDate = new Date(utc + istOffset);
-        return istDate.toISOString().split('T')[0];
-      }
-      function toISTTimeString(utcDateString) {
-        const date = new Date(utcDateString);
-        const utc = date.getTime() + (date.getTimezoneOffset() * 60000);
-        const istOffset = 5.5 * 60 * 60 * 1000;
-        const istDate = new Date(utc + istOffset);
-        return istDate.toTimeString().split(' ')[0];
-      }
-
       const csvHeader = 'S.No,Date,Faculty Name,ERP ID,Department,First Log,Last Log,Duration (HH:MM:SS),Half/Full Day\n';
       let serialNumber = 1;
       const csvRows = rows.map(r => {
@@ -698,7 +667,7 @@ router.get('/faculty-attendance-report', async (req, res) => {
               serialNumber,
               toISTDateString(r.first_log),
               `"${r.faculty_name}"`,
-              r.erpid,
+              r.erp_id,
               `"${r.department_name}"`,
               firstLog.toTimeString().split(' ')[0],
               lastLog.toTimeString().split(' ')[0],
@@ -708,9 +677,7 @@ router.get('/faculty-attendance-report', async (req, res) => {
           serialNumber++;
           return row.join(',');
       });
-
       const csvData = csvHeader + csvRows.join('\n');
-
       res.header('Content-Type', 'text/csv');
       res.attachment('faculty_attendance.csv');
       return res.send(csvData);

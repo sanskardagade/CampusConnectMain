@@ -13,6 +13,7 @@ export default function LeaveApplication() {
   const [loading, setLoading] = useState(true);
   const [leaveApplications, setLeaveApplications] = useState([]);
   const [recentActions, setRecentActions] = useState([]);
+  const [selectedTab, setSelectedTab] = useState('Pending');
 
   // Load recent actions from sessionStorage on component mount
   useEffect(() => {
@@ -187,22 +188,40 @@ export default function LeaveApplication() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {/* Left Column - Pending Approvals and Recent Actions */}
               <div className="lg:col-span-1">
+                {/* Tab Bar for Application Status */}
+                <div className="flex mb-4 rounded-lg overflow-hidden shadow divide-x divide-gray-200 bg-white">
+                  {['Pending', 'Approved', 'Rejected'].map(tab => (
+                    <button
+                      key={tab}
+                      onClick={() => setSelectedTab(tab)}
+                      className={`flex-1 px-4 py-2 font-semibold text-sm transition-colors duration-150 ${
+                        selectedTab === tab
+                          ? (tab === 'Pending' ? 'bg-yellow-100 text-yellow-800' : tab === 'Approved' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800')
+                          : 'bg-white text-gray-600 hover:bg-gray-100'
+                      }`}
+                    >
+                      {tab}
+                    </button>
+                  ))}
+                </div>
                 {/* Pending Approvals */}
                 <div className="bg-white rounded-lg shadow-md p-4">
                   <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-xl font-semibold text-red-900">Pending Approvals</h2>
-                    <span className="bg-red-100 text-red-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
-                      {leaveApplications.filter(app => app.PrincipalApproval === "Pending").length} pending
+                    <h2 className="text-xl font-semibold text-red-900">{selectedTab} Applications</h2>
+                    <span className={`text-xs font-medium px-2.5 py-0.5 rounded-full ${
+                      selectedTab === 'Pending' ? 'bg-yellow-100 text-yellow-800' : selectedTab === 'Approved' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                    }`}>
+                      {leaveApplications.filter(app => app.PrincipalApproval === selectedTab).length} {selectedTab.toLowerCase()}
                     </span>
                   </div>
                   <div className="space-y-3">
-                    {leaveApplications.filter(app => app.PrincipalApproval === "Pending").map((application, index) => (
+                    {leaveApplications.filter(app => app.PrincipalApproval === selectedTab).map((application, index) => (
                       <div 
                         key={`pending-${application.ErpStaffId}-${index}`}
                         className={`border rounded-lg p-3 cursor-pointer transition-all duration-200 ${
                           selectedApplication?.ErpStaffId === application.ErpStaffId 
-                            ? 'border-red-300 bg-red-50' 
-                            : 'border-yellow-200 bg-yellow-50 hover:border-yellow-300'
+                            ? (selectedTab === 'Pending' ? 'border-yellow-300 bg-yellow-50' : selectedTab === 'Approved' ? 'border-green-300 bg-green-50' : 'border-red-300 bg-red-50')
+                            : (selectedTab === 'Pending' ? 'border-yellow-200 bg-yellow-50 hover:border-yellow-300' : selectedTab === 'Approved' ? 'border-green-200 bg-green-50 hover:border-green-300' : 'border-red-200 bg-red-50 hover:border-red-300')
                         }`}
                         onClick={() => setSelectedApplication(application)}
                       >
@@ -218,7 +237,9 @@ export default function LeaveApplication() {
                                 <span className="font-medium text-gray-900">{application.StaffName}</span>
                                 <p className="text-xs text-gray-500 mt-1">ID: {application.ErpStaffId}</p>
                               </div>
-                              <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-800">
+                              <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+                                selectedTab === 'Pending' ? 'bg-yellow-100 text-yellow-800' : selectedTab === 'Approved' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                              }`}>
                                 {application.leaveType}
                               </span>
                             </div>
@@ -233,11 +254,11 @@ export default function LeaveApplication() {
                       </div>
                     ))}
                     
-                    {leaveApplications.filter(app => app.PrincipalApproval === "Pending").length === 0 && (
+                    {leaveApplications.filter(app => app.PrincipalApproval === selectedTab).length === 0 && (
                       <div className="text-center py-8 text-gray-500 bg-gray-50 rounded-lg">
                         <AlertCircle className="mx-auto h-8 w-8 text-gray-400 mb-2" />
-                        <p>No pending approvals</p>
-                        <p className="text-sm mt-1">All leave applications have been processed</p>
+                        <p>No {selectedTab.toLowerCase()} applications</p>
+                        <p className="text-sm mt-1">{selectedTab === 'Pending' ? 'All leave applications have been processed' : `No ${selectedTab.toLowerCase()} leave applications found`}</p>
                       </div>
                     )}
                   </div>

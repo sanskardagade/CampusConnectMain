@@ -12,6 +12,7 @@ import {
 import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import SidebarMenu from "./SideBarMenu";
+import { useNavigate } from 'react-router-dom';
 
 const routes = [
   { path: "/student", name: "Dashboard", icon: <FaHome /> },
@@ -43,6 +44,8 @@ const routes = [
 const StudentSideBar = ({ children }) => {
   const [isOpen, setIsOpen] = useState(false);
   const toggle = () => setIsOpen(!isOpen);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const navigate = useNavigate();
 
   const inputAnimation = {
     hidden: { width: 0, padding: 0, transition: { duration: 0.2 } },
@@ -52,6 +55,21 @@ const StudentSideBar = ({ children }) => {
   const showAnimation = {
     hidden: { width: 0, opacity: 0, transition: { duration: 0.3 } },
     show: { opacity: 1, width: "auto", transition: { duration: 0.3 } },
+  };
+
+  const handleLogout = () => {
+    setShowLogoutModal(true);
+  };
+
+  const confirmLogout = () => {
+    localStorage.removeItem('token');
+    sessionStorage.removeItem('token');
+    setShowLogoutModal(false);
+    navigate('/');
+  };
+
+  const cancelLogout = () => {
+    setShowLogoutModal(false);
   };
 
   return (
@@ -110,6 +128,30 @@ const StudentSideBar = ({ children }) => {
                 />
               );
             }
+            if (route.name === 'Logout') {
+              return (
+                <button
+                  key={index}
+                  className="flex items-center gap-3 p-2 rounded hover:bg-gray-700 transition w-full text-left"
+                  onClick={handleLogout}
+                >
+                  <div className="text-xl">{route.icon}</div>
+                  <AnimatePresence>
+                    {isOpen && (
+                      <motion.span
+                        variants={showAnimation}
+                        initial="hidden"
+                        animate="show"
+                        exit="hidden"
+                        className="text-sm"
+                      >
+                        {route.name}
+                      </motion.span>
+                    )}
+                  </AnimatePresence>
+                </button>
+              );
+            }
             return (
               <NavLink
                 to={route.path}
@@ -141,6 +183,19 @@ const StudentSideBar = ({ children }) => {
       </motion.div>
 
       <main className="flex-1 p-4 overflow-y-auto bg-[#1a0000]">{children}</main>
+
+      {showLogoutModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+          <div className="bg-white rounded-xl shadow-lg p-6 max-w-sm w-full">
+            <h2 className="text-xl font-bold mb-4 text-red-700">Confirm Logout</h2>
+            <p className="mb-6 text-gray-700">Are you sure you want to logout?</p>
+            <div className="flex justify-end gap-3">
+              <button onClick={cancelLogout} className="px-4 py-2 rounded bg-gray-200 text-gray-700 hover:bg-gray-300">Cancel</button>
+              <button onClick={confirmLogout} className="px-4 py-2 rounded bg-red-600 text-white hover:bg-red-700">Logout</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
