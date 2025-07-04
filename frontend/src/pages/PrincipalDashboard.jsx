@@ -64,6 +64,10 @@ const PrincipalDashboard = () => {
   const navigate = useNavigate();
   const [facultyDeptTotals, setFacultyDeptTotals] = useState({});
   const [staffDeptTotals, setStaffDeptTotals] = useState({});
+  const [facultyListRefreshing, setFacultyListRefreshing] = useState(false);
+  const [staffListRefreshing, setStaffListRefreshing] = useState(false);
+  const [branchPdfLoading, setBranchPdfLoading] = useState(null);
+  const [staffBranchPdfLoading, setStaffBranchPdfLoading] = useState(null);
 
   useEffect(() => {
     fetchDashboardData();
@@ -110,7 +114,7 @@ const PrincipalDashboard = () => {
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
-      const response = await axios.get('http://69.62.83.14:9000/api/principal/dashboard', {
+      const response = await axios.get('http://localhost:5000/api/principal/dashboard', {
         headers: { Authorization: `Bearer ${token}` }
       });
       setStats(response.data.stats);
@@ -126,7 +130,7 @@ const PrincipalDashboard = () => {
   const fetchPendingLeaves = async () => {
     try {
       const token = localStorage.getItem('token');
-      const res = await axios.get('http://69.62.83.14:9000/api/principal/faculty-leave-approval', {
+      const res = await axios.get('http://localhost:5000/api/principal/faculty-leave-approval', {
         headers: { Authorization: `Bearer ${token}` }
       });
       const pending = (res.data || []).filter(l => l.PrincipalApproval === 'Pending').length;
@@ -140,7 +144,7 @@ const PrincipalDashboard = () => {
     try {
       const token = localStorage.getItem('token');
       // Faculty logs
-      const facultyRes = await axios.get('http://69.62.83.14:9000/api/principal/faculty-logs', {
+      const facultyRes = await axios.get('http://localhost:5000/api/principal/faculty-logs', {
         headers: { Authorization: `Bearer ${token}` }
       });
       const today = dayjs().format('YYYY-MM-DD');
@@ -152,7 +156,7 @@ const PrincipalDashboard = () => {
       });
       setPresentFaculty(facultyToday.size);
       // Staff logs
-      const staffRes = await axios.get('http://69.62.83.14:9000/api/principal/staff-logs', {
+      const staffRes = await axios.get('http://localhost:5000/api/principal/staff-logs', {
         headers: { Authorization: `Bearer ${token}` }
       });
       const staffToday = new Set();
@@ -163,7 +167,7 @@ const PrincipalDashboard = () => {
       });
       setPresentStaff(staffToday.size);
       // Students: fetch from backend endpoint
-      const studentRes = await axios.get('http://69.62.83.14:9000/api/principal/student-attendance-today', {
+      const studentRes = await axios.get('http://localhost:5000/api/principal/student-attendance-today', {
         headers: { Authorization: `Bearer ${token}` }
       });
       setPresentStudents(studentRes.data.count || 0);
@@ -177,7 +181,7 @@ const PrincipalDashboard = () => {
   const fetchPresentFacultyStaffSummary = async () => {
     try {
       const token = localStorage.getItem('token');
-      const res = await axios.get('http://69.62.83.14:9000/api/principal/present-faculty-staff-summary', {
+      const res = await axios.get('http://localhost:5000/api/principal/present-faculty-staff-summary', {
         headers: { Authorization: `Bearer ${token}` }
       });
       // Find today's date in the summary
@@ -207,7 +211,7 @@ const PrincipalDashboard = () => {
     try {
       const token = localStorage.getItem('token');
       const response = await axios.get(
-        'http://69.62.83.14:9000/api/principal/all-members',
+        'http://localhost:5000/api/principal/all-members',
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setMembers(response.data.members);
@@ -221,7 +225,7 @@ const PrincipalDashboard = () => {
       setSelectedType(type);
       const token = localStorage.getItem('token');
       const response = await axios.get(
-        `http://69.62.83.14:9000/api/principal/members?deptId=${deptId}&type=${type}`,
+        `http://localhost:5000/api/principal/members?deptId=${deptId}&type=${type}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setMembers(response.data.members);
@@ -236,7 +240,7 @@ const PrincipalDashboard = () => {
       setProfileLoading(true);
       const token = localStorage.getItem('token');
       const response = await axios.get(
-        `http://69.62.83.14:9000/api/principal/profile/${memberId}?type=${selectedType}`,
+        `http://localhost:5000/api/principal/profile/${memberId}?type=${selectedType}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setProfileData(response.data);
@@ -246,7 +250,7 @@ const PrincipalDashboard = () => {
         setShowFacultyLogs(false);
         try {
           const logsRes = await axios.get(
-            `http://69.62.83.14:9000/api/principal/faculty-logs/${memberId}`,
+            `http://localhost:5000/api/principal/faculty-logs/${memberId}`,
             { headers: { Authorization: `Bearer ${token}` } }
           );
           setFacultyLogs(logsRes.data.logs || []);
@@ -261,7 +265,7 @@ const PrincipalDashboard = () => {
         setShowStaffLogs(false);
         try {
           const logsRes = await axios.get(
-            `http://69.62.83.14:9000/api/principal/staff-logs/${memberId}`,
+            `http://localhost:5000/api/principal/staff-logs/${memberId}`,
             { headers: { Authorization: `Bearer ${token}` } }
           );
           setStaffLogs(logsRes.data.logs || []);
@@ -338,7 +342,7 @@ const PrincipalDashboard = () => {
     setDownloading(true);
     try {
         const token = localStorage.getItem('token');
-        const response = await axios.get('http://69.62.83.14:9000/api/principal/faculty-attendance-report', {
+        const response = await axios.get('http://localhost:5000/api/principal/faculty-attendance-report', {
             headers: { Authorization: `Bearer ${token}` },
             params: { departmentId: reportDept, fromDate, toDate, format },
             responseType: 'blob',
@@ -364,31 +368,45 @@ const PrincipalDashboard = () => {
   };
 
   // Handler to fetch and show present faculty modal
-  const handleShowPresentFaculty = async () => {
-    setShowPresentFacultyModal(true);
+  const fetchPresentFacultyList = async () => {
+    setFacultyListRefreshing(true);
     try {
       const token = localStorage.getItem('token');
-      const res = await axios.get('http://69.62.83.14:9000/api/principal/present-faculty-today', {
+      const res = await axios.get('http://localhost:5000/api/principal/present-faculty-today', {
         headers: { Authorization: `Bearer ${token}` }
       });
       setPresentFacultyList(res.data.presentFaculty || []);
     } catch (e) {
       setPresentFacultyList([]);
+    } finally {
+      setFacultyListRefreshing(false);
     }
   };
 
+  const handleShowPresentFaculty = async () => {
+    setShowPresentFacultyModal(true);
+    fetchPresentFacultyList();
+  };
+
   // Handler to fetch and show present staff modal
-  const handleShowPresentStaff = async () => {
-    setShowPresentStaffModal(true);
+  const fetchPresentStaffList = async () => {
+    setStaffListRefreshing(true);
     try {
       const token = localStorage.getItem('token');
-      const res = await axios.get('http://69.62.83.14:9000/api/principal/present-staff-today', {
+      const res = await axios.get('http://localhost:5000/api/principal/present-staff-today', {
         headers: { Authorization: `Bearer ${token}` }
       });
       setPresentStaffList(res.data.presentStaff || []);
     } catch (e) {
       setPresentStaffList([]);
+    } finally {
+      setStaffListRefreshing(false);
     }
+  };
+
+  const handleShowPresentStaff = async () => {
+    setShowPresentStaffModal(true);
+    fetchPresentStaffList();
   };
 
   // Handler for navigating to faculty leave approval
@@ -400,7 +418,7 @@ const PrincipalDashboard = () => {
   const fetchFacultyDeptTotals = async () => {
     try {
       const token = localStorage.getItem('token');
-      const res = await axios.get('http://69.62.83.14:9000/api/principal/faculty-department-counts', {
+      const res = await axios.get('http://localhost:5000/api/principal/faculty-department-counts', {
         headers: { Authorization: `Bearer ${token}` }
       });
       // Convert to map: { department_id: count }
@@ -418,7 +436,7 @@ const PrincipalDashboard = () => {
   const fetchStaffDeptTotals = async () => {
     try {
       const token = localStorage.getItem('token');
-      const res = await axios.get('http://69.62.83.14:9000/api/principal/staff-department-counts', {
+      const res = await axios.get('http://localhost:5000/api/principal/staff-department-counts', {
         headers: { Authorization: `Bearer ${token}` }
       });
       // Convert to map: { department_id: count }
@@ -429,6 +447,48 @@ const PrincipalDashboard = () => {
       setStaffDeptTotals(map);
     } catch (e) {
       setStaffDeptTotals({});
+    }
+  };
+
+  // Function to preview PDF for a department
+  const handlePreviewFacultyPdf = async (deptId) => {
+    setBranchPdfLoading(deptId);
+    try {
+      const token = localStorage.getItem('token');
+      const today = dayjs().format('YYYY-MM-DD');
+      const response = await axios.get('http://localhost:5000/api/principal/faculty-attendance-report', {
+        headers: { Authorization: `Bearer ${token}` },
+        params: { departmentId: deptId, format: 'pdf', fromDate: today, toDate: today },
+        responseType: 'blob',
+      });
+      const file = new Blob([response.data], { type: 'application/pdf' });
+      const fileURL = URL.createObjectURL(file);
+      window.open(fileURL, '_blank');
+    } catch (err) {
+      alert('Failed to preview PDF for this branch.');
+    } finally {
+      setBranchPdfLoading(null);
+    }
+  };
+
+  // Function to preview PDF for a staff department
+  const handlePreviewStaffPdf = async (deptId) => {
+    setStaffBranchPdfLoading(deptId);
+    try {
+      const token = localStorage.getItem('token');
+      const today = dayjs().format('YYYY-MM-DD');
+      const response = await axios.get('http://localhost:5000/api/principal/staff-attendance-report', {
+        headers: { Authorization: `Bearer ${token}` },
+        params: { departmentId: deptId, format: 'pdf', fromDate: today, toDate: today },
+        responseType: 'blob',
+      });
+      const file = new Blob([response.data], { type: 'application/pdf' });
+      const fileURL = URL.createObjectURL(file);
+      window.open(fileURL, '_blank');
+    } catch (err) {
+      alert('Failed to preview PDF for this branch.');
+    } finally {
+      setStaffBranchPdfLoading(null);
     }
   };
 
@@ -994,7 +1054,17 @@ const PrincipalDashboard = () => {
               >
                 &times;
               </button>
-              <h2 className="text-xl font-bold mb-4 text-red-700">Present Faculty Today</h2>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold text-red-700">Present Faculty Today</h2>
+                <button
+                  className="ml-2 p-2 rounded-full hover:bg-gray-100 text-red-700"
+                  onClick={fetchPresentFacultyList}
+                  title="Refresh"
+                  disabled={facultyListRefreshing}
+                >
+                  <FiRefreshCw size={20} className={facultyListRefreshing ? 'animate-spin' : ''} />
+                </button>
+              </div>
               {/* Branch-wise (Department-wise) Count */}
               <div className="mb-4">
                 <h3 className="font-semibold mb-2">Branch-wise Present Faculty Count</h3>
@@ -1009,10 +1079,23 @@ const PrincipalDashboard = () => {
                       );
                     }).length;
                     const totalCount = facultyDeptTotals[dept.id] || 0;
+                    const isClickable = totalCount > 0;
                     return (
-                      <li key={dept.id} className="flex justify-between bg-gray-50 rounded p-2">
+                      <li
+                        key={dept.id}
+                        className={`flex justify-between bg-gray-50 rounded p-2 transition-colors ${
+                          isClickable ? 'cursor-pointer hover:bg-red-100' : 'opacity-60 cursor-not-allowed'
+                        }`}
+                        onClick={() => isClickable && handlePreviewFacultyPdf(dept.id)}
+                        title={isClickable ? 'Preview PDF for this branch' : 'No data to preview'}
+                      >
                         <span>{dept.name}</span>
-                        <span className="font-bold">{presentCount}/{totalCount}</span>
+                        <span className="font-bold flex items-center gap-1">
+                          {presentCount}/{totalCount}
+                          {branchPdfLoading === dept.id && (
+                            <FiRefreshCw className="animate-spin ml-1" size={16} />
+                          )}
+                        </span>
                       </li>
                     );
                   })}
@@ -1022,7 +1105,7 @@ const PrincipalDashboard = () => {
                     const facDeptName = f.department_name ?? f.departmentName;
                     return (!facDeptId && (!facDeptName || facDeptName === 'N/A' || facDeptName === 'Unknown'));
                   }).length > 0 && (
-                    <li className="flex justify-between bg-gray-50 rounded p-2">
+                    <li className="flex justify-between bg-gray-50 rounded p-2 opacity-60 cursor-not-allowed">
                       <span>Unknown / N/A</span>
                       <span className="font-bold">{presentFacultyList.filter(f => {
                         const facDeptId = f.departmentId ?? f.department_id;
@@ -1031,6 +1114,31 @@ const PrincipalDashboard = () => {
                       }).length}</span>
                     </li>
                   )}
+                  {/* Summary row for total present/total faculty */}
+                  <li
+                    className={`flex justify-between bg-red-100 rounded p-2 font-bold mt-2 col-span-2 cursor-pointer hover:bg-red-200 transition-colors ${branchPdfLoading === 'all' ? 'opacity-70' : ''}`}
+                    onClick={() => handlePreviewFacultyPdf('all')}
+                    title="Preview PDF for all faculties present today"
+                  >
+                    <span>Total</span>
+                    <span className="flex items-center gap-1">
+                      {departments.reduce((sum, dept) => {
+                        return sum + presentFacultyList.filter(f => {
+                          const facDeptId = f.departmentId ?? f.department_id;
+                          const facDeptName = f.department_name ?? f.departmentName;
+                          return (
+                            (facDeptId !== undefined && facDeptId !== null && Number(facDeptId) === Number(dept.id)) ||
+                            (facDeptName && facDeptName.trim().toLowerCase() === dept.name.trim().toLowerCase())
+                          );
+                        }).length;
+                      }, 0)}
+                      /
+                      {departments.reduce((sum, dept) => sum + (facultyDeptTotals[dept.id] || 0), 0)}
+                      {branchPdfLoading === 'all' && (
+                        <FiRefreshCw className="animate-spin ml-1" size={16} />
+                      )}
+                    </span>
+                  </li>
                 </ul>
               </div>
               <div className="flex justify-center mt-4">
@@ -1056,7 +1164,17 @@ const PrincipalDashboard = () => {
               >
                 &times;
               </button>
-              <h2 className="text-xl font-bold mb-4 text-purple-700">Present Non-Teaching Staff Today</h2>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold text-purple-700">Present Non-Teaching Staff Today</h2>
+                <button
+                  className="ml-2 p-2 rounded-full hover:bg-gray-100 text-purple-700"
+                  onClick={fetchPresentStaffList}
+                  title="Refresh"
+                  disabled={staffListRefreshing}
+                >
+                  <FiRefreshCw size={20} className={staffListRefreshing ? 'animate-spin' : ''} />
+                </button>
+              </div>
               {/* Branch-wise (Department-wise) Count for Staff */}
               <div className="mb-4">
                 <h3 className="font-semibold mb-2">Branch-wise Present Non-Teaching Staff Count</h3>
@@ -1071,10 +1189,23 @@ const PrincipalDashboard = () => {
                       );
                     }).length;
                     const totalCount = staffDeptTotals[dept.id] || 0;
+                    const isClickable = totalCount > 0;
                     return (
-                      <li key={dept.id} className="flex justify-between bg-gray-50 rounded p-2">
+                      <li
+                        key={dept.id}
+                        className={`flex justify-between bg-gray-50 rounded p-2 transition-colors ${
+                          isClickable ? 'cursor-pointer hover:bg-purple-100' : 'opacity-60 cursor-not-allowed'
+                        }`}
+                        onClick={() => isClickable && handlePreviewStaffPdf(dept.id)}
+                        title={isClickable ? 'Preview PDF for this branch' : 'No data to preview'}
+                      >
                         <span>{dept.name}</span>
-                        <span className="font-bold">{presentCount}/{totalCount}</span>
+                        <span className="font-bold flex items-center gap-1">
+                          {presentCount}/{totalCount}
+                          {staffBranchPdfLoading === dept.id && (
+                            <FiRefreshCw className="animate-spin ml-1" size={16} />
+                          )}
+                        </span>
                       </li>
                     );
                   })}
@@ -1084,7 +1215,7 @@ const PrincipalDashboard = () => {
                     const staffDeptName = s.department_name ?? s.departmentName;
                     return (!staffDeptId && (!staffDeptName || staffDeptName === 'N/A' || staffDeptName === 'Unknown'));
                   }).length > 0 && (
-                    <li className="flex justify-between bg-gray-50 rounded p-2">
+                    <li className="flex justify-between bg-gray-50 rounded p-2 opacity-60 cursor-not-allowed">
                       <span>Unknown / N/A</span>
                       <span className="font-bold">{presentStaffList.filter(s => {
                         const staffDeptId = s.departmentId ?? s.department_id;
@@ -1093,6 +1224,31 @@ const PrincipalDashboard = () => {
                       }).length}</span>
                     </li>
                   )}
+                  {/* Summary row for total present/total staff */}
+                  <li
+                    className={`flex justify-between bg-purple-100 rounded p-2 font-bold mt-2 col-span-2 cursor-pointer hover:bg-purple-200 transition-colors ${staffBranchPdfLoading === 'all' ? 'opacity-70' : ''}`}
+                    onClick={() => handlePreviewStaffPdf('all')}
+                    title="Preview PDF for all non-teaching staff present today"
+                  >
+                    <span>Total</span>
+                    <span className="flex items-center gap-1">
+                      {departments.reduce((sum, dept) => {
+                        return sum + presentStaffList.filter(s => {
+                          const staffDeptId = s.departmentId ?? s.department_id;
+                          const staffDeptName = s.department_name ?? s.departmentName;
+                          return (
+                            (staffDeptId !== undefined && staffDeptId !== null && Number(staffDeptId) === Number(dept.id)) ||
+                            (staffDeptName && staffDeptName.trim().toLowerCase() === dept.name.trim().toLowerCase())
+                          );
+                        }).length;
+                      }, 0)}
+                      /
+                      {departments.reduce((sum, dept) => sum + (staffDeptTotals[dept.id] || 0), 0)}
+                      {staffBranchPdfLoading === 'all' && (
+                        <FiRefreshCw className="animate-spin ml-1" size={16} />
+                      )}
+                    </span>
+                  </li>
                 </ul>
               </div>
               <div className="flex justify-center mt-4">
@@ -1166,5 +1322,11 @@ export default PrincipalDashboard;
 }
 .animate-fadeIn {
   animation: fadeIn 0.5s;
+}
+@keyframes spin {
+  100% { transform: rotate(360deg); }
+}
+.animate-spin {
+  animation: spin 1s linear infinite;
 }
 `}</style>
