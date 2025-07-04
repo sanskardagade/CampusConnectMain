@@ -45,7 +45,7 @@ const PrincipalChangePassword = () => {
     try {
       const token = localStorage.getItem('token');
       const response = await axios.put(
-        'http://localhost:5000/api/principal/change-password',
+        'http://69.62.83.14:9000/api/principal/change-password',
         {
           currentPassword,
           newPassword,

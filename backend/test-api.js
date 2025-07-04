@@ -1,7 +1,7 @@
 const axios = require('axios');
 
 // Base URL for API
-const API_URL = 'http://localhost:5000/api';
+const API_URL = 'http://69.62.83.14:9000/api';
 
 // Test data for registration
 const testUser = {

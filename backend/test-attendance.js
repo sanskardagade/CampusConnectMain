@@ -1,6 +1,6 @@
 const axios = require('axios');
 
-const BASE_URL = 'http://localhost:5000/api';
+const BASE_URL = 'http://69.62.83.14:9000/api';
 
 // Sample attendance data
 const sampleData = [

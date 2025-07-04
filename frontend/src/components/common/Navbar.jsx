@@ -60,7 +60,7 @@ const Navbar = () => {
     setAdminError("");
     setAdminLoading(true);
     try {
-      const endpoint = "http://localhost:5000/api/auth/login";
+      const endpoint = "http://69.62.83.14:9000/api/auth/login";
       const response = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
