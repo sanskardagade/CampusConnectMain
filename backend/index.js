@@ -19,6 +19,7 @@ const studentRoutes = require('./routes/student');
 const facultyRoutes = require('./routes/faculty');
 const hodRoutes = require('./routes/hod');
 const principalRoutes = require('./routes/principal');
+const registrarRoutes = require('./routes/registrar');
 const chatbotRoutes = require('./routes/chatbot');
 
 // Use routes
@@ -27,6 +28,7 @@ app.use('/api/student', studentRoutes);
 app.use('/api/faculty', facultyRoutes);
 app.use('/api/hod', hodRoutes);
 app.use('/api/principal', principalRoutes);
+app.use('/api/registrar', registrarRoutes);
 app.use('/api/chatbot', chatbotRoutes);
 
 

@@ -7,6 +7,7 @@ import StudentDashboard from '../pages/StudentDashboard';
 import FacultyDashboard from '../pages/FacultyDashboard';
 import HODDashboard from '../pages/HODDashboard';
 import PrincipalDashboard from '../pages/PrincipalDashboard';
+import RegistrarDashboard from '../pages/RegistrarDashboard';
 import LandingPage from '../pages/LandingPage';
 import UnauthorizedPage from '../pages/UnauthorizedPage';
 
@@ -48,6 +49,14 @@ const AppRoutes = () => {
         element={
           <ProtectedRoute allowedRoles={['principal']}>
             <PrincipalDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/dashboard/registrar"
+        element={
+          <ProtectedRoute allowedRoles={['registrar']}>
+            <RegistrarDashboard />
           </ProtectedRoute>
         }
       />

@@ -40,6 +40,12 @@ const authenticateToken = (req, res, next) => {
           console.error('Principal token missing required data:', decoded);
           return res.status(403).json({ message: 'Invalid Principal token data' });
         }
+      } else if (decoded.role === 'registrar') {
+        // Registrar only needs id and role
+        if (!decoded.id) {
+          console.error('Registrar token missing required data:', decoded);
+          return res.status(403).json({ message: 'Invalid Registrar token data' });
+        }
       } else if (decoded.role === 'faculty') {
         if (!decoded.erpStaffId) {
           console.error('Faculty token missing required data:', decoded);

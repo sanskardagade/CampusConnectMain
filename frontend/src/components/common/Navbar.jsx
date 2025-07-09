@@ -14,7 +14,7 @@ const Navbar = () => {
   const navigate = useNavigate();
   const { updateUser } = useUser();
   const [showAdminLogin, setShowAdminLogin] = useState(false);
-  const [adminForm, setAdminForm] = useState({ username: "", password: "" });
+  const [adminForm, setAdminForm] = useState({ username: "", password: "", role: "principal" });
   const [adminError, setAdminError] = useState("");
   const [adminLoading, setAdminLoading] = useState(false);
 
@@ -67,7 +67,7 @@ const Navbar = () => {
         body: JSON.stringify({
           erpstaffid: adminForm.username,
           password: adminForm.password,
-          role: "principal"
+          role: adminForm.role
         })
       });
       const data = await response.json();
@@ -79,7 +79,7 @@ const Navbar = () => {
       localStorage.setItem("role", data.user.role);
       updateUser(data.user);
       setShowAdminLogin(false);
-      navigate("/principal");
+      navigate(adminForm.role === "principal" ? "/principal" : "/registrar");
     } catch (err) {
       setAdminError(err.message || "An error occurred during login");
     } finally {
@@ -184,6 +184,15 @@ const Navbar = () => {
             </button>
             <h2 className="text-center text-2xl mb-5">Admin Quick Login</h2>
             <form onSubmit={handleAdminLogin} className="flex flex-col gap-3">
+              <select
+                name="role"
+                value={adminForm.role}
+                onChange={handleAdminChange}
+                className="p-3 text-sm border rounded-md"
+              >
+                <option value="principal">Principal</option>
+                <option value="registrar">Registrar</option>
+              </select>
               <input
                 type="text"
                 name="username"

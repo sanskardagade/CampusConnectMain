@@ -8,6 +8,7 @@ import SignInPage from "./pages/SignInPage";
 import SignUpPage from "./pages/SignUpPage";
 import HOD from "./routes/HOD";
 import Principal from "./routes/Principal";
+import Registrar from "./routes/Registrar";
 import About from "./pages/About";
 import Contact from "./pages/Contact";
 import Features from "./pages/Features";
@@ -33,6 +34,7 @@ const App = () => {
             <Route path="/faculty/*" element={<Faculty />} />
             <Route path="/hod/*" element={<HOD/>}/>
             <Route path="/principal/*" element={<Principal />}/>
+            <Route path="/registrar/*" element={<Registrar />}/>
             <Route path="/faculty/dashboard" element={<FacultyDashboard />} />
           </Routes>
           <Chatbot />

@@ -63,7 +63,8 @@ const SignInPage = () => {
         'student': '/student', 
         'faculty': '/faculty',
         'hod': '/hod',
-        'principal': '/principal'
+        'principal': '/principal',
+        'registrar': '/registrar'
       };
 
       navigate(rolePath[data.user.role] || '/');
@@ -144,6 +145,7 @@ const SignInPage = () => {
                 <option value="faculty">Faculty</option>
                 <option value="hod">HOD</option>
                 <option value="principal">Principal</option>
+                <option value="registrar">Registrar</option>
               </select>
               <input
                 type="text"

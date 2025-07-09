@@ -5,6 +5,7 @@ const User = require('../models/User');
 const Faculty = require('../models/Faculty');
 const Hod = require('../models/Hod');
 const PrincipalModel = require('../models/Principal');
+const RegistrarModel = require('../models/Registrar');
 
 // Login user
 router.post('/login', async (req, res) => {
@@ -136,6 +137,53 @@ router.post('/login', async (req, res) => {
           name: principalRec.name,
           email: principalRec.email,
           role: 'principal'
+        }
+      });
+    }
+
+    // Registrar login: authenticate against registrar data
+    if (role === 'registrar') {
+      console.log('Attempting registrar login for:', erpstaffid);
+      
+      const registrarRec = await RegistrarModel.findByErp(erpstaffid);
+      console.log('Found registrar record:', registrarRec ? 'Yes' : 'No');
+      
+      if (!registrarRec) {
+        console.log('Registrar not found');
+        return res.status(401).json({ message: 'Invalid credentials' });
+      }
+      
+      // Check if account is active
+      if (!registrarRec.isActive) {
+        console.log('Registrar account is inactive');
+        return res.status(401).json({ message: 'Account is inactive' });
+      }
+
+      console.log('Comparing passwords...');
+      const isMatchRegistrar = await RegistrarModel.comparePassword(password, registrarRec.passwordHash);
+      console.log('Password match result:', isMatchRegistrar);
+
+      if (!isMatchRegistrar) {
+        console.log('Password does not match');
+        return res.status(401).json({ message: 'Invalid credentials' });
+      }
+
+      // Create JWT token for registrar
+      const token = jwt.sign(
+        { id: registrarRec.erpid, role: 'registrar' },
+        process.env.JWT_SECRET,
+        { expiresIn: '24h' }
+      );
+
+      console.log('Login successful, returning token and user data');
+      return res.json({
+        token,
+        user: {
+          id: registrarRec.erpid,
+          erpStaffId: registrarRec.erpid,
+          name: registrarRec.name,
+          email: registrarRec.email,
+          role: 'registrar'
         }
       });
     }

@@ -458,7 +458,7 @@ router.get('/faculty-attendance-report', async (req, res) => {
             LEFT JOIN
                 departments d ON f.department_id = d.id
             WHERE (f.department_id = ANY(${deptIds}) OR f.department_id IS NULL)
-            ORDER BY department_name, faculty_name, log_summary.attendance_date
+            ORDER BY department_name, log_summary.first_log, faculty_name, log_summary.attendance_date
         `;
       } else {
           records = await sql`
@@ -493,7 +493,7 @@ router.get('/faculty-attendance-report', async (req, res) => {
                   faculty f ON log_summary.erp_id = f.erpid
               LEFT JOIN
                   departments d ON f.department_id = d.id
-              ORDER BY department_name, faculty_name, log_summary.attendance_date
+              ORDER BY department_name, log_summary.first_log, faculty_name, log_summary.attendance_date
           `;
       }
 
@@ -1302,7 +1302,7 @@ router.get('/staff-attendance-report', async (req, res) => {
         LEFT JOIN
           departments d ON s.department_id = d.id
         WHERE (s.department_id = ANY(${deptIds}) OR s.department_id IS NULL)
-        ORDER BY department_name, staff_name, log_summary.attendance_date
+        ORDER BY department_name, log_summary.first_log, staff_name, log_summary.attendance_date
       `;
     } else {
       records = await sql`
@@ -1337,7 +1337,7 @@ router.get('/staff-attendance-report', async (req, res) => {
           non_teaching_staff s ON log_summary.erp_id = s.erpid
         LEFT JOIN
           departments d ON s.department_id = d.id
-        ORDER BY department_name, staff_name, log_summary.attendance_date
+        ORDER BY department_name, log_summary.first_log, staff_name, log_summary.attendance_date
       `;
     }
     const rows = Array.isArray(records) ? records : (records.rows || []);
