@@ -110,12 +110,12 @@ function MobileBottomTabs() {
     { path: "/", label: "Logout", icon: <AiOutlineLogout /> },
   ];
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-20 bg-red-900 text-white flex justify-between items-center px-1 py-1 shadow-t border-t border-red-800">
+    <nav className="fixed bottom-0 left-0 right-0 z-20 bg-[#b22b2f] text-white flex justify-between items-center px-1 py-1 shadow-t border-t border-[#a02529]">
       {tabs.map((tab) => (
         <button
           key={tab.path}
           onClick={() => navigate(tab.path)}
-          className={`flex flex-col items-center flex-1 px-1 py-1 focus:outline-none ${location.pathname === tab.path ? 'text-yellow-300' : ''}`}
+          className={`flex flex-col items-center flex-1 px-1 py-1 focus:outline-none ${location.pathname === tab.path ? 'text-[#d1a550]' : ''}`}
         >
           <span className="text-lg">{tab.icon}</span>
           <span className="text-[10px] leading-none">{tab.label}</span>
@@ -182,7 +182,7 @@ const PrincipalSideBar = ({ children }) => {
           width: "200px",
           transition: { duration: 0.5, type: "spring", damping: 10 },
         }}
-        className="bg-red-950 text-white h-full overflow-y-auto shadow-lg"
+        className="bg-[#b22b2f] text-white h-full overflow-y-auto shadow-lg"
       >
         <div className="flex items-center justify-between p-3">
           <AnimatePresence>
@@ -212,7 +212,7 @@ const PrincipalSideBar = ({ children }) => {
                 variants={inputAnimation}
                 type="text"
                 placeholder="Search"
-                className="ml-2 bg-red-900 text-white rounded px-2 py-1 outline-none w-full"
+                className="ml-2 bg-[#a02529] text-white rounded px-2 py-1 outline-none w-full"
               />
             )}
           </AnimatePresence>
@@ -236,7 +236,7 @@ const PrincipalSideBar = ({ children }) => {
               return (
                 <button
                   key={index}
-                  className="flex items-center gap-3 p-2 rounded hover:bg-gray-700 transition w-full text-left"
+                  className="flex items-center gap-3 p-2 rounded hover:bg-[#d1a550] transition w-full text-left"
                   onClick={handleLogout}
                 >
                   <div className="text-xl">{route.icon}</div>
@@ -261,8 +261,8 @@ const PrincipalSideBar = ({ children }) => {
                 to={route.path}
                 key={index}
                 className={({ isActive }) =>
-                  `flex items-center gap-3 p-2 rounded hover:bg-gray-700 transition ${
-                    isActive ? "bg-gray-800" : ""
+                  `flex items-center gap-3 p-2 rounded hover:bg-[#d1a550] transition ${
+                    isActive ? "bg-[#d1a550]" : ""
                   }`
                 }
                 onClick={() => {
@@ -299,11 +299,11 @@ const PrincipalSideBar = ({ children }) => {
       {showLogoutModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
           <div className="bg-white rounded-xl shadow-lg p-6 max-w-sm w-full">
-            <h2 className="text-xl font-bold mb-4 text-red-700">Confirm Logout</h2>
+            <h2 className="text-xl font-bold mb-4 text-[#b22b2f">Confirm Logout</h2>
             <p className="mb-6 text-gray-700">Are you sure you want to logout?</p>
             <div className="flex justify-end gap-3">
               <button onClick={cancelLogout} className="px-4 py-2 rounded bg-gray-200 text-gray-700 hover:bg-gray-300">Cancel</button>
-              <button onClick={confirmLogout} className="px-4 py-2 rounded bg-red-600 text-white hover:bg-red-700">Logout</button>
+              <button onClick={confirmLogout} className="px-4 py-2 rounded bg-[#b22b2f] text-white hover:bg-[#a02529]">Logout</button>
             </div>
           </div>
         </div>

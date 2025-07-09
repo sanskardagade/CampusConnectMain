@@ -66,18 +66,18 @@ const FacultyChnagePassword = () => {
 
   const renderInput = (label, name, showField) => (
     <div className="mb-4 relative">
-      <label className="block text-sm font-semibold mb-1">{label}</label>
+      <label className="block text-sm font-semibold mb-1 text-[#d1a550]">{label}</label>
       <input
         type={showPassword[showField] ? 'text' : 'password'}
         name={name}
         value={form[name]}
         onChange={handleChange}
         placeholder={label}
-        className="w-full px-4 py-2 rounded bg-white text-red-900 border border-red-300 focus:outline-none focus:ring-2 focus:ring-red-500"
+        className="w-full px-4 py-2 rounded bg-white text-[#b22b2f] border border-[#d1a550] focus:outline-none focus:ring-2 focus:ring-[#d1a550]"
       />
       <button
         type="button"
-        className="absolute top-8 right-3 text-red-700"
+        className="absolute top-8 right-3 text-[#b22b2f]"
         onClick={() => toggleVisibility(showField)}
       >
         {showPassword[showField] ? <EyeOff size={18} /> : <Eye size={18} />}
@@ -86,21 +86,21 @@ const FacultyChnagePassword = () => {
   );
 
   return (
-    <div className="min-h-screen bg-gray-100 text-white flex items-center justify-center p-6">
-      <div className="w-full max-w-md bg-red-800 p-8 rounded-xl shadow-lg">
-        <h2 className="text-2xl font-bold mb-6 text-center">Change Password</h2>
+    <div className="min-h-screen bg-[#f3f4f6] text-white flex items-center justify-center p-6">
+      <div className="w-full max-w-md bg-[#b22b2f] p-8 rounded-xl shadow-lg">
+        <h2 className="text-2xl font-bold mb-6 text-center text-[#d1a550]">Change Password</h2>
         <form onSubmit={handleSubmit}>
           {renderInput('Current Password', 'currentPassword', 'current')}
           {renderInput('New Password', 'newPassword', 'new')}
           {renderInput('Confirm New Password', 'confirmPassword', 'confirm')}
           <button
             type="submit"
-            className="w-full bg-white text-red-900 font-semibold py-2 rounded hover:bg-red-100 transition duration-300"
+            className="w-full bg-[#d1a550] text-[#b22b2f] font-semibold py-2 rounded hover:bg-[#b22b2f] hover:text-[#d1a550] transition duration-300"
           >
             Change Password
           </button>
-          {error && <p className="mt-4 text-sm text-red-200">{error}</p>}
-          {message && <p className="mt-4 text-sm text-green-300">{message}</p>}
+          {error && <p className="mt-4 text-sm text-[#b22b2f]">{error}</p>}
+          {message && <p className="mt-4 text-sm text-[#d1a550]">{message}</p>}
         </form>
       </div>
     </div>

@@ -66,7 +66,7 @@ const Features = () => {
           <h2 className="text-5xl font-bold mb-6 bg-gradient-to-r from-red-900 via-red-800 to-red-700 bg-clip-text text-transparent">
             Campus Connect Features
           </h2>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
+          <p className="text-xl text-[#6b6d71] max-w-3xl mx-auto leading-relaxed">
             Transforming campus management with cutting-edge technology and student-centered solutions
           </p>
         </div>
@@ -78,18 +78,18 @@ const Features = () => {
               className="group relative"
             >
               {/* Card */}
-              <div className="bg-white rounded-2xl shadow-lg p-8 h-full border-l-4 border-red-900 relative overflow-hidden transition-all duration-500">
+              <div className="bg-white rounded-2xl shadow-lg p-8 h-full border-l-4 border-[#b22b2f] relative overflow-hidden transition-all duration-500">
                 {/* Icon container */}
                 <div className="mb-6 p-4 rounded-xl inline-block bg-gradient-to-br from-red-100 to-red-50">
-                  <div className="text-red-900">
+                  <div className="text-[#b22b2f]">
                     {feature.icon}
                   </div>
                 </div>
                 {/* Content */}
-                <h3 className="text-xl font-bold mb-4 text-red-900">
+                <h3 className="text-xl font-bold mb-4 text-[#b22b2f]">
                   {feature.title}
                 </h3>
-                <p className="text-gray-700 mb-4 leading-relaxed">
+                <p className="text-[#6b6d71] mb-4 leading-relaxed">
                   {feature.description}
                 </p>
               </div>

@@ -89,12 +89,12 @@ function MobileBottomTabs() {
     { path: "/", label: "Logout", icon: <AiOutlineLogout /> },
   ];
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-20 bg-red-900 text-white flex justify-between items-center px-1 py-1 shadow-t border-t border-red-800">
+    <nav className="fixed bottom-0 left-0 right-0 z-20 bg-[#b22b2f] text-white flex justify-between items-center px-1 py-1 shadow-t border-t border-[#a02529]">
       {tabs.map((tab) => (
         <button
           key={tab.path}
           onClick={() => navigate(tab.path)}
-          className={`flex flex-col items-center flex-1 px-1 py-1 focus:outline-none ${location.pathname === tab.path ? 'text-yellow-300' : ''}`}
+          className={`flex flex-col items-center flex-1 px-1 py-1 focus:outline-none ${location.pathname === tab.path ? 'text-[#d1a550]' : ''}`}
         >
           <span className="text-lg">{tab.icon}</span>
           <span className="text-[10px] leading-none">{tab.label}</span>
@@ -161,7 +161,7 @@ const RegistrarSideBar = ({ children }) => {
           width: "200px",
           transition: { duration: 0.5, type: "spring", damping: 10 },
         }}
-        className="bg-red-950 text-white h-full overflow-y-auto shadow-lg"
+        className="bg-[#b22b2f] text-white h-full overflow-y-auto shadow-lg"
       >
         <div className="flex items-center justify-between p-3">
           <AnimatePresence>
@@ -231,18 +231,18 @@ const RegistrarSideBar = ({ children }) => {
       {showLogoutModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-sm w-full mx-4">
-            <h3 className="text-lg font-semibold mb-4">Confirm Logout</h3>
-            <p className="text-gray-600 mb-6">Are you sure you want to logout?</p>
+            <h3 className="text-lg font-semibold mb-4 text-[#d1a550]">Confirm Logout</h3>
+            <p className="text-[#b22b2f] mb-6">Are you sure you want to logout?</p>
             <div className="flex space-x-4">
               <button
                 onClick={cancelLogout}
-                className="flex-1 bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400 transition-colors"
+                className="flex-1 bg-[#6b6d71] text-white px-4 py-2 rounded-lg hover:bg-[#b22b2f] hover:text-[#d1a550] transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={confirmLogout}
-                className="flex-1 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
+                className="flex-1 bg-[#b22b2f] text-white px-4 py-2 rounded-lg hover:bg-[#d1a550] hover:text-[#b22b2f] transition-colors"
               >
                 Logout
               </button>

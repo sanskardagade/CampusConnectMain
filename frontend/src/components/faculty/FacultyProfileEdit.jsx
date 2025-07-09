@@ -115,66 +115,68 @@ const FacultyProfileEdit = () => {
   }
 
   return (
-    <div className="max-w-xl w-full mx-auto mt-6 sm:mt-8 bg-white p-4 sm:p-6 rounded-xl shadow-md border border-red-100 min-h-[60vh] flex flex-col justify-center">
-      <h1 className="text-xl sm:text-2xl font-bold text-red-800 mb-4 sm:mb-6 text-center">Edit Faculty Profile</h1>
-      
-      {updateError && (
-        <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded text-sm sm:text-base">
-          {updateError}
-        </div>
-      )}
+    <div className="min-h-screen bg-[#f3f4f6] flex items-center justify-center p-6">
+      <div className="max-w-xl w-full mx-auto bg-white p-4 sm:p-6 rounded-xl shadow-md border border-[#d1a550] min-h-[60vh] flex flex-col justify-center">
+        <h1 className="text-xl sm:text-2xl font-bold text-[#b22b2f] mb-4 sm:mb-6 text-center">Edit Faculty Profile</h1>
+        
+        {updateError && (
+          <div className="mb-4 p-3 bg-[#b22b2f] border border-[#d1a550] text-white rounded text-sm sm:text-base">
+            {updateError}
+          </div>
+        )}
 
-      <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5">
-        <InputField 
-          label="Name" 
-          name="name" 
-          value={formData.name} 
-          onChange={handleChange} 
-          readOnly={true}
-          tooltip="Name cannot be changed"
-        />
-        <InputField 
-          label="Faculty ID" 
-          name="facultyId" 
-          value={formData.facultyId} 
-          onChange={handleChange} 
-          readOnly={true}
-          tooltip="Faculty ID cannot be changed"
-        />
-        <InputField 
-          label="Department" 
-          name="department" 
-          value={formData.department} 
-          onChange={handleChange} 
-          readOnly={true}
-          tooltip="Department cannot be changed"
-        />
-        <InputField 
-          label="Email" 
-          name="email" 
-          value={formData.email} 
-          onChange={handleChange}
-          type="email"
-          required
-        />
+        <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5">
+          <InputField 
+            label="Name" 
+            name="name" 
+            value={formData.name} 
+            onChange={handleChange} 
+            readOnly={true}
+            tooltip="Name cannot be changed"
+          />
+          <InputField 
+            label="Faculty ID" 
+            name="facultyId" 
+            value={formData.facultyId} 
+            onChange={handleChange} 
+            readOnly={true}
+            tooltip="Faculty ID cannot be changed"
+          />
+          <InputField 
+            label="Department" 
+            name="department" 
+            value={formData.department} 
+            onChange={handleChange} 
+            readOnly={true}
+            tooltip="Department cannot be changed"
+          />
+          <InputField 
+            label="Email" 
+            name="email" 
+            value={formData.email} 
+            onChange={handleChange}
+            type="email"
+            required
+          />
 
-        <button
-          type="submit"
-          className="w-full flex items-center justify-center gap-2 bg-red-700 text-white py-2 sm:py-2.5 rounded-lg hover:bg-red-800 transition transform hover:scale-105 text-base sm:text-lg mt-2"
-        >
-          <AiOutlineSave />
-          Save Changes
-        </button>
-      </form>
+          <button
+            type="submit"
+            className="w-full flex items-center justify-center gap-2 bg-[#d1a550] text-[#b22b2f] py-2 sm:py-2.5 rounded-lg hover:bg-[#b22b2f] hover:text-[#d1a550] transition transform hover:scale-105 text-base sm:text-lg mt-2"
+          >
+            <AiOutlineSave />
+            Save Changes
+          </button>
+        </form>
+      </div>
     </div>
   )
 }
 
 const InputField = ({ label, name, value, onChange, readOnly = false, type = "text", tooltip, required = false }) => (
   <div className="relative group">
-    <label htmlFor={name} className="block text-red-800 font-medium mb-1 text-sm sm:text-base">
+    <label htmlFor={name} className="block text-[#d1a550] font-medium mb-1 text-sm sm:text-base">
       {label}
-      {required && <span className="text-red-500 ml-1">*</span>}
+      {required && <span className="text-[#b22b2f] ml-1">*</span>}
     </label>
     <input
       type={type}
@@ -185,11 +187,11 @@ const InputField = ({ label, name, value, onChange, readOnly = false, type = "te
       readOnly={readOnly}
       required={required}
       className={`w-full px-3 sm:px-4 py-2 border rounded-lg shadow-sm text-sm sm:text-base ${
-        readOnly ? 'bg-gray-100 cursor-not-allowed' : 'focus:outline-none focus:ring-2 focus:ring-red-300'
+        readOnly ? 'bg-[#6b6d71] cursor-not-allowed text-white' : 'focus:outline-none focus:ring-2 focus:ring-[#d1a550] border-[#d1a550] text-[#b22b2f]'
       }`}
     />
     {readOnly && tooltip && (
-      <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white px-2 py-1 rounded text-xs sm:text-sm opacity-0 group-hover:opacity-100 transition-opacity z-10">
+      <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-[#6b6d71] text-white px-2 py-1 rounded text-xs sm:text-sm opacity-0 group-hover:opacity-100 transition-opacity z-10">
         {tooltip}
       </div>
     )}
@@ -197,4 +199,3 @@ const InputField = ({ label, name, value, onChange, readOnly = false, type = "te
 )
 
 export default FacultyProfileEdit
-

@@ -111,30 +111,30 @@ const About = () => {
             </div>
           </div>
           
-          <h1 className="text-6xl font-bold mb-6">
+          <h1 className="text-6xl font-bold mb-6 text-gray-600">
             About{' '}
             <span className="bg-gradient-to-r from-red-600 via-red-700 to-red-800 bg-clip-text text-transparent">
               Campus Connect
             </span>
           </h1>
           
-          <p className="text-xl text-gray-600 max-w-4xl mx-auto leading-relaxed mb-12">
+          <p className="text-xl text-[#6b6d71] max-w-4xl mx-auto leading-relaxed mb-12">
             Revolutionizing campus management through innovative technology solutions that bridge the gap between education and digital transformation
           </p>
 
           {/* Stats Section */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto">
             <div className="bg-white rounded-2xl p-6 shadow-lg border border-red-100">
-              <div className="text-3xl font-bold text-red-600 mb-2">{animatedStats.projects}+</div>
-              <div className="text-gray-600">Features Implemented</div>
+              <div className="text-3xl font-bold text-[#b22b2f] mb-2">{animatedStats.projects}+</div>
+              <div className="text-[#6b6d71]">Features Implemented</div>
             </div>
             <div className="bg-white rounded-2xl p-6 shadow-lg border border-blue-100">
-              <div className="text-3xl font-bold text-blue-600 mb-2">{animatedStats.students}+</div>
-              <div className="text-gray-600">Students Impacted</div>
+              <div className="text-3xl font-bold text-[#b22b2f] mb-2">{animatedStats.students}+</div>
+              <div className="text-[#6b6d71]">Students Impacted</div>
             </div>
             <div className="bg-white rounded-2xl p-6 shadow-lg border border-green-100">
-              <div className="text-3xl font-bold text-green-600 mb-2">{animatedStats.satisfaction}%</div>
-              <div className="text-gray-600">Satisfaction Rate</div>
+              <div className="text-3xl font-bold text-[#b22b2f] mb-2">{animatedStats.satisfaction}%</div>
+              <div className="text-[#6b6d71]">Satisfaction Rate</div>
             </div>
           </div>
         </div>
@@ -142,7 +142,7 @@ const About = () => {
         {/* Our Story - Timeline */}
         <section className="mb-24">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-gray-800 mb-4">Our Story</h2>
+            <h2 className="text-4xl font-bold text-[#6b6d71] mb-4">Our Story</h2>
             <div className="w-24 h-1 bg-gradient-to-r from-red-600 to-red-700 mx-auto rounded-full"></div>
           </div>
           
@@ -156,13 +156,13 @@ const About = () => {
                   <div className={`w-1/2 ${index % 2 === 0 ? 'pr-8 text-right' : 'pl-8 text-left'}`}>
                     <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300">
                       <div className={`inline-flex items-center gap-2 mb-3 ${index % 2 === 0 ? 'flex-row-reverse' : 'flex-row'}`}>
-                        <div className="bg-gradient-to-r from-red-600 to-red-700 text-white p-2 rounded-lg">
+                        <div className="bg-gradient-to-r from-[#b22b2f] to-[#a02529] text-white p-2 rounded-lg">
                           {step.icon}
                         </div>
-                        <span className="text-sm font-semibold text-red-600">{step.year}</span>
+                        <span className="text-sm font-semibold text-[#b22b2f]">{step.year}</span>
                       </div>
-                      <h3 className="text-xl font-bold text-gray-800 mb-3">{step.title}</h3>
-                      <p className="text-gray-600 leading-relaxed">{step.text}</p>
+                      <h3 className="text-xl font-bold text-[#6b6d71] mb-3">{step.title}</h3>
+                      <p className="text-[#6b6d71] leading-relaxed">{step.text}</p>
                     </div>
                   </div>
                   
@@ -257,9 +257,9 @@ const About = () => {
           
           <div className="relative z-10">
             <div className="text-center mb-16">
-              <h2 className="text-4xl font-bold text-gray-800 mb-4">Our Core Values</h2>
+              <h2 className="text-4xl font-bold text-[#6b6d71] mb-4">Our Core Values</h2>
               <div className="w-24 h-1 bg-gradient-to-r from-red-600 to-red-700 mx-auto rounded-full"></div>
-              <p className="text-gray-600 mt-4 max-w-2xl mx-auto">
+              <p className="text-[#6b6d71] mt-4 max-w-2xl mx-auto">
                 The principles that guide our mission and drive our innovation in educational technology
               </p>
             </div>
@@ -269,15 +269,15 @@ const About = () => {
                 <div key={index} className="group text-center">
                   <div className="bg-white rounded-2xl p-8 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300 hover:-translate-y-2 relative overflow-hidden">
                     {/* Icon container */}
-                    <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${value.color} flex items-center justify-center mx-auto mb-6 text-white shadow-lg group-hover:scale-110 transition-transform duration-300`}>
+                    <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#b22b2f] to-[#a02529] flex items-center justify-center mx-auto mb-6 text-white shadow-lg group-hover:scale-110 transition-transform duration-300">
                       {value.icon}
                     </div>
                     
-                    <h4 className="text-xl font-bold text-gray-800 mb-4">{value.title}</h4>
-                    <p className="text-gray-600 leading-relaxed">{value.description}</p>
+                    <h4 className="text-xl font-bold text-[#6b6d71] mb-4">{value.title}</h4>
+                    <p className="text-[#6b6d71] leading-relaxed">{value.description}</p>
                     
                     {/* Subtle hover line */}
-                    <div className={`absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r ${value.color} opacity-0 group-hover:opacity-100 transition-opacity duration-300`}></div>
+                    <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-[#b22b2f] to-[#a02529] opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                   </div>
                 </div>
               ))}
@@ -295,7 +295,7 @@ const About = () => {
                 Join us in revolutionizing educational management with cutting-edge technology
               </p>
               
-              <button  onClick={() => navigate("/contact")} className="bg-white text-red-600 font-bold py-4 px-8 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 flex items-center gap-2 mx-auto">
+              <button  onClick={() => navigate("/contact")} className="bg-white text-[#b22b2f] font-bold py-4 px-8 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 flex items-center gap-2 mx-auto">
                 Get Started Today
                 <ChevronRight size={20} />
               </button>

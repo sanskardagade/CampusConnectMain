@@ -8,6 +8,7 @@ import CollegeImg from "../assets/dit_image.png";
 import Navbar from "../components/common/Navbar";
 import Footer from "../components/common/Footer";
 import { useIsMobile } from "../components/hooks/use-mobile";
+import HeaderCollege from "../components/common/HeaderCollege";
 
 const SignInPage = () => {
   const navigate = useNavigate();
@@ -77,6 +78,7 @@ const SignInPage = () => {
 
   return (
     <>
+      <HeaderCollege />
       <Navbar />
       <div className={`flex min-h-screen font-sans bg-gradient-to-br from-white to-red-50`}> 
         {/* Left Section - Image + Heading (hide on mobile) */}

@@ -94,13 +94,13 @@ const RegistrarProfileEdit = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-[#f3f4f6] py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-2xl mx-auto">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className="bg-white rounded-lg shadow-lg overflow-hidden"
+          className="bg-[#b22b2f] w-full max-w-2xl rounded-xl shadow-md p-8 text-white"
         >
           {/* Header */}
           <div className="bg-gradient-to-r from-red-800 to-red-600 px-6 py-6 text-white">
@@ -113,7 +113,7 @@ const RegistrarProfileEdit = () => {
                   <FaArrowLeft className="text-xl" />
                 </button>
                 <div>
-                  <h1 className="text-2xl font-bold">Edit Profile</h1>
+                  <h1 className="text-2xl font-bold mb-6 text-center text-[#d1a550]">Edit Profile</h1>
                   <p className="text-red-100">Update your personal information</p>
                 </div>
               </div>
@@ -123,13 +123,13 @@ const RegistrarProfileEdit = () => {
           {/* Form */}
           <div className="px-6 py-8">
             {error && (
-              <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+              <div className="mb-6 p-4 bg-[#b22b2f] border border-[#d1a550] rounded-lg text-white">
                 <p className="text-red-600">{error}</p>
               </div>
             )}
 
             {success && (
-              <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+              <div className="mb-6 p-4 bg-[#d1a550] border border-[#b22b2f] rounded-lg text-[#b22b2f]">
                 <p className="text-green-600">{success}</p>
               </div>
             )}
@@ -137,7 +137,7 @@ const RegistrarProfileEdit = () => {
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* Name Field */}
               <div>
-                <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="name" className="block text-sm font-medium text-[#d1a550] mb-2">
                   <div className="flex items-center space-x-2">
                     <FaUser className="text-red-600" />
                     <span>Full Name</span>
@@ -150,7 +150,7 @@ const RegistrarProfileEdit = () => {
                   value={profile.name}
                   onChange={handleInputChange}
                   required
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent transition-colors duration-200"
+                  className="w-full px-4 py-3 border border-[#d1a550] rounded-lg bg-white text-[#b22b2f] focus:ring-2 focus:ring-[#d1a550] focus:border-transparent transition-colors duration-200"
                   placeholder="Enter your full name"
                 />
               </div>
@@ -180,14 +180,14 @@ const RegistrarProfileEdit = () => {
                 <button
                   type="button"
                   onClick={() => navigate('/registrar/registrar-profile')}
-                  className="flex-1 bg-gray-500 text-white px-6 py-3 rounded-lg font-medium hover:bg-gray-600 transition-colors duration-200"
+                  className="flex-1 bg-[#6b6d71] text-white px-6 py-3 rounded-lg font-medium hover:bg-[#b22b2f] hover:text-[#d1a550] transition-colors duration-200"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={saving}
-                  className="flex-1 bg-red-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-red-700 disabled:bg-red-400 transition-colors duration-200 flex items-center justify-center space-x-2"
+                  className="flex-1 bg-[#d1a550] text-[#b22b2f] px-6 py-3 rounded-lg font-medium hover:bg-[#b22b2f] hover:text-[#d1a550] disabled:bg-[#d1a550] transition-colors duration-200 flex items-center justify-center space-x-2"
                 >
                   {saving ? (
                     <>
@@ -205,8 +205,8 @@ const RegistrarProfileEdit = () => {
             </form>
 
             {/* Information Note */}
-            <div className="mt-8 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-              <h3 className="font-medium text-blue-800 mb-2">Important Information</h3>
+            <div className="mt-8 p-4 bg-[#f3f4f6] border border-[#d1a550] rounded-lg text-[#b22b2f]">
+              <h3 className="font-medium text-[#d1a550] mb-2">Important Information</h3>
               <ul className="text-sm text-blue-700 space-y-1">
                 <li>• Your ERP ID cannot be changed</li>
                 <li>• Email address will be used for important notifications</li>

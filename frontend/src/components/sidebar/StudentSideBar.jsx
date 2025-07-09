@@ -132,7 +132,7 @@ const StudentSideBar = ({ children }) => {
               return (
                 <button
                   key={index}
-                  className="flex items-center gap-3 p-2 rounded hover:bg-gray-700 transition w-full text-left"
+                  className="flex items-center gap-3 p-2 rounded hover:bg-[#d1a550] transition w-full text-left"
                   onClick={handleLogout}
                 >
                   <div className="text-xl">{route.icon}</div>
@@ -158,7 +158,7 @@ const StudentSideBar = ({ children }) => {
                 key={index}
                 className={({ isActive }) =>
                   `flex items-center gap-3 px-3 py-2 my-1 rounded transition-all duration-200 ${
-                    isActive ? "bg-[#800000]" : "hover:bg-[#800000]"
+                    isActive ? "bg-[#d1a550]" : "hover:bg-[#d1a550]"
                   }`
                 }
               >
@@ -191,7 +191,7 @@ const StudentSideBar = ({ children }) => {
             <p className="mb-6 text-gray-700">Are you sure you want to logout?</p>
             <div className="flex justify-end gap-3">
               <button onClick={cancelLogout} className="px-4 py-2 rounded bg-gray-200 text-gray-700 hover:bg-gray-300">Cancel</button>
-              <button onClick={confirmLogout} className="px-4 py-2 rounded bg-red-600 text-white hover:bg-red-700">Logout</button>
+              <button onClick={confirmLogout} className="px-4 py-2 rounded bg-[#b22b2f] text-white hover:bg-[#a02529]">Logout</button>
             </div>
           </div>
         </div>

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { MapPin, Phone, Mail, Clock, Send, CheckCircle, AlertCircle } from 'lucide-react';
 import Navbar from '../components/common/Navbar';
 import Footer from '../components/common/Footer';
+import HeaderCollege from '../components/common/HeaderCollege';
 
 const Contact = () => {
   const [formData, setFormData] = useState({
@@ -38,6 +39,7 @@ const Contact = () => {
 
   return (
     <>
+    <HeaderCollege/>
     <Navbar/>
       <section className="relative py-20 bg-gradient-to-br from-gray-50 via-red-50/30 to-gray-100 min-h-screen">
         <div className="container mx-auto px-4">

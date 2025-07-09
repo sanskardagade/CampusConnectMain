@@ -17,6 +17,7 @@ import MainImg from '../assets/dit_image.png';
 import CollegeIllustration from '../assets/dpyit_illustration.png';
 import AttendanceIllustration from '../assets/attendance_illustration.png';
 import DitImage from '../assets/dit_image.png'
+import HeaderCollege from '../components/common/HeaderCollege';
 
 const LandingPage = () => {
   const navigate = useNavigate();
@@ -85,6 +86,7 @@ const LandingPage = () => {
 
   return (
     <div className="relative">
+      <HeaderCollege />
       <Navbar />
 
       {/* Main Content Container */}
@@ -95,32 +97,32 @@ const LandingPage = () => {
           className="w-full flex items-center justify-center min-h-screen px-4 sm:px-6 lg:px-8 py-16 relative bg-cover bg-center"
           style={{ backgroundImage: `url(${DitImage})` }}
         >
-          <div className="absolute inset-0 bg-black bg-opacity-75"></div>
+          <div className="absolute inset-0 bg-black bg-opacity-40"></div>
 
           {/* Main Content */}
           <div className="relative z-10 w-full flex flex-col items-center justify-center text-center">
             {/* Centered Logo and Institute Info */}
-            <div className="w-full flex flex-col items-center justify-center mb-8">
+            {/* <div className="w-full flex flex-col items-center justify-center mb-8">
               <img 
                 src={CollegeName}
                 alt="College Logo" 
-                className="w-40 h-20 mb-4"
+                className="w-64 h-64 object-contain mb-4"
               />
               <div className="text-center">
-                <div className="text-lg font-medium text-gray-200">Dr. D. Y. Patil Unitech Society's</div>
-                <div className="text-3xl font-bold mt-1 mb-4 text-white">Dr. D. Y. Patil Institute of Technology</div>
+                <div className="text-lg font-medium text-red-900">Dr. D. Y. Patil Unitech Society's</div>
+                <div className="text-3xl font-bold mt-1 mb-4 text-red-900">Dr. D. Y. Patil Institute of Technology</div>
               </div>
-            </div>
+            </div> */}
 
             <h1 className="text-4xl md:text-5xl font-bold text-white mb-5 leading-tight">
-              Welcome to <span className="text-red-600 font-bold">CampusConnect</span>
+              Welcome to <span className="text-[#b22b2f] font-bold">CampusConnect</span>
             </h1>
-            <p className="text-xl md:text-2xl text-gray-300 mb-12 leading-relaxed max-w-2xl">
+            <p className="text-xl md:text-2xl text-white mb-12 leading-relaxed max-w-2xl">
               Revolutionizing campus management with AI-powered attendance tracking and student wellness monitoring.
             </p>
             <button
               onClick={() => navigate("/signin")}
-              className="bg-red-900 text-white px-14 py-5 rounded-xl text-xl font-semibold hover:bg-red-800 transition-all shadow-lg mb-10 mx-auto"
+              className="bg-[#b22b2f] text-white px-14 py-5 rounded-xl text-xl font-semibold hover:bg-[#a02529] transition-all shadow-lg mb-10 mx-auto"
             >
               Sign In
             </button>
@@ -130,7 +132,7 @@ const LandingPage = () => {
               className="bg-gray-200/90 backdrop-blur-sm rounded-xl shadow-md p-4 border border-red-100 w-full max-w-md mt-2"
             >
               <div className="flex items-center justify-between mb-2">
-                <h2 className="text-xl font-bold text-gray-900">News & Notices</h2>
+                <h2 className="text-xl font-bold text-[#6b6d71]">News & Notices</h2>
                 <div className="flex space-x-2">
                   {notices.map((_, index) => (
                     <button
@@ -155,9 +157,9 @@ const LandingPage = () => {
                     }}
                   >
                     <div className="h-full flex flex-col">
-                      <span className="text-xs text-red-700 font-medium">{notice.date}</span>
-                      <h3 className="text-base font-bold text-gray-900 mt-1">{notice.title}</h3>
-                      <p className="text-xs text-gray-700 mt-1">{notice.content}</p>
+                      <span className="text-xs text-[#b22b2f] font-medium">{notice.date}</span>
+                      <h3 className="text-base font-bold text-[#6b6d71] mt-1">{notice.title}</h3>
+                      <p className="text-xs text-[#6b6d71] mt-1">{notice.content}</p>
                     </div>
                   </div>
                 ))}
@@ -186,8 +188,8 @@ const LandingPage = () => {
             <div
               className="text-center mb-12"
             >
-              <h2 className="text-3xl font-bold text-gray-900 mb-2">Get In Touch</h2>
-              <p className="text-lg text-gray-600 max-w-3xl mx-auto">
+              <h2 className="text-3xl font-bold text-[#6b6d71] mb-2">Get In Touch</h2>
+              <p className="text-lg text-[#6b6d71] max-w-3xl mx-auto">
                 Have questions? We'd love to hear from you
               </p>
             </div>
@@ -202,7 +204,7 @@ const LandingPage = () => {
               <h2 className="text-2xl font-bold mb-4">Ready to transform your campus experience?</h2>
               <button
                 onClick={() => navigate("/signin")}
-                className="px-8 py-3 bg-white text-red-900 rounded-lg text-lg font-semibold hover:bg-gray-100 transition-all"
+                className="px-8 py-3 bg-white text-[#b22b2f] rounded-lg text-lg font-semibold hover:bg-gray-100 transition-all"
               >
                 Get Started Now
               </button>
@@ -235,7 +237,7 @@ const LandingPage = () => {
             href={social.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-gray-700 hover:text-red-900 transition-colors"
+            className="text-[#6b6d71] hover:text-[#b22b2f] transition-colors"
           >
             <social.icon className="w-6 h-6" />
           </a>

@@ -749,21 +749,21 @@ const PrincipalDashboard = () => {
                 onClick={() => fetchDepartmentMembers(selectedDept, 'students')}
                 icon={<FiUsers size={16} />}
                 label="Students"
-                color="bg-blue-600"
+                color="bg-[#b22b2f]"
               />
               <MemberTypeButton
                 active={selectedType === 'faculty'}
                 onClick={() => fetchDepartmentMembers(selectedDept, 'faculty')}
                 icon={<FiUser size={16} />}
                 label="Faculty"
-                color="bg-red-600"
+                color="bg-[#b22b2f]"
               />
               <MemberTypeButton
                 active={selectedType === 'staff'}
                 onClick={() => fetchDepartmentMembers(selectedDept, 'staff')}
                 icon={<FiBriefcase size={16} />}
                 label="Non-Teaching Staff"
-                color="bg-purple-600"
+                color="bg-[#b22b2f]"
               />
             </div>
             {/* Search Bar inside Member Type */}
@@ -855,7 +855,7 @@ const PrincipalDashboard = () => {
                         >
                           <div className="flex items-center">
                             <div className={`w-8 h-8 rounded-full flex items-center justify-center mr-3 ${
-                              selectedType === 'students' ? 'bg-blue-100 text-blue-600' :
+                              selectedType === 'students' ? 'bg-[#d1a550] text-white' :
                               selectedType === 'faculty' ? 'bg-red-100 text-red-600' :
                               'bg-purple-100 text-purple-600'
                             }`}>
