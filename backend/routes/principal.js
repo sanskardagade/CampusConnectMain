@@ -1,9 +1,9 @@
 const express = require('express');
 const router = express.Router();
-const authenticateToken = require('../middleware/auth');
+const { authenticateToken } = require('../middleware/auth');
 const sql = require('../config/neonsetup');
 const PrincipalModel = require('../models/Principal.js');
-const { verifyPrincipal } = require('../middleware/roleVerification');
+const { verifyPrincipal } = require('../middleware/auth');
 const PDFDocument = require('pdfkit');
 
 // Protect all principal routes
@@ -1389,387 +1389,54 @@ router.get('/staff-attendance-report', async (req, res) => {
           const hours = Math.floor(durationMs / (1000 * 60 * 60));
           const minutes = Math.floor((durationMs / (1000 * 60)) % 60);
           const seconds = Math.floor((durationMs / 1000) % 60);
-          duration = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-        }
-        const row = [
-          serialNumber.toString(),
-          toISTDateString(r.first_log),
-          r.staff_name,
-          r.erp_id,
-          r.department_name,
-          firstLog.toTimeString().split(' ')[0],
-          lastLog.toTimeString().split(' ')[0],
-          duration
-        ];
-        let x = startX;
-        row.forEach((cell, i) => {
-          doc.rect(x, y, colWidths[i], 18).stroke();
-          doc.text(String(cell), x + 2, y + 5, { width: colWidths[i] - 4, align: 'center', ellipsis: true });
-          x += colWidths[i];
-        });
-        y += 18;
-        rowCount++;
-        serialNumber++;
-        if (rowCount % 20 === 0) {
-          doc.addPage();
-          y = doc.y;
-          drawHeader();
-          y = doc.y;
+          duration = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
         }
       });
       doc.end();
       return;
     }
-    if (format === 'xlsx') {
-      const ExcelJS = require('exceljs');
-      const workbook = new ExcelJS.Workbook();
-      const worksheet = workbook.addWorksheet('Staff Attendance');
-      worksheet.columns = [
-        { header: 'S.No', key: 'serial_no', width: 10 },
-        { header: 'Date', key: 'date', width: 15 },
-        { header: 'Staff Name', key: 'staff_name', width: 25 },
-        { header: 'ERP ID', key: 'erp_id', width: 15 },
-        { header: 'Department', key: 'department_name', width: 25 },
-        { header: 'First Log', key: 'first_log', width: 15 },
-        { header: 'Last Log', key: 'last_log', width: 15 },
-        { header: 'Duration (HH:MM:SS)', key: 'duration', width: 18 },
-      ];
-      let serialNumber = 1;
-      rows.forEach(r => {
+    // CSV
+    const csvHeader = 'S.No,Date,Faculty Name,ERP ID,Department,First Log,Last Log,Duration (HH:MM:SS),Half/Full Day\n';
+    let serialNumber = 1;
+    const csvRows = rows.map(r => {
         const firstLog = new Date(r.first_log);
         const lastLog = new Date(r.last_log);
         let duration = '00:00:00';
+        let durationHours = 0;
         const durationMs = lastLog - firstLog;
         if (!isNaN(durationMs) && durationMs >= 0) {
           const hours = Math.floor(durationMs / (1000 * 60 * 60));
           const minutes = Math.floor((durationMs / (1000 * 60)) % 60);
           const seconds = Math.floor((durationMs / 1000) % 60);
-          duration = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+          duration = `${hours.toString().padStart(2, '0')}:${minutes
+            .toString()
+            .padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+          durationHours = durationMs / (1000 * 60 * 60);
         }
-        worksheet.addRow({
-          serial_no: serialNumber,
-          date: toISTDateString(r.first_log),
-          staff_name: r.staff_name,
-          erp_id: r.erp_id,
-          department_name: r.department_name,
-          first_log: firstLog.toTimeString().split(' ')[0],
-          last_log: lastLog.toTimeString().split(' ')[0],
-          duration,
-        });
+        const halfFull = durationHours < 4 ? 'Half Day' : 'Full Day';
+        const row = [
+            serialNumber,
+            toISTDateString(r.first_log),
+            `"${r.faculty_name}"`,
+            r.erp_id,
+            `"${r.department_name}"`,
+            firstLog.toTimeString().split(' ')[0],
+            lastLog.toTimeString().split(' ')[0],
+            duration,
+            halfFull
+        ];
         serialNumber++;
-      });
-      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-      res.setHeader('Content-Disposition', 'attachment; filename=staff_attendance_report.xlsx');
-      await workbook.xlsx.write(res);
-      res.end();
-      return;
-    }
-    // CSV generation
-    const csvHeader = 'S.No,Date,Staff Name,ERP ID,Department,First Log,Last Log,Duration (HH:MM:SS)\n';
-    let serialNumber = 1;
-    const csvRows = rows.map(r => {
-      const firstLog = new Date(r.first_log);
-      const lastLog = new Date(r.last_log);
-      let duration = '00:00:00';
-      const durationMs = lastLog - firstLog;
-      if (!isNaN(durationMs) && durationMs >= 0) {
-        const hours = Math.floor(durationMs / (1000 * 60 * 60));
-        const minutes = Math.floor((durationMs / (1000 * 60)) % 60);
-        const seconds = Math.floor((durationMs / 1000) % 60);
-        duration = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-      }
-      const row = [
-        serialNumber,
-        toISTDateString(r.first_log),
-        `"${r.staff_name}"`,
-        r.erp_id,
-        `"${r.department_name}"`,
-        firstLog.toTimeString().split(' ')[0],
-        lastLog.toTimeString().split(' ')[0],
-        duration
-      ];
-      serialNumber++;
-      return row.join(',');
+        return row.join(',');
     });
     const csvData = csvHeader + csvRows.join('\n');
     res.header('Content-Type', 'text/csv');
     res.attachment('staff_attendance_report.csv');
     return res.send(csvData);
-  } catch (error) {
-    console.error('Error generating staff attendance report:', error);
+
+  } catch (e) {
+    console.error('Error generating staff attendance report:', e);
     res.status(500).json({ message: 'Failed to generate staff attendance report' });
   }
 });
 
-// Staff Stress Report (Non-Teaching Staff)
-router.get('/staff-stress-report', async (req, res) => {
-  try {
-    const { departmentId, fromDate, toDate, format } = req.query;
-    const from = fromDate || '1900-01-01';
-    const to = toDate || '2100-12-31';
-    let records;
-    if (departmentId && departmentId !== 'all') {
-      let deptIds = departmentId.includes(',') ? departmentId.split(',').map(Number) : [Number(departmentId)];
-      records = await sql`
-        SELECT
-          s.name AS staff_name,
-          s.erpid,
-          d.name AS department_name,
-          DATE(sl.timestamp AT TIME ZONE 'Asia/Kolkata') AS stress_date,
-          sl.stress_level
-        FROM stress_logs sl
-        JOIN non_teaching_staff s ON sl.erpid = s.erpid
-        JOIN departments d ON s.department_id = d.id
-        WHERE s.department_id = ANY(${deptIds})
-          AND DATE(sl.timestamp AT TIME ZONE 'Asia/Kolkata') >= ${from}::date
-          AND DATE(sl.timestamp AT TIME ZONE 'Asia/Kolkata') <= ${to}::date
-        ORDER BY d.name, s.name, stress_date
-      `;
-    } else {
-      records = await sql`
-        SELECT
-          s.name AS staff_name,
-          s.erpid,
-          d.name AS department_name,
-          DATE(sl.timestamp AT TIME ZONE 'Asia/Kolkata') AS stress_date,
-          sl.stress_level
-        FROM stress_logs sl
-        JOIN non_teaching_staff s ON sl.erpid = s.erpid
-        JOIN departments d ON s.department_id = d.id
-        WHERE DATE(sl.timestamp AT TIME ZONE 'Asia/Kolkata') >= ${from}::date
-          AND DATE(sl.timestamp AT TIME ZONE 'Asia/Kolkata') <= ${to}::date
-        ORDER BY d.name, s.name, stress_date
-      `;
-    }
-    const rows = Array.isArray(records) ? records : (records.rows || []);
-    if (!rows || rows.length === 0) {
-      return res.status(404).send('No stress data found for the selected criteria.');
-    }
-    // Aggregate data by staff only (not by date)
-    const aggregatedData = {};
-    rows.forEach(row => {
-      const key = `${row.staff_name}_${row.erpid}_${row.department_name}`;
-      if (!aggregatedData[key]) {
-        aggregatedData[key] = {
-          staff_name: row.staff_name,
-          erpid: row.erpid,
-          department_name: row.department_name,
-          stressed_count: 0,
-          unstressed_count: 0
-        };
-      }
-      // Count stressed levels (L1, L2, L3)
-      if (["L1", "L2", "L3"].includes(row.stress_level)) {
-        aggregatedData[key].stressed_count++;
-      }
-      // Count unstressed levels (A1, A2, A3)
-      else if (["A1", "A2", "A3"].includes(row.stress_level)) {
-        aggregatedData[key].unstressed_count++;
-      }
-    });
-    // Convert to array and add verdict
-    const finalData = Object.values(aggregatedData).map(item => ({
-      ...item,
-      verdict: item.stressed_count > item.unstressed_count ? 'Stressed' : 'Unstressed'
-    }));
-    if (format === 'pdf') {
-      const PDFDocument = require('pdfkit');
-      const doc = new PDFDocument({ margin: 30, size: 'A4', layout: 'landscape' });
-      res.setHeader('Content-Type', 'application/pdf');
-      res.setHeader('Content-Disposition', 'attachment; filename=staff_stress_report.pdf');
-      doc.pipe(res);
-      doc.fontSize(16).text('Non-Teaching Staff Stress Report', { align: 'center' });
-      doc.moveDown();
-      doc.fontSize(12).text(`From: ${from} To: ${to}`, { align: 'center' });
-      doc.moveDown();
-      doc.fontSize(10).text('Stress Level Indicators:', { align: 'left' });
-      doc.moveDown(0.2);
-      doc.fontSize(8).text('STRESS: L1 - 70-80  | L2 - 80-90  | L3 - 90-100', { align: 'left' });
-      doc.moveDown(0.1);
-      doc.fontSize(8).text('UNSTRESS: A1 - 90-100  | A2 - 80-90  | A3 - 70-80', { align: 'left' });
-      doc.moveDown();
-      const headers = ['S.No', 'Staff Name', 'ERP ID', 'Department', 'Stressed Count', 'Unstressed Count', 'Verdict'];
-      const colWidths = [40, 200, 70, 200, 100, 100, 80];
-      const startX = doc.x;
-      let y = doc.y;
-      function drawHeader() {
-        let x = startX;
-        doc.font('Helvetica-Bold').fontSize(10);
-        headers.forEach((header, i) => {
-          doc.rect(x, y, colWidths[i], 20).stroke();
-          doc.text(header, x + 2, y + 6, { width: colWidths[i] - 4, align: 'center' });
-          x += colWidths[i];
-        });
-        y += 20;
-        doc.font('Helvetica').fontSize(9);
-        doc.y = y;
-      }
-      drawHeader();
-      let rowCount = 0;
-      let serialNumber = 1;
-      finalData.forEach(r => {
-        const row = [
-          serialNumber.toString(),
-          r.staff_name,
-          r.erpid,
-          r.department_name,
-          r.stressed_count.toString(),
-          r.unstressed_count.toString(),
-          r.verdict
-        ];
-        let x = startX;
-        row.forEach((cell, i) => {
-          doc.rect(x, y, colWidths[i], 18).stroke();
-          doc.text(String(cell), x + 2, y + 5, { width: colWidths[i] - 4, align: 'center', ellipsis: true });
-          x += colWidths[i];
-        });
-        y += 18;
-        rowCount++;
-        serialNumber++;
-        if (rowCount % 20 === 0) {
-          doc.addPage();
-          y = doc.y;
-          drawHeader();
-          y = doc.y;
-        }
-      });
-      doc.end();
-      return;
-    }
-    if (format === 'xlsx') {
-      const ExcelJS = require('exceljs');
-      const workbook = new ExcelJS.Workbook();
-      const worksheet = workbook.addWorksheet('Staff Stress');
-      worksheet.addRow(['Non-Teaching Staff Stress Report']);
-      worksheet.addRow([`From: ${from} To: ${to}`]);
-      worksheet.addRow([]);
-      worksheet.addRow(['Stress Level Indicators:']);
-      worksheet.addRow(['L1 - 70-80 stress', 'L2 - 80-90 stress', 'L3 - 90-100 stress', 'A1 - 90-100 unstress', 'A2 - 80-90 unstress', 'A3 - 70-80 unstress']);
-      worksheet.addRow([]);
-      worksheet.columns = [
-        { header: 'S.No', key: 'serial_no', width: 10 },
-        { header: 'Staff Name', key: 'staff_name', width: 25 },
-        { header: 'ERP ID', key: 'erpid', width: 15 },
-        { header: 'Department', key: 'department_name', width: 25 },
-        { header: 'Stressed Count', key: 'stressed_count', width: 15 },
-        { header: 'Unstressed Count', key: 'unstressed_count', width: 15 },
-        { header: 'Verdict', key: 'verdict', width: 15 },
-      ];
-      let serialNumber = 1;
-      finalData.forEach(r => {
-        worksheet.addRow({
-          serial_no: serialNumber,
-          staff_name: r.staff_name,
-          erpid: r.erpid,
-          department_name: r.department_name,
-          stressed_count: r.stressed_count,
-          unstressed_count: r.unstressed_count,
-          verdict: r.verdict,
-        });
-        serialNumber++;
-      });
-      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-      res.setHeader('Content-Disposition', 'attachment; filename=staff_stress_report.xlsx');
-      await workbook.xlsx.write(res);
-      res.end();
-      return;
-    }
-    // CSV
-    const csvHeader = `Non-Teaching Staff Stress Report\nFrom: ${from} To: ${to}\n\nStress Level Indicators:\nL1 - 70-80 stress | L2 - 80-90 stress | L3 - 90-100 stress | A1 - 90-100 unstress | A2 - 80-90 unstress | A3 - 70-80 unstress\n\nS.No,Staff Name,ERP ID,Department,Stressed Count,Unstressed Count,Verdict\n`;
-    let serialNumber = 1;
-    const csvRows = finalData.map(r => [
-      serialNumber,
-      `"${r.staff_name}"`,
-      r.erpid,
-      `"${r.department_name}"`,
-      r.stressed_count,
-      r.unstressed_count,
-      r.verdict
-    ].join(','));
-    serialNumber++;
-    const csvData = csvHeader + csvRows.join('\n');
-    res.header('Content-Type', 'text/csv');
-    res.attachment('staff_stress_report.csv');
-    return res.send(csvData);
-  } catch (error) {
-    console.error('Error generating staff stress report:', error);
-    res.status(500).json({ message: 'Failed to generate staff stress report' });
-  }
-});
-
-// Endpoint to get total faculty count per department
-router.get('/faculty-department-counts', async (req, res) => {
-  try {
-    const rows = await sql`
-      SELECT department_id, COUNT(*) AS count FROM faculty WHERE is_active = true GROUP BY department_id`;
-    res.json(rows);
-  } catch (error) {
-    console.error('Error fetching faculty department counts:', error);
-    res.status(500).json({ message: 'Failed to fetch faculty department counts' });
-  }
-});
-
-// Endpoint to get total staff count per department
-router.get('/staff-department-counts', async (req, res) => {
-  try {
-    const rows = await sql`
-      SELECT department_id, COUNT(*) AS count FROM non_teaching_staff GROUP BY department_id`;
-    res.json(rows);
-  } catch (error) {
-    console.error('Error fetching staff department counts:', error);
-    res.status(500).json({ message: 'Failed to fetch staff department counts' });
-  }
-});
-
 module.exports = router;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

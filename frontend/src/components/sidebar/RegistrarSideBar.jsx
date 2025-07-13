@@ -24,21 +24,16 @@ const routes = [
     name: "Dashboard",
     icon: <FaHome />,
   },
-  // {
-  //   path: "/registrar/students",
-  //   name: "Student Management",
-  //   icon: <FaUser />,
-  // },
-  // {
-  //   path: "/registrar/faculty",
-  //   name: "Faculty Management",
-  //   icon: <AiOutlinePlus />,
-  // },
-  // {
-  //   path: "/registrar/departments",
-  //   name: "Department Management",
-  //   icon: <AiFillDatabase />,
-  // },
+  {
+    path: "/registrar/faculty-management",
+    name: "Faculty Management",
+    icon: <AiOutlinePlus />,
+  },
+  {
+    path: "/registrar/staff-management",
+    name: "Staff Management",
+    icon: <AiFillDatabase />,
+  },
   {
     path: "/registrar/leave-applications",
     name: "Leave Applications",
@@ -77,23 +72,29 @@ const routes = [
 ];
 
 // Mobile bottom tab bar component
-function MobileBottomTabs() {
+function MobileBottomTabs({ onLogout }) {
   const navigate = useNavigate();
   const location = useLocation();
   const tabs = [
     { path: "/registrar", label: "Dashboard", icon: <FaHome /> },
-    { path: "/registrar/students", label: "Students", icon: <FaUser /> },
-    { path: "/registrar/faculty", label: "Faculty", icon: <AiOutlinePlus /> },
+    { path: "/registrar/faculty-management", label: "Faculty", icon: <AiOutlinePlus /> },
+    { path: "/registrar/staff-management", label: "Staff", icon: <AiFillDatabase /> },
     { path: "/registrar/leave-applications", label: "Leaves", icon: <AiFillBell /> },
     { path: "/registrar/registrar-settings", label: "Settings", icon: <AiOutlineSetting /> },
-    { path: "/", label: "Logout", icon: <AiOutlineLogout /> },
+    { path: "/", label: "Logout", icon: <AiOutlineLogout />, isLogout: true },
   ];
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-20 bg-[#b22b2f] text-white flex justify-between items-center px-1 py-1 shadow-t border-t border-[#a02529]">
       {tabs.map((tab) => (
         <button
           key={tab.path}
-          onClick={() => navigate(tab.path)}
+          onClick={() => {
+            if (tab.isLogout) {
+              onLogout();
+            } else {
+              navigate(tab.path);
+            }
+          }}
           className={`flex flex-col items-center flex-1 px-1 py-1 focus:outline-none ${location.pathname === tab.path ? 'text-[#d1a550]' : ''}`}
         >
           <span className="text-lg">{tab.icon}</span>
@@ -149,7 +150,7 @@ const RegistrarSideBar = ({ children }) => {
     return (
       <div className="w-screen min-h-screen bg-gray-100 pb-14">
         <main className="flex-1 p-2 sm:p-4 overflow-auto">{children}</main>
-        <MobileBottomTabs />
+        <MobileBottomTabs onLogout={handleLogout} />
       </div>
     );
   }
@@ -193,6 +194,32 @@ const RegistrarSideBar = ({ children }) => {
                 );
               }
 
+              // Handle logout as a special case
+              if (route.name === 'Logout') {
+                return (
+                  <button
+                    key={index}
+                    onClick={handleLogout}
+                    className="flex items-center gap-3 p-2 rounded hover:bg-[#d1a550] transition w-full text-left"
+                  >
+                    <div className="text-xl">{route.icon}</div>
+                    <AnimatePresence>
+                      {isOpen && (
+                        <motion.span
+                          variants={showAnimation}
+                          initial="hidden"
+                          animate="show"
+                          exit="hidden"
+                          className="text-sm"
+                        >
+                          {route.name}
+                        </motion.span>
+                      )}
+                    </AnimatePresence>
+                  </button>
+                );
+              }
+
               return (
                 <NavLink
                   to={route.path}
@@ -200,7 +227,6 @@ const RegistrarSideBar = ({ children }) => {
                   className={({ isActive }) =>
                     `link ${isActive ? "active" : ""}`
                   }
-                  onClick={route.path === "/" ? handleLogout : undefined}
                 >
                   <div className="icon">{route.icon}</div>
                   <AnimatePresence>

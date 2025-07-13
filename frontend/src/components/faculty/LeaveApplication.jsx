@@ -121,6 +121,9 @@ const LeaveApplicationForm = ({ formData, errors, isSubmitting, handleChange, ha
           </div>
         ))}
       </div>
+      {errors.leaveType && (
+        <p className="mt-2 text-sm text-red-600">{errors.leaveType}</p>
+      )}
     </div>
     {/* Reason */}
     <div>
@@ -343,6 +346,90 @@ const LeaveHistory = ({ leaveApplications, isLoading }) => {
   );
 };
 
+// Add LeaveBalancesDisplay component
+const LeaveBalancesTable = ({ leaveBalances, leaveApplications, isLoading }) => {
+  if (isLoading) {
+    return (
+      <div className="text-center py-4">
+        <Loader2 className="animate-spin h-6 w-6 mx-auto text-red-600" />
+        <p className="mt-2 text-sm text-gray-600">Loading leave balances...</p>
+      </div>
+    );
+  }
+
+  if (!leaveBalances) {
+    return (
+      <div className="text-center py-4 bg-yellow-50 rounded-lg">
+        <p className="text-yellow-700 text-sm">Leave balances not available</p>
+      </div>
+    );
+  }
+
+  // Define leave types and their display names (in the correct order)
+  const leaveTypes = [
+    { key: 'sick', label: 'Sick Leave' },
+    { key: 'academic', label: 'Academic Leave' },
+    { key: 'emergency', label: 'Emergency Leave' },
+    { key: 'maternity', label: 'Maternity Leave' },
+    { key: 'family', label: 'Family Function' },
+    { key: 'travel', label: 'Travel Leave' },
+    { key: 'other', label: 'Other' },
+  ];
+
+  // Helper to calculate consumed days for a leave type
+  const getConsumed = (type) => {
+    if (!leaveApplications) return 0;
+    return leaveApplications
+      .filter(
+        (leave) =>
+          leave.leaveType === type &&
+          leave.FinalStatus === 'Approved'
+      )
+      .reduce((sum, leave) => {
+        const from = new Date(leave.fromDate);
+        const to = new Date(leave.toDate);
+        // +1 to include both start and end dates
+        const days = Math.floor((to - from) / (1000 * 60 * 60 * 24)) + 1;
+        return sum + days;
+      }, 0);
+  };
+
+  return (
+    <div className="overflow-x-auto mb-6">
+      <div className="bg-blue-700 text-white px-4 py-2 rounded-t-md font-semibold">My Leave Balance</div>
+      <table className="min-w-full border border-gray-300 rounded-b-md">
+        <thead>
+          <tr className="bg-orange-200">
+            <th className="px-3 py-2 text-left font-bold">Leave Type</th>
+            <th className="px-3 py-2 text-left font-bold">Allocation From</th>
+            <th className="px-3 py-2 text-left font-bold">Allocation Till</th>
+            <th className="px-3 py-2 text-right font-bold">Total</th>
+            <th className="px-3 py-2 text-right font-bold">Consumed</th>
+            <th className="px-3 py-2 text-right font-bold">Current Balance</th>
+          </tr>
+        </thead>
+        <tbody>
+          {leaveTypes.map((type, idx) => {
+            const consumed = getConsumed(type.key);
+            const current = leaveBalances[type.key] ?? 0;
+            const total = consumed + current;
+            return (
+              <tr key={type.key} className={idx % 2 === 0 ? "bg-white" : "bg-orange-50"}>
+                <td className="px-3 py-2">{type.label}</td>
+                <td className="px-3 py-2">01/07/2025</td>
+                <td className="px-3 py-2">31/12/2025</td>
+                <td className="px-3 py-2 text-right">{total}</td>
+                <td className="px-3 py-2 text-right">{consumed}</td>
+                <td className="px-3 py-2 text-right">{current}</td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+};
+
 export default function LeaveApplication() {
   // Form state
   const [formData, setFormData] = useState({
@@ -361,6 +448,7 @@ export default function LeaveApplication() {
   const [activeTab, setActiveTab] = useState('apply');
   const [isLoading, setIsLoading] = useState(true);
   const [leaveApplications, setLeaveApplications] = useState([]);
+  const [leaveBalances, setLeaveBalances] = useState(null);
   const [token, setToken] = useState(localStorage.getItem('token') || sessionStorage.getItem('token'));
 
   // Fetch user data when component mounts
@@ -418,10 +506,43 @@ export default function LeaveApplication() {
     };
 
     if (token) {
-
       fetchLeaveApplications();
     }
   }, [token, setLeaveApplications]);
+
+  // Fetch leave balances
+  useEffect(() => {
+    const fetchLeaveBalances = async () => {
+      try {
+        const response = await fetch('http://69.62.83.14:9000/api/faculty/leave-balances', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        
+        if (!response.ok) {
+          if (response.status === 404) {
+            console.log('No leave balances found for faculty');
+            setLeaveBalances(null);
+          } else {
+            throw new Error('Failed to fetch leave balances');
+          }
+          return;
+        }
+
+        const data = await response.json();
+        console.log('Leave balances:', data);
+        setLeaveBalances(data);
+      } catch (error) {
+        console.error('Error fetching leave balances:', error);
+        setLeaveBalances(null);
+      }
+    };
+
+    if (token) {
+      fetchLeaveBalances();
+    }
+  }, [token]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -459,6 +580,24 @@ export default function LeaveApplication() {
       newErrors.reason = 'Reason for leave is required';
     } else if (formData.reason.trim().length < 10) {
       newErrors.reason = 'Please provide a more detailed reason (min 10 characters)';
+    }
+
+    // Check leave balance
+    if (leaveBalances && formData.leaveType && formData.fromDate && formData.toDate) {
+      const availableLeaves = leaveBalances[formData.leaveType];
+      const startDate = new Date(formData.fromDate);
+      const endDate = new Date(formData.toDate);
+      
+      // Set time to midnight to avoid time zone issues
+      startDate.setHours(0, 0, 0, 0);
+      endDate.setHours(0, 0, 0, 0);
+      
+      const diffTime = endDate.getTime() - startDate.getTime();
+      const requestedDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1; // +1 to include both start and end dates
+      
+      if (availableLeaves < requestedDays) {
+        newErrors.leaveType = `Insufficient ${formData.leaveType} leaves. You have ${availableLeaves} days left, but requesting ${requestedDays} days.`;
+      }
     }
     
     setErrors(newErrors);
@@ -611,6 +750,7 @@ export default function LeaveApplication() {
                 )}
                 
                 <h3 className="text-xl font-medium text-gray-900 mb-6 pb-2 border-b border-gray-200">New Leave Application</h3>
+                <LeaveBalancesTable leaveBalances={leaveBalances} leaveApplications={leaveApplications} isLoading={isLoading} />
                 <LeaveApplicationForm
                   formData={formData}
                   errors={errors}

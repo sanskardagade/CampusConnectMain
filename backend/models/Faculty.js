@@ -82,24 +82,24 @@ const update = async (erpStaffId, updateData) => {
 };
 
 // Compare provided password with stored value
-const comparePassword = async (password_hash, passwordHash) => {
-  return password_hash === passwordHash;
+const comparePassword = async (password, passwordHash) => {
+  return password === passwordHash;
 };
 
 class Faculty {
-  static async updatePassword(erpStaffId, hashedPassword) {
+  static async updatePassword(erpStaffId, password) {
     try {
-      const query = `
+      const result = await sql`
         UPDATE faculty 
-        SET password = $1 
-        WHERE erpid = $2
+        SET password_hash = ${password},
+            updated_at = NOW()
+        WHERE erpid = ${erpStaffId}
         RETURNING erpid
-      `
-      const result = await sql.query(query, [hashedPassword, erpStaffId])
-      return result.rows.length > 0
+      `;
+      return result.length > 0;
     } catch (error) {
-      console.error('Error updating password:', error)
-      throw error
+      console.error('Error updating password:', error);
+      throw error;
     }
   }
 }

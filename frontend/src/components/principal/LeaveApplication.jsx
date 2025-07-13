@@ -353,7 +353,14 @@ export default function LeaveApplication() {
                           <div>
                             <p className="text-sm text-gray-500">Duration</p>
                             <p className="font-medium">
-                              {Math.ceil((new Date(selectedApplication.toDate) - new Date(selectedApplication.fromDate)) / (1000 * 60 * 60 * 24))} days
+                              {(() => {
+                                const startDate = new Date(selectedApplication.fromDate);
+                                const endDate = new Date(selectedApplication.toDate);
+                                startDate.setHours(0, 0, 0, 0);
+                                endDate.setHours(0, 0, 0, 0);
+                                const diffTime = endDate.getTime() - startDate.getTime();
+                                return Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
+                              })()} days
                             </p>
                           </div>
                           <div>

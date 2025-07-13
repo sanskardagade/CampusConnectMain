@@ -1,9 +1,9 @@
 const express = require('express');
 const router = express.Router();
-const authenticateToken = require('../middleware/auth');
+const { authenticateToken } = require('../middleware/auth');
 const sql = require('../config/neonsetup');
 const RegistrarModel = require('../models/Registrar.js');
-const { verifyRegistrar } = require('../middleware/roleVerification');
+const { verifyRegistrar } = require('../middleware/auth');
 const PDFDocument = require('pdfkit');
 
 // Protect all registrar routes
@@ -179,24 +179,22 @@ router.get('/faculty', async (req, res) => {
     let query = sql`
       SELECT 
         f.id,
-        f.erp_staff_id,
+        f.erpid,
         f.name,
         f.email,
-        f.contact_no,
-        f.department,
-        f.designation,
+        f.department_id,
         f.is_active,
         d.name as department_name
       FROM faculty f
-      LEFT JOIN departments d ON f.department = d.id
+      LEFT JOIN departments d ON f.department_id = d.id
       WHERE f.is_active = true
     `;
 
     if (department) {
-      query = sql`${query} AND f.department = ${department}`;
+      query = sql`${query} AND f.department_id = ${department}`;
     }
     if (search) {
-      query = sql`${query} AND (f.name ILIKE ${'%' + search + '%'} OR f.erp_staff_id ILIKE ${'%' + search + '%'})`;
+      query = sql`${query} AND (f.name ILIKE ${'%' + search + '%'} OR f.erpid ILIKE ${'%' + search + '%'})`;
     }
 
     query = sql`${query} ORDER BY f.name`;
@@ -210,6 +208,318 @@ router.get('/faculty', async (req, res) => {
   }
 });
 
+// Add new faculty member
+router.post('/faculty', async (req, res) => {
+  try {
+    const { erpid, name, email, department_id, password } = req.body;
+    
+    console.log('Received faculty data:', { erpid, name, email, department_id, password });
+    
+    if (!erpid || !name || !email || !department_id || !password) {
+      console.log('Missing required fields:', { erpid: !!erpid, name: !!name, email: !!email, department_id: !!department_id, password: !!password });
+      return res.status(400).json({ message: 'ERP ID, name, email, department, and password are required' });
+    }
+
+    // Check if faculty already exists
+    const [existingFaculty] = await sql`
+      SELECT id FROM faculty WHERE erpid = ${erpid}
+    `;
+
+    if (existingFaculty) {
+      return res.status(400).json({ message: 'Faculty member with this ERP ID already exists' });
+    }
+
+    const [newFaculty] = await sql`
+      INSERT INTO faculty (erpid, name, email, department_id, password_hash, is_active, created_at, updated_at)
+      VALUES (${erpid}, ${name}, ${email}, ${department_id}, ${password}, true, NOW(), NOW())
+      RETURNING 
+        id, 
+        erpid, 
+        name, 
+        email, 
+        department_id, 
+        is_active
+    `;
+
+    res.status(201).json({ message: 'Faculty member added successfully', faculty: newFaculty });
+
+  } catch (error) {
+    console.error('Error adding faculty:', error);
+    res.status(500).json({ error: 'Failed to add faculty member' });
+  }
+});
+
+// Update faculty member
+router.put('/faculty/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { erpid, name, email, department_id, password, is_active } = req.body;
+
+    if (!erpid || !name || !email || !department_id) {
+      return res.status(400).json({ message: 'ERP ID, name, email, and department are required' });
+    }
+
+    // Check if ERP ID already exists for another faculty member
+    const [existingFaculty] = await sql`
+      SELECT id FROM faculty WHERE erpid = ${erpid} AND id != ${id}
+    `;
+
+    if (existingFaculty) {
+      return res.status(400).json({ message: 'ERP ID already exists for another faculty member' });
+    }
+
+    // Prepare update data
+    let updateQuery;
+    if (password && password.trim()) {
+      updateQuery = sql`
+        UPDATE faculty
+        SET 
+          erpid = ${erpid},
+          name = ${name},
+          email = ${email},
+          department_id = ${department_id},
+          password_hash = ${password},
+          is_active = ${is_active !== undefined ? is_active : true},
+          updated_at = NOW()
+        WHERE id = ${id}
+        RETURNING 
+          id, 
+          erpid, 
+          name, 
+          email, 
+          department_id, 
+          is_active
+      `;
+    } else {
+      updateQuery = sql`
+        UPDATE faculty
+        SET 
+          erpid = ${erpid},
+          name = ${name},
+          email = ${email},
+          department_id = ${department_id},
+          is_active = ${is_active !== undefined ? is_active : true},
+          updated_at = NOW()
+        WHERE id = ${id}
+        RETURNING 
+          id, 
+          erpid, 
+          name, 
+          email, 
+          department_id, 
+          is_active
+      `;
+    }
+
+    const [updatedFaculty] = await updateQuery;
+
+    if (!updatedFaculty) {
+      return res.status(404).json({ message: 'Faculty member not found' });
+    }
+
+    res.json({ message: 'Faculty member updated successfully', faculty: updatedFaculty });
+
+  } catch (error) {
+    console.error('Error updating faculty:', error);
+    res.status(500).json({ error: 'Failed to update faculty member' });
+  }
+});
+
+// Delete faculty member (soft delete)
+router.delete('/faculty/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const [deletedFaculty] = await sql`
+      UPDATE faculty
+      SET is_active = false, updated_at = NOW()
+      WHERE id = ${id}
+      RETURNING id, name, erpid
+    `;
+
+    if (!deletedFaculty) {
+      return res.status(404).json({ message: 'Faculty member not found' });
+    }
+
+    res.json({ message: 'Faculty member deleted successfully', faculty: deletedFaculty });
+
+  } catch (error) {
+    console.error('Error deleting faculty:', error);
+    res.status(500).json({ error: 'Failed to delete faculty member' });
+  }
+});
+
+// Non-Teaching Staff Management Routes
+router.get('/staff', async (req, res) => {
+  try {
+    const { department, search } = req.query;
+    let query = sql`
+      SELECT 
+        s.id,
+        s.erpid,
+        s.name,
+        s.email,
+        s.department_id,
+        d.name as department_name
+      FROM non_teaching_staff s
+      LEFT JOIN departments d ON s.department_id = d.id
+    `;
+
+    if (department) {
+      query = sql`${query} AND s.department_id = ${department}`;
+    }
+    if (search) {
+      query = sql`${query} AND (s.name ILIKE ${'%' + search + '%'} OR s.erpid ILIKE ${'%' + search + '%'})`;
+    }
+
+    query = sql`${query} ORDER BY s.name`;
+
+    const staff = await query;
+    res.json({ staff });
+
+  } catch (error) {
+    console.error('Error fetching staff:', error);
+    res.status(500).json({ error: 'Failed to fetch staff' });
+  }
+});
+
+// Add new staff member
+router.post('/staff', async (req, res) => {
+  try {
+    const { erpid, name, email, department_id, password } = req.body;
+    
+    if (!erpid || !name || !email || !department_id || !password) {
+      return res.status(400).json({ message: 'ERP ID, name, email, department, and password are required' });
+    }
+
+    // Check if staff already exists
+    const [existingStaff] = await sql`
+      SELECT id FROM non_teaching_staff WHERE erpid = ${erpid}
+    `;
+
+    if (existingStaff) {
+      return res.status(400).json({ message: 'Staff member with this ERP ID already exists' });
+    }
+
+    const [newStaff] = await sql`
+      INSERT INTO non_teaching_staff (erpid, name, email, department_id, password_hash, created_at, updated_at)
+      VALUES (${erpid}, ${name}, ${email}, ${department_id}, ${password}, NOW(), NOW())
+      RETURNING 
+        id, 
+        erpid, 
+        name, 
+        email, 
+        department_id
+    `;
+
+    res.status(201).json({ message: 'Staff member added successfully', staff: newStaff });
+
+  } catch (error) {
+    console.error('Error adding staff:', error);
+    
+    // Handle duplicate ERP ID error
+    if (error.code === '23505' && error.constraint === 'non_teaching_staff_erpid_key') {
+      return res.status(400).json({ message: 'Staff member with this ERP ID already exists' });
+    }
+    
+    res.status(500).json({ error: 'Failed to add staff member' });
+  }
+});
+
+// Update staff member
+router.put('/staff/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { erpid, name, email, department_id, password } = req.body;
+
+    if (!erpid || !name || !email || !department_id) {
+      return res.status(400).json({ message: 'ERP ID, name, email, and department are required' });
+    }
+
+    // Check if ERP ID already exists for another staff member
+    const [existingStaff] = await sql`
+      SELECT id FROM non_teaching_staff WHERE erpid = ${erpid} AND id != ${id}
+    `;
+
+    if (existingStaff) {
+      return res.status(400).json({ message: 'ERP ID already exists for another staff member' });
+    }
+
+    let updateQuery;
+    if (password && password.trim()) {
+      updateQuery = sql`
+        UPDATE non_teaching_staff
+        SET 
+          erpid = ${erpid},
+          name = ${name},
+          email = ${email},
+          department_id = ${department_id},
+          password_hash = ${password},
+          updated_at = NOW()
+        WHERE id = ${id}
+        RETURNING 
+          id, 
+          erpid, 
+          name, 
+          email, 
+          department_id
+      `;
+    } else {
+      updateQuery = sql`
+        UPDATE non_teaching_staff
+        SET 
+          erpid = ${erpid},
+          name = ${name},
+          email = ${email},
+          department_id = ${department_id},
+          updated_at = NOW()
+        WHERE id = ${id}
+        RETURNING 
+          id, 
+          erpid, 
+          name, 
+          email, 
+          department_id
+      `;
+    }
+
+    const [updatedStaff] = await updateQuery;
+
+    if (!updatedStaff) {
+      return res.status(404).json({ message: 'Staff member not found' });
+    }
+
+    res.json({ message: 'Staff member updated successfully', staff: updatedStaff });
+
+  } catch (error) {
+    console.error('Error updating staff:', error);
+    res.status(500).json({ error: 'Failed to update staff member' });
+  }
+});
+
+// Delete staff member (soft delete)
+router.delete('/staff/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const [deletedStaff] = await sql`
+      DELETE FROM non_teaching_staff
+      WHERE id = ${id}
+      RETURNING id, name, erpid
+    `;
+
+    if (!deletedStaff) {
+      return res.status(404).json({ message: 'Staff member not found' });
+    }
+
+    res.json({ message: 'Staff member deleted successfully', staff: deletedStaff });
+
+  } catch (error) {
+    console.error('Error deleting staff:', error);
+    res.status(500).json({ error: 'Failed to delete staff member' });
+  }
+});
+
 // Department Management Routes
 router.get('/departments', async (req, res) => {
   try {
@@ -217,10 +527,7 @@ router.get('/departments', async (req, res) => {
       SELECT 
         id,
         name,
-        short_code,
-        hod_id,
-        created_at,
-        updated_at
+        short_code
       FROM departments
       ORDER BY name
     `;

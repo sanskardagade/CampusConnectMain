@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const authenticateToken = require('../middleware/auth');
+const { authenticateToken } = require('../middleware/auth');
 const Faculty = require('../models/Faculty');
 const FacultyLog = require('../models/FacultyLogs');
 const sql = require('../config/neonsetup');
@@ -251,6 +251,58 @@ router.get("/leave-apply", authenticateToken, async (req, res) => {
     console.error("Error in leave-apply GET endpoint:", error);
     res.status(500).json({ 
       message: 'Error fetching leave applications',
+      error: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
+  }
+});
+
+// Get faculty leave balances
+router.get("/leave-balances", authenticateToken, async (req, res) => {
+  try {
+    const erpStaffId = req.user.erpStaffId;
+    console.log('Fetching leave balances for faculty:', erpStaffId);
+    
+    if (!erpStaffId) {
+      console.error('No erpStaffId found in user object');
+      return res.status(400).json({ 
+        message: 'Invalid user data',
+        error: 'No erpStaffId found'
+      });
+    }
+
+    const result = await sql`
+      SELECT 
+        "ErpStaffId",
+        sick,
+        academic,
+        emergency,
+        maternity,
+        family,
+        travel,
+        other,
+        created_at,
+        updated_at
+      FROM faculty_leave_balances 
+      WHERE "ErpStaffId" = ${erpStaffId}
+    `;
+    
+    console.log('Leave balances query result:', result);
+    
+    if (!result || result.length === 0) {
+      console.log('No leave balances found for faculty:', erpStaffId);
+      return res.status(404).json({ 
+        message: 'Leave balances not found for this faculty',
+        error: 'No leave balance record exists'
+      });
+    }
+    
+    console.log('Sending leave balances response:', result[0]);
+    res.json(result[0]);
+  } catch (error) {
+    console.error("Error in leave-balances GET endpoint:", error);
+    res.status(500).json({ 
+      message: 'Error fetching leave balances',
       error: error.message,
       stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });

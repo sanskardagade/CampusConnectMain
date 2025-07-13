@@ -63,4 +63,47 @@ const authenticateToken = (req, res, next) => {
   }
 };
 
-module.exports = authenticateToken; 
+// Role verification middleware functions
+const verifyPrincipal = (req, res, next) => {
+  if (req.user.role !== 'principal') {
+    return res.status(403).json({ error: 'Access denied. Principal role required' });
+  }
+  next();
+};
+
+const verifyRegistrar = (req, res, next) => {
+  if (req.user.role !== 'registrar') {
+    return res.status(403).json({ error: 'Access denied. Registrar role required' });
+  }
+  next();
+};
+
+const verifyHOD = (req, res, next) => {
+  if (req.user.role !== 'hod') {
+    return res.status(403).json({ error: 'Access denied. HOD role required' });
+  }
+  next();
+};
+
+const verifyFaculty = (req, res, next) => {
+  if (req.user.role !== 'faculty') {
+    return res.status(403).json({ error: 'Access denied. Faculty role required' });
+  }
+  next();
+};
+
+const verifyStudent = (req, res, next) => {
+  if (req.user.role !== 'student') {
+    return res.status(403).json({ error: 'Access denied. Student role required' });
+  }
+  next();
+};
+
+module.exports = {
+  authenticateToken,
+  verifyPrincipal,
+  verifyRegistrar,
+  verifyHOD,
+  verifyFaculty,
+  verifyStudent
+}; 

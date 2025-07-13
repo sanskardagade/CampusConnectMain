@@ -8,6 +8,8 @@ import RegistrarProfileEdit from "../components/registrar/RegistrarProfileEdit";
 import RegistrarChangePassword from "../components/registrar/RegistrarChangePassword";
 import LeaveApplication from "../components/registrar/LeaveApplication";
 import FacultyReport from "../components/registrar/FacultyReport";
+import FacultyManagement from "../components/registrar/FacultyManagement";
+import StaffManagement from "../components/registrar/StaffManagement";
 
 const Registrar = () => {
   return (
@@ -20,6 +22,8 @@ const Registrar = () => {
         <Route path="registrar-settings/change-password" element={<RegistrarChangePassword />} />
         <Route path="leave-applications" element={<LeaveApplication />} />
         <Route path="faculty-reports" element={<FacultyReport />} />
+        <Route path="faculty-management" element={<FacultyManagement />} />
+        <Route path="staff-management" element={<StaffManagement />} />
         
         {/* Placeholder routes for future implementation */}
         <Route path="students" element={<div className="p-8 text-center">Student Management - Coming Soon</div>} />

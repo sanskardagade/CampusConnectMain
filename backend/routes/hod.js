@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const authenticateToken = require('../middleware/auth');
+const { authenticateToken } = require('../middleware/auth');
 const sql = require('../config/neonsetup');
 const Hod = require('../models/Hod');
 const PDFDocument = require('pdfkit');

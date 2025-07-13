@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const Attendance = require('../models/Attendance');
 const User = require('../models/User');
-const auth = require('../middleware/auth');
+const { authenticateToken } = require('../middleware/auth');
 const ExcelJS = require('exceljs');
 
 // Helper function to process attendance data
@@ -97,7 +97,7 @@ const processAttendanceData = (data) => {
 };
 
 // Upload attendance data
-router.post('/upload', auth, async (req, res) => {
+router.post('/upload', authenticateToken, async (req, res) => {
     try {
         console.log('Received attendance upload request');
         const { data, academicYear, semester, class: className, month, year } = req.body;
@@ -138,7 +138,7 @@ router.post('/upload', auth, async (req, res) => {
 });
 
 // Get attendance data with role-based access
-router.get('/:class', auth, async (req, res) => {
+router.get('/:class', authenticateToken, async (req, res) => {
     try {
         const { class: className } = req.params;
         const { month, year } = req.query;
@@ -171,7 +171,7 @@ router.get('/:class', auth, async (req, res) => {
 });
 
 // Download monthly report
-router.get('/download/:class', auth, async (req, res) => {
+router.get('/download/:class', authenticateToken, async (req, res) => {
     try {
         const { class: className } = req.params;
         const { month, year } = req.query;

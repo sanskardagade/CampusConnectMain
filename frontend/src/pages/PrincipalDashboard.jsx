@@ -375,9 +375,14 @@ const PrincipalDashboard = () => {
       const res = await axios.get('http://69.62.83.14:9000/api/principal/present-faculty-today', {
         headers: { Authorization: `Bearer ${token}` }
       });
-      setPresentFacultyList(res.data.presentFaculty || []);
+      const facultyList = res.data.presentFaculty || [];
+      setPresentFacultyList(facultyList);
+      
+      // Update the external count to stay in sync
+      setPresentFaculty(facultyList.length);
     } catch (e) {
       setPresentFacultyList([]);
+      setPresentFaculty(0);
     } finally {
       setFacultyListRefreshing(false);
     }
@@ -396,9 +401,14 @@ const PrincipalDashboard = () => {
       const res = await axios.get('http://69.62.83.14:9000/api/principal/present-staff-today', {
         headers: { Authorization: `Bearer ${token}` }
       });
-      setPresentStaffList(res.data.presentStaff || []);
+      const staffList = res.data.presentStaff || [];
+      setPresentStaffList(staffList);
+      
+      // Update the external count to stay in sync
+      setPresentStaff(staffList.length);
     } catch (e) {
       setPresentStaffList([]);
+      setPresentStaff(0);
     } finally {
       setStaffListRefreshing(false);
     }

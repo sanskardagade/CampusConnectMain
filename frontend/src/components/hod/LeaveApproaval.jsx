@@ -176,7 +176,12 @@ export default function LeaveApprovalDashboard() {
                       {['Pending', 'Approved', 'Rejected'].map(tab => (
                         <button
                           key={tab}
-                          onClick={() => setSelectedTab(tab)}
+                          onClick={() => {
+                            setSelectedTab(tab);
+                            setSelectedApplication(null);
+                            setLoading(true);
+                            setTimeout(() => setLoading(false), 500); // Simulate loading
+                          }}
                           className={`flex-1 px-4 py-2 font-semibold text-sm transition-colors duration-150 ${
                             selectedTab === tab
                               ? (tab === 'Pending' ? 'bg-yellow-100 text-yellow-800' : tab === 'Approved' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800')
@@ -187,46 +192,58 @@ export default function LeaveApprovalDashboard() {
                         </button>
                       ))}
                     </div>
-                    {leaveApplications.filter(app => app.status === selectedTab).map((application, index) => (
-                      <div 
-                        key={`pending-${application.ErpStaffId || index}`}
-                        className={`border rounded-lg p-3 cursor-pointer transition-all duration-200 ${
-                          selectedApplication?.ErpStaffId === application.ErpStaffId 
-                            ? 'border-red-300 bg-red-50' 
-                            : 'border-yellow-200 bg-yellow-50 hover:border-yellow-300'
-                        }`}
-                        onClick={() => setSelectedApplication(application)}
-                      >
-                        <div className="flex items-center">
-                          <div className="w-10 h-10 rounded-full bg-red-100 overflow-hidden mr-3 flex items-center justify-center">
-                            <span className="text-red-800 font-medium">
-                              {application.StaffName.charAt(0)}
-                            </span>
-                          </div>
-                          <div className="flex-grow">
-                            <div className="flex justify-between items-start">
-                              <div>
-                                <span className="font-medium text-gray-900">{application.StaffName}</span>
-                                <p className="text-xs text-gray-500 mt-1">ID: {application.ErpStaffId}</p>
+                    {loading ? (
+                      <div className="flex justify-center items-center py-8">
+                        <svg className="animate-spin h-8 w-8 text-red-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
+                        </svg>
+                        <span className="ml-2 text-red-700 font-medium">Loading...</span>
+                      </div>
+                    ) : (
+                      <>
+                        {leaveApplications.filter(app => app.status === selectedTab).map((application, index) => (
+                          <div 
+                            key={`pending-${application.ErpStaffId || index}`}
+                            className={`border rounded-lg p-3 cursor-pointer transition-all duration-200 ${
+                              selectedApplication?.ErpStaffId === application.ErpStaffId 
+                                ? 'border-red-300 bg-red-50' 
+                                : 'border-yellow-200 bg-yellow-50 hover:border-yellow-300'
+                            }`}
+                            onClick={() => setSelectedApplication(application)}
+                          >
+                            <div className="flex items-center">
+                              <div className="w-10 h-10 rounded-full bg-red-100 overflow-hidden mr-3 flex items-center justify-center">
+                                <span className="text-red-800 font-medium">
+                                  {application.StaffName.charAt(0)}
+                                </span>
                               </div>
-                              <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-800">
-                                {application.leaveType}
-                              </span>
-                            </div>
-                            <div className="mt-2 text-xs text-gray-600">
-                              {formatDate(application.fromDate)} - {formatDate(application.toDate)}
+                              <div className="flex-grow">
+                                <div className="flex justify-between items-start">
+                                  <div>
+                                    <span className="font-medium text-gray-900">{application.StaffName}</span>
+                                    <p className="text-xs text-gray-500 mt-1">ID: {application.ErpStaffId}</p>
+                                  </div>
+                                  <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-800">
+                                    {application.leaveType}
+                                  </span>
+                                </div>
+                                <div className="mt-2 text-xs text-gray-600">
+                                  {formatDate(application.fromDate)} - {formatDate(application.toDate)}
+                                </div>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      </div>
-                    ))}
-                    
-                    {leaveApplications.filter(app => app.status === selectedTab).length === 0 && (
-                      <div className="text-center py-8 text-gray-500 bg-gray-50 rounded-lg">
-                        <AlertCircle className="mx-auto h-8 w-8 text-gray-400 mb-2" />
-                        <p>No {selectedTab.toLowerCase()} applications</p>
-                        <p className="text-sm mt-1">{selectedTab === 'Pending' ? 'All leave applications have been processed' : `No ${selectedTab.toLowerCase()} leave applications found`}</p>
-                      </div>
+                        ))}
+                        
+                        {leaveApplications.filter(app => app.status === selectedTab).length === 0 && (
+                          <div className="text-center py-8 text-gray-500 bg-gray-50 rounded-lg">
+                            <AlertCircle className="mx-auto h-8 w-8 text-gray-400 mb-2" />
+                            <p>No {selectedTab.toLowerCase()} applications</p>
+                            <p className="text-sm mt-1">{selectedTab === 'Pending' ? 'All leave applications have been processed' : `No ${selectedTab.toLowerCase()} leave applications found`}</p>
+                          </div>
+                        )}
+                      </>
                     )}
                   </div>
                 </div>
@@ -320,7 +337,14 @@ export default function LeaveApprovalDashboard() {
                           <div>
                             <p className="text-sm text-gray-500">Duration</p>
                             <p className="font-medium">
-                              {Math.ceil((new Date(selectedApplication.toDate) - new Date(selectedApplication.fromDate)) / (1000 * 60 * 60 * 24))} days
+                              {(() => {
+                                const startDate = new Date(selectedApplication.fromDate);
+                                const endDate = new Date(selectedApplication.toDate);
+                                startDate.setHours(0, 0, 0, 0);
+                                endDate.setHours(0, 0, 0, 0);
+                                const diffTime = endDate.getTime() - startDate.getTime();
+                                return Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
+                              })()} days
                             </p>
                           </div>
                           <div>
@@ -339,22 +363,24 @@ export default function LeaveApprovalDashboard() {
                         </div>
 
                         {/* Action Buttons */}
-                        <div className="mt-6 flex justify-end space-x-4">
-                          <button
-                            onClick={() => handleReject(selectedApplication)}
-                            className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors duration-200 flex items-center"
-                          >
-                            <X size={18} className="mr-2" />
-                            Reject
-                          </button>
-                          <button
-                            onClick={() => handleApprove(selectedApplication)}
-                            className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors duration-200 flex items-center"
-                          >
-                            <Check size={18} className="mr-2" />
-                            Approve
-                          </button>
-                        </div>
+                        {selectedApplication.status === "Pending" && (
+                          <div className="mt-6 flex justify-end space-x-4">
+                            <button
+                              onClick={() => handleReject(selectedApplication)}
+                              className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors duration-200 flex items-center"
+                            >
+                              <X size={18} className="mr-2" />
+                              Reject
+                            </button>
+                            <button
+                              onClick={() => handleApprove(selectedApplication)}
+                              className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors duration-200 flex items-center"
+                            >
+                              <Check size={18} className="mr-2" />
+                              Approve
+                            </button>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>

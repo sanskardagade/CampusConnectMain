@@ -1,7 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
-const authenticateToken = require('./middleware/auth');
+const { authenticateToken } = require('./middleware/auth');
 const sql = require('./config/neonsetup');
 
 // Load environment variables
@@ -108,6 +108,105 @@ app.get('/api/principal/faculty-leave-approval', async (req, res) => {
   }
 });
 
+// Function to calculate number of days between two dates
+const calculateLeaveDays = (fromDate, toDate) => {
+  const start = new Date(fromDate);
+  const end = new Date(toDate);
+  
+  // Set time to midnight to avoid time zone issues
+  start.setHours(0, 0, 0, 0);
+  end.setHours(0, 0, 0, 0);
+  
+  const diffTime = end.getTime() - start.getTime();
+  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1; // +1 to include both start and end dates
+  
+  console.log(`Date calculation: ${fromDate} to ${toDate} = ${diffDays} days`);
+  return diffDays;
+};
+
+// Function to update leave balances when leave is approved
+const updateLeaveBalances = async (erpStaffId, leaveType, daysToDeduct) => {
+  try {
+    console.log(`Updating leave balances for ${erpStaffId}, type: ${leaveType}, days: ${daysToDeduct}`);
+    
+    // Get current leave balance using a switch statement for column names
+    let currentBalance;
+    switch (leaveType) {
+      case 'sick':
+        currentBalance = await sql`SELECT sick as current_balance FROM faculty_leave_balances WHERE "ErpStaffId" = ${erpStaffId}`;
+        break;
+      case 'academic':
+        currentBalance = await sql`SELECT academic as current_balance FROM faculty_leave_balances WHERE "ErpStaffId" = ${erpStaffId}`;
+        break;
+      case 'emergency':
+        currentBalance = await sql`SELECT emergency as current_balance FROM faculty_leave_balances WHERE "ErpStaffId" = ${erpStaffId}`;
+        break;
+      case 'maternity':
+        currentBalance = await sql`SELECT maternity as current_balance FROM faculty_leave_balances WHERE "ErpStaffId" = ${erpStaffId}`;
+        break;
+      case 'family':
+        currentBalance = await sql`SELECT family as current_balance FROM faculty_leave_balances WHERE "ErpStaffId" = ${erpStaffId}`;
+        break;
+      case 'travel':
+        currentBalance = await sql`SELECT travel as current_balance FROM faculty_leave_balances WHERE "ErpStaffId" = ${erpStaffId}`;
+        break;
+      case 'other':
+        currentBalance = await sql`SELECT other as current_balance FROM faculty_leave_balances WHERE "ErpStaffId" = ${erpStaffId}`;
+        break;
+      default:
+        console.log('Invalid leave type:', leaveType);
+        return false;
+    }
+    
+    if (!currentBalance || currentBalance.length === 0) {
+      console.log('No leave balance record found for faculty:', erpStaffId);
+      return false;
+    }
+    
+    const currentDays = currentBalance[0].current_balance;
+    const newBalance = currentDays - daysToDeduct;
+    
+    if (newBalance < 0) {
+      console.log('Insufficient leave balance. Current:', currentDays, 'Requested:', daysToDeduct);
+      return false;
+    }
+    
+    // Update the leave balance using a switch statement for column names
+    switch (leaveType) {
+      case 'sick':
+        await sql`UPDATE faculty_leave_balances SET sick = ${newBalance}, updated_at = CURRENT_TIMESTAMP WHERE "ErpStaffId" = ${erpStaffId}`;
+        break;
+      case 'academic':
+        await sql`UPDATE faculty_leave_balances SET academic = ${newBalance}, updated_at = CURRENT_TIMESTAMP WHERE "ErpStaffId" = ${erpStaffId}`;
+        break;
+      case 'emergency':
+        await sql`UPDATE faculty_leave_balances SET emergency = ${newBalance}, updated_at = CURRENT_TIMESTAMP WHERE "ErpStaffId" = ${erpStaffId}`;
+        break;
+      case 'maternity':
+        await sql`UPDATE faculty_leave_balances SET maternity = ${newBalance}, updated_at = CURRENT_TIMESTAMP WHERE "ErpStaffId" = ${erpStaffId}`;
+        break;
+      case 'family':
+        await sql`UPDATE faculty_leave_balances SET family = ${newBalance}, updated_at = CURRENT_TIMESTAMP WHERE "ErpStaffId" = ${erpStaffId}`;
+        break;
+      case 'travel':
+        await sql`UPDATE faculty_leave_balances SET travel = ${newBalance}, updated_at = CURRENT_TIMESTAMP WHERE "ErpStaffId" = ${erpStaffId}`;
+        break;
+      case 'other':
+        await sql`UPDATE faculty_leave_balances SET other = ${newBalance}, updated_at = CURRENT_TIMESTAMP WHERE "ErpStaffId" = ${erpStaffId}`;
+        break;
+      default:
+        console.log('Invalid leave type for update:', leaveType);
+        return false;
+    }
+    
+    console.log(`Successfully updated leave balance. New balance for ${leaveType}: ${newBalance}`);
+    return true;
+  } catch (error) {
+    console.error('Error updating leave balances:', error);
+    return false;
+  }
+};
+
 app.put('/api/principal/faculty-leave-approval/:erpStaffId', async (req, res) => {
   const { erpStaffId } = req.params;
   const { PrincipalApproval} = req.body;
@@ -118,6 +217,37 @@ app.put('/api/principal/faculty-leave-approval/:erpStaffId', async (req, res) =>
       return res.status(400).json({ error: 'Invalid approval status' });
     }
 
+    if (PrincipalApproval === 'Approved') {
+      // Get the leave application details to calculate days
+      const leaveApplication = await sql`
+        SELECT "leaveType", "fromDate", "toDate", "StaffName"
+        FROM faculty_leave 
+        WHERE "ErpStaffId" = ${erpStaffId} AND "FinalStatus" = 'Pending'
+      `;
+      
+      if (!leaveApplication || leaveApplication.length === 0) {
+        return res.status(404).json({ error: 'Leave application not found or already processed' });
+      }
+      
+      const leave = leaveApplication[0];
+      const daysToDeduct = calculateLeaveDays(leave.fromDate, leave.toDate);
+      const leaveType = leave.leaveType;
+      
+      console.log(`Processing approval for ${leave.StaffName}: ${daysToDeduct} days of ${leaveType} leave`);
+      
+      // Update leave balances
+      const balanceUpdated = await updateLeaveBalances(erpStaffId, leaveType, daysToDeduct);
+      
+      if (!balanceUpdated) {
+        return res.status(400).json({ 
+          error: 'Insufficient leave balance or leave balance record not found',
+          details: `Requested ${daysToDeduct} days of ${leaveType} leave`
+        });
+      }
+      
+      console.log(`Successfully deducted ${daysToDeduct} days from ${leaveType} leave balance`);
+    }
+
     // Update both PrincipalApproval and FinalStatus
     await sql`
       UPDATE faculty_leave 
@@ -125,7 +255,11 @@ app.put('/api/principal/faculty-leave-approval/:erpStaffId', async (req, res) =>
           "FinalStatus" = ${PrincipalApproval}
       WHERE "ErpStaffId" = ${erpStaffId}
     `;
-    res.json({ message: 'Leave approval updated successfully' });
+    
+    res.json({ 
+      message: 'Leave approval updated successfully',
+      details: PrincipalApproval === 'Approved' ? 'Leave days deducted from balance' : 'Leave application rejected'
+    });
   } catch (error) {
     console.error('Error updating leave approval:', error);
     res.status(500).json({ error: 'Error updating leave approval' });
