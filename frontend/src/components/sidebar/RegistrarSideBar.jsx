@@ -151,6 +151,28 @@ const RegistrarSideBar = ({ children }) => {
       <div className="w-screen min-h-screen bg-gray-100 pb-14">
         <main className="flex-1 p-2 sm:p-4 overflow-auto">{children}</main>
         <MobileBottomTabs onLogout={handleLogout} />
+        {showLogoutModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 max-w-sm w-full mx-4">
+              <h3 className="text-lg font-semibold mb-4 text-[#d1a550]">Confirm Logout</h3>
+              <p className="text-[#b22b2f] mb-6">Are you sure you want to logout?</p>
+              <div className="flex space-x-4">
+                <button
+                  onClick={cancelLogout}
+                  className="flex-1 bg-[#6b6d71] text-white px-4 py-2 rounded-lg hover:bg-[#b22b2f] hover:text-[#d1a550] transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmLogout}
+                  className="flex-1 bg-[#b22b2f] text-white px-4 py-2 rounded-lg hover:bg-[#d1a550] hover:text-[#b22b2f] transition-colors"
+                >
+                  Logout
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }

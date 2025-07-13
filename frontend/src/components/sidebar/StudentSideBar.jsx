@@ -37,7 +37,7 @@ const routes = [
       },
     ],
   },
-  { path: "/", name: "Logout", icon: <AiOutlineLogout /> },
+  { path: "#", name: "Logout", icon: <AiOutlineLogout /> },
 ];
 
 

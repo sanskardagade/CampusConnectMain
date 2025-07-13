@@ -212,18 +212,18 @@ const FacultyManagement = () => {
   }
 
   return (
-    <div className="p-6 bg-gray-50 min-h-screen">
+    <div className="p-2 sm:p-4 lg:p-6 bg-gray-50 min-h-screen">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-[#b22b2f] mb-2">Faculty Management</h1>
-          <p className="text-gray-600">Manage faculty members and their information</p>
+        <div className="mb-4 sm:mb-6 lg:mb-8">
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-[#b22b2f] mb-1 sm:mb-2">Faculty Management</h1>
+          <p className="text-gray-600 text-sm sm:text-base">Manage faculty members and their information</p>
         </div>
 
         {/* Controls */}
-        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-          <div className="flex flex-col lg:flex-row gap-4 items-center justify-between">
-            <div className="flex flex-col sm:flex-row gap-4 flex-1">
+        <div className="bg-white rounded-lg shadow-md p-3 sm:p-4 lg:p-6 mb-4 sm:mb-6">
+          <div className="flex flex-col lg:flex-row gap-3 sm:gap-4 items-start lg:items-center justify-between">
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 flex-1 w-full">
               {/* Search */}
               <div className="relative flex-1 max-w-md">
                 <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
@@ -232,7 +232,7 @@ const FacultyManagement = () => {
                   placeholder="Search faculty..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#b22b2f] focus:border-transparent"
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#b22b2f] focus:border-transparent text-sm sm:text-base"
                 />
               </div>
 
@@ -240,7 +240,7 @@ const FacultyManagement = () => {
               <select
                 value={departmentFilter}
                 onChange={(e) => setDepartmentFilter(e.target.value)}
-                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#b22b2f] focus:border-transparent"
+                className="px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#b22b2f] focus:border-transparent text-sm sm:text-base"
               >
                 <option value="">All Departments</option>
                 {departments.map(dept => (
@@ -252,41 +252,87 @@ const FacultyManagement = () => {
             {/* Add Button */}
             <button
               onClick={() => openModal()}
-              className="bg-[#b22b2f] text-white px-6 py-2 rounded-lg hover:bg-[#a02529] transition-colors flex items-center gap-2"
+              className="bg-[#b22b2f] text-white px-4 sm:px-6 py-2 rounded-lg hover:bg-[#a02529] transition-colors flex items-center gap-2 text-sm sm:text-base w-full sm:w-auto justify-center"
             >
               <FaPlus /> Add Faculty
             </button>
           </div>
         </div>
 
-
         {/* Stats */}
-        <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <h3 className="text-lg font-semibold text-gray-700 mb-2">Total Faculty</h3>
-            <p className="text-3xl font-bold text-[#b22b2f]">{faculty.length}</p>
+        <div className="mt-4 sm:mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+          <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
+            <h3 className="text-sm sm:text-lg font-semibold text-gray-700 mb-1 sm:mb-2">Total Faculty</h3>
+            <p className="text-2xl sm:text-3xl font-bold text-[#b22b2f]">{faculty.length}</p>
           </div>
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <h3 className="text-lg font-semibold text-gray-700 mb-2">Filtered Results</h3>
-            <p className="text-3xl font-bold text-green-600">{filteredFaculty.length}</p>
+          <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
+            <h3 className="text-sm sm:text-lg font-semibold text-gray-700 mb-1 sm:mb-2">Filtered Results</h3>
+            <p className="text-2xl sm:text-3xl font-bold text-green-600">{filteredFaculty.length}</p>
           </div>
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <h3 className="text-lg font-semibold text-gray-700 mb-2">Departments</h3>
-            <p className="text-3xl font-bold text-blue-600">{departments.length}</p>
+          <div className="bg-white rounded-lg shadow-md p-4 sm:p-6 sm:col-span-2 lg:col-span-1">
+            <h3 className="text-sm sm:text-lg font-semibold text-gray-700 mb-1 sm:mb-2">Departments</h3>
+            <p className="text-2xl sm:text-3xl font-bold text-blue-600">{departments.length}</p>
           </div>
         </div>
 
         {/* Faculty List */}
-        <div className="bg-white rounded-lg shadow-md overflow-hidden">
-          <div className="overflow-x-auto">
+        <div className="bg-white rounded-lg shadow-md overflow-hidden mt-4 sm:mt-6">
+          {/* Mobile Card View */}
+          <div className="block lg:hidden">
+            {filteredFaculty.length === 0 ? (
+              <div className="p-4 sm:p-6 text-center text-gray-500 text-sm sm:text-base">
+                {searchTerm || departmentFilter ? 'No faculty members found matching your criteria' : 'No faculty members found'}
+              </div>
+            ) : (
+              <div className="divide-y divide-gray-200">
+                {filteredFaculty.map((member) => (
+                  <div key={member.id} className="p-3 sm:p-4 hover:bg-gray-50">
+                    <div className="flex justify-between items-start mb-2">
+                      <div className="flex-1">
+                        <h3 className="font-medium text-gray-900 text-sm sm:text-base">{member.name}</h3>
+                        <p className="text-gray-600 text-xs sm:text-sm">{member.email}</p>
+                      </div>
+                      <div className="flex gap-1 ml-2">
+                        <button
+                          onClick={() => openModal(member)}
+                          className="text-blue-600 hover:text-blue-800 p-1"
+                          title="Edit"
+                        >
+                          <FaEdit size={14} />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(member.id, member.name)}
+                          className="text-red-600 hover:text-red-800 p-1"
+                          title="Delete"
+                        >
+                          <FaTrash size={14} />
+                        </button>
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap gap-2 text-xs sm:text-sm">
+                      <span className="bg-gray-100 text-gray-700 px-2 py-1 rounded">
+                        ERP: {member.erpid}
+                      </span>
+                      <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded">
+                        {member.department_name}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Desktop Table View */}
+          <div className="hidden lg:block overflow-x-auto">
             <table className="w-full">
               <thead className="bg-[#b22b2f] text-white">
                 <tr>
-                  <th className="px-6 py-3 text-left">ERP ID</th>
-                  <th className="px-6 py-3 text-left">Name</th>
-                  <th className="px-6 py-3 text-left">Email</th>
-                  <th className="px-6 py-3 text-left">Department</th>
-                  <th className="px-6 py-3 text-center">Actions</th>
+                  <th className="px-6 py-3 text-left text-sm font-medium">ERP ID</th>
+                  <th className="px-6 py-3 text-left text-sm font-medium">Name</th>
+                  <th className="px-6 py-3 text-left text-sm font-medium">Email</th>
+                  <th className="px-6 py-3 text-left text-sm font-medium">Department</th>
+                  <th className="px-6 py-3 text-center text-sm font-medium">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -299,10 +345,10 @@ const FacultyManagement = () => {
                 ) : (
                   filteredFaculty.map((member) => (
                     <tr key={member.id} className="border-b hover:bg-gray-50">
-                      <td className="px-6 py-4 font-medium">{member.erpid}</td>
-                      <td className="px-6 py-4">{member.name}</td>
-                      <td className="px-6 py-4">{member.email}</td>
-                      <td className="px-6 py-4">{member.department_name}</td>
+                      <td className="px-6 py-4 font-medium text-sm">{member.erpid}</td>
+                      <td className="px-6 py-4 text-sm">{member.name}</td>
+                      <td className="px-6 py-4 text-sm">{member.email}</td>
+                      <td className="px-6 py-4 text-sm">{member.department_name}</td>
                       <td className="px-6 py-4">
                         <div className="flex justify-center gap-2">
                           <button
@@ -310,14 +356,14 @@ const FacultyManagement = () => {
                             className="text-blue-600 hover:text-blue-800 p-1"
                             title="Edit"
                           >
-                            <FaEdit />
+                            <FaEdit size={16} />
                           </button>
                           <button
                             onClick={() => handleDelete(member.id, member.name)}
                             className="text-red-600 hover:text-red-800 p-1"
                             title="Delete"
                           >
-                            <FaTrash />
+                            <FaTrash size={16} />
                           </button>
                         </div>
                       </td>
@@ -334,14 +380,14 @@ const FacultyManagement = () => {
 
       {/* Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 sm:p-4">
           <div className="bg-white rounded-lg max-w-md w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6">
-              <h2 className="text-2xl font-bold text-[#b22b2f] mb-4">
+            <div className="p-4 sm:p-6">
+              <h2 className="text-lg sm:text-xl lg:text-2xl font-bold text-[#b22b2f] mb-3 sm:mb-4">
                 {editingFaculty ? 'Edit Faculty Member' : 'Add New Faculty Member'}
               </h2>
               
-              <form onSubmit={handleSubmit} className="space-y-4">
+              <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     ERP ID *
@@ -351,7 +397,7 @@ const FacultyManagement = () => {
                     name="erpid"
                     value={formData.erpid}
                     onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#b22b2f] focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#b22b2f] focus:border-transparent text-sm sm:text-base"
                     required
                   />
                 </div>
@@ -365,7 +411,7 @@ const FacultyManagement = () => {
                     name="name"
                     value={formData.name}
                     onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#b22b2f] focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#b22b2f] focus:border-transparent text-sm sm:text-base"
                     required
                   />
                 </div>
@@ -379,7 +425,7 @@ const FacultyManagement = () => {
                     name="email"
                     value={formData.email}
                     onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#b22b2f] focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#b22b2f] focus:border-transparent text-sm sm:text-base"
                     required
                   />
                 </div>
@@ -392,7 +438,7 @@ const FacultyManagement = () => {
                     name="department_id"
                     value={formData.department_id}
                     onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#b22b2f] focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#b22b2f] focus:border-transparent text-sm sm:text-base"
                     required
                   >
                     <option value="">Select Department</option>
@@ -412,24 +458,24 @@ const FacultyManagement = () => {
                       name="password"
                       value={formData.password}
                       onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#b22b2f] focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#b22b2f] focus:border-transparent text-sm sm:text-base"
                       required={!editingFaculty}
                       placeholder="Enter password for new faculty member"
                     />
                   </div>
                 )}
 
-                <div className="flex gap-3 pt-4">
+                <div className="flex gap-2 sm:gap-3 pt-3 sm:pt-4">
                   <button
                     type="button"
                     onClick={closeModal}
-                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+                    className="flex-1 px-3 sm:px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors text-sm sm:text-base"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="flex-1 px-4 py-2 bg-[#b22b2f] text-white rounded-lg hover:bg-[#a02529] transition-colors"
+                    className="flex-1 px-3 sm:px-4 py-2 bg-[#b22b2f] text-white rounded-lg hover:bg-[#a02529] transition-colors text-sm sm:text-base"
                   >
                     {editingFaculty ? 'Update' : 'Add'} Faculty
                   </button>

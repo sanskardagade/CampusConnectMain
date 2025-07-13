@@ -10,7 +10,7 @@ import {
 import ProfileView from './ProfileView';
 import FacultyLogDisplay from '../components/faculty/FacultyLogDisplay';
 import dayjs from 'dayjs';
-import HeaderPrincipal from '../components/common/HeaderPrincipal';
+import HeaderRegistrar from '../components/common/HeaderRegistrar';
 import { useNavigate } from 'react-router-dom';
 
 const RegistrarDashboard = () => {
@@ -469,33 +469,33 @@ const RegistrarDashboard = () => {
 
   return (
     <>
-      <HeaderPrincipal />
+      <HeaderRegistrar />
      
-      <div className="flex-1 overflow-auto bg-gray-50 p-4 sm:p-6">
+      <div className="flex-1 overflow-auto bg-gray-50 p-2 sm:p-4 lg:p-6 pt-16 sm:pt-2">
         {/* Header */}
         <motion.header
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ type: "spring", stiffness: 300 }}
-          className="bg-white rounded-xl shadow-lg p-6 mb-6 border border-gray-200"
+          className="bg-white rounded-xl shadow-lg p-4 sm:p-6 mb-4 sm:mb-6 border border-gray-200"
         >
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 sm:gap-4">
             <motion.div 
               initial={{ x: -20 }}
               animate={{ x: 0 }}
               transition={{ delay: 0.1 }}
             >
-              <h1 className="text-2xl font-bold text-gray-900 bg-gradient-to-r from-red-600 to-red-800 bg-clip-text text-transparent">
+              <h1 className="text-xl sm:text-2xl font-bold text-gray-900 bg-gradient-to-r from-red-600 to-red-800 bg-clip-text text-transparent">
                 Dashboard
               </h1>
-              <p className="text-gray-600">Dr. D. Y. Patil Institute of Technology, Pimpri, Pune</p>
+              <p className="text-gray-600 text-sm sm:text-base">Dr. D. Y. Patil Institute of Technology, Pimpri, Pune</p>
             </motion.div>
             
             <motion.button
               whileHover={{ scale: 1.05, backgroundColor: "#f3f4f6" }}
               whileTap={{ scale: 0.98 }}
               onClick={fetchDashboardData}
-              className="px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium flex items-center gap-2 shadow-sm"
+              className="px-3 sm:px-4 py-2 bg-white border border-gray-200 rounded-lg text-xs sm:text-sm font-medium flex items-center gap-2 shadow-sm"
             >
               <FiRefreshCw className="text-red-600" />
               <span>Refresh Data</span>
@@ -508,7 +508,7 @@ const RegistrarDashboard = () => {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.2 }}
-          className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8"
+          className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-2 sm:gap-4 mb-4 sm:mb-8"
         >
           <button
             onClick={handleScrollToDepartments}
@@ -565,7 +565,7 @@ const RegistrarDashboard = () => {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.2 }}
-          className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8"
+          className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-2 sm:gap-4 mb-4 sm:mb-8"
         >
           <button
             onClick={handleNavigateLeaveApproval}
@@ -613,7 +613,7 @@ const RegistrarDashboard = () => {
         </motion.div>
 
         {showStudentUnavailable && (
-          <div className="mb-4 text-center text-red-700 font-semibold bg-red-50 border border-red-200 rounded p-3 animate-fadeIn">
+          <div className="mb-4 text-center text-red-700 font-semibold bg-red-50 border border-red-200 rounded p-2 sm:p-3 animate-fadeIn text-sm sm:text-base">
             Currently the students data is unavailable
           </div>
         )}
@@ -657,33 +657,33 @@ const RegistrarDashboard = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4 }}
         >
-          <div className="p-4 border-b border-gray-200 flex justify-between items-center">
-            <h3 className="font-bold text-gray-900">Departments</h3>
-            <span className="text-sm text-gray-500">
+          <div className="p-3 sm:p-4 border-b border-gray-200 flex justify-between items-center">
+            <h3 className="font-bold text-gray-900 text-sm sm:text-base">Departments</h3>
+            <span className="text-xs sm:text-sm text-gray-500">
               {selectedDept ? departments.find(d => d.id === selectedDept)?.name : 'Select a department'}
             </span>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-2 p-2">
+          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 gap-1 sm:gap-2 p-1 sm:p-2">
             {departments.map((dept) => (
               <motion.button
                 key={dept.id}
                 whileHover={{ scale: 1.03 }}
                 whileTap={{ scale: 0.97 }}
                 onClick={() => handleDepartmentSelect(dept.id)}
-                className={`flex-shrink-0 m-2 p-3 rounded-lg flex flex-col items-center transition-all ${
+                className={`flex-shrink-0 m-1 sm:m-2 p-2 sm:p-3 rounded-lg flex flex-col items-center transition-all ${
                   selectedDept === dept.id 
                     ? 'bg-red-100 border-2 border-red-500 shadow-md' 
                     : 'bg-gray-50 border border-gray-200 hover:shadow-sm'
                 }`}
               >
-                <div className={`w-10 h-10 rounded-md flex items-center justify-center mb-2 transition-colors ${
+                <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-md flex items-center justify-center mb-1 sm:mb-2 transition-colors ${
                   selectedDept === dept.id 
                     ? 'bg-red-600 text-white' 
                     : 'bg-red-100 text-red-600'
                 }`}>
-                  <FiBook size={16} />
+                  <FiBook size={14} className="sm:w-4 sm:h-4" />
                 </div>
-                <span className="text-sm font-medium text-center max-w-[120px] whitespace-normal break-words">
+                <span className="text-xs sm:text-sm font-medium text-center max-w-[100px] sm:max-w-[120px] whitespace-normal break-words">
                   {dept.name}
                 </span>
               </motion.button>
@@ -701,10 +701,10 @@ const RegistrarDashboard = () => {
             transition={{ duration: 0.3 }}
             className="bg-white rounded-xl shadow-lg border border-gray-200 mb-4 overflow-hidden"
           >
-            <div className="w-full p-4 border-b border-gray-200 flex justify-between items-center bg-gray-50">
-              <h3 className="font-bold text-gray-900">Member Type</h3>
+            <div className="w-full p-3 sm:p-4 border-b border-gray-200 flex justify-between items-center bg-gray-50">
+              <h3 className="font-bold text-gray-900 text-sm sm:text-base">Member Type</h3>
             </div>
-            <div className="grid grid-cols-3 gap-2 p-3">
+            <div className="grid grid-cols-3 gap-1 sm:gap-2 p-2 sm:p-3">
               <MemberTypeButton
                 active={selectedType === 'students'}
                 onClick={() => fetchDepartmentMembers(selectedDept, 'students')}
@@ -732,15 +732,15 @@ const RegistrarDashboard = () => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
-              className="relative mb-6 px-3"
+              className="relative mb-4 sm:mb-6 px-2 sm:px-3"
             >
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <FiSearch className="text-gray-400" />
               </div>
               <input
                 type="text"
-                placeholder="Search by name or ERP ID (works without department selection)"
-                className="pl-10 pr-4 py-3 w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 shadow-sm"
+                placeholder="Search by name or ERP ID"
+                className="pl-10 pr-4 py-2 sm:py-3 w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 shadow-sm text-sm sm:text-base"
                 value={searchTerm}
                 onChange={handleSearch}
               />
@@ -770,10 +770,10 @@ const RegistrarDashboard = () => {
           >
             <button
               onClick={() => setShowMembersList(!showMembersList)}
-              className="w-full p-4 border-b border-gray-200 flex justify-between items-center hover:bg-gray-50"
+              className="w-full p-3 sm:p-4 border-b border-gray-200 flex justify-between items-center hover:bg-gray-50"
             >
               <div className="flex items-center">
-                <h3 className="font-bold text-gray-900 mr-2">
+                <h3 className="font-bold text-gray-900 mr-2 text-sm sm:text-base">
                   {selectedType 
                     ? `${selectedType.charAt(0).toUpperCase() + selectedType.slice(1)} Members` 
                     : 'Search Results'}
@@ -807,7 +807,7 @@ const RegistrarDashboard = () => {
                           whileTap={{ scale: 0.99 }}
                           initial={{ opacity: 0, x: -10 }}
                           animate={{ opacity: 1, x: 0 }}
-                          className={`p-3 cursor-pointer transition-colors ${
+                          className={`p-2 sm:p-3 cursor-pointer transition-colors ${
                             selectedMember === member.id 
                               ? 'bg-red-50' 
                               : 'hover:bg-gray-50'
@@ -815,19 +815,19 @@ const RegistrarDashboard = () => {
                           onClick={() => fetchMemberProfile(member.id)}
                         >
                           <div className="flex items-center">
-                            <div className={`w-8 h-8 rounded-full flex items-center justify-center mr-3 ${
+                            <div className={`w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center mr-2 sm:mr-3 ${
                               selectedType === 'students' ? 'bg-blue-100 text-blue-600' :
                               selectedType === 'faculty' ? 'bg-red-100 text-red-600' :
                               'bg-purple-100 text-purple-600'
                             }`}>
-                              {selectedType === 'students' ? <FiUsers size={14} /> :
-                               selectedType === 'faculty' ? <FiUser size={14} /> :
-                               <FiBriefcase size={14} />}
+                              {selectedType === 'students' ? <FiUsers size={12} className="sm:w-3.5 sm:h-3.5" /> :
+                               selectedType === 'faculty' ? <FiUser size={12} className="sm:w-3.5 sm:h-3.5" /> :
+                               <FiBriefcase size={12} className="sm:w-3.5 sm:h-3.5" />}
                             </div>
                             <div className="flex-1 min-w-0">
-                              <h4 className="font-medium truncate">{member.name}</h4>
-                              <div className="flex items-center text-sm text-gray-600">
-                                <FiMail className="mr-1 flex-shrink-0" size={12} />
+                              <h4 className="font-medium truncate text-sm sm:text-base">{member.name}</h4>
+                              <div className="flex items-center text-xs sm:text-sm text-gray-600">
+                                <FiMail className="mr-1 flex-shrink-0 sm:w-3 sm:h-3" size={10} />
                                 <span className="truncate">{member.email}</span>
                               </div>
                               {member.erpid && (
@@ -840,7 +840,7 @@ const RegistrarDashboard = () => {
                         </motion.div>
                       ))
                     ) : (
-                      <div className="p-4 text-center text-gray-500">
+                      <div className="p-4 text-center text-gray-500 text-sm sm:text-base">
                         No matching {selectedType || 'members'} found
                       </div>
                     )}
@@ -868,15 +868,15 @@ const RegistrarDashboard = () => {
                 loading={profileLoading} 
               />
               {selectedType === 'faculty' && showFacultyLogs && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-                  <div className="bg-white rounded-xl shadow-lg max-w-6xl w-full max-h-[100vh] overflow-y-auto relative p-6">
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 p-2 sm:p-4">
+                  <div className="bg-white rounded-xl shadow-lg max-w-6xl w-full max-h-[100vh] overflow-y-auto relative p-4 sm:p-6">
                     <button
-                      className="absolute top-2 right-2 text-gray-500 hover:text-red-600 text-2xl font-bold"
+                      className="absolute top-2 right-2 text-gray-500 hover:text-red-600 text-xl sm:text-2xl font-bold"
                       onClick={() => setShowFacultyLogs(false)}
                     >
                       &times;
                     </button>
-                    <h2 className="text-xl font-bold mb-4 text-red-700">Faculty Attendance Logs</h2>
+                    <h2 className="text-lg sm:text-xl font-bold mb-4 text-red-700">Faculty Attendance Logs</h2>
                     {facultyLogsLoading ? (
                       <div className="text-center py-8 text-gray-400">Loading logs...</div>
                     ) : (
@@ -886,15 +886,15 @@ const RegistrarDashboard = () => {
                 </div>
               )}
               {selectedType === 'staff' && showStaffLogs && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-                  <div className="bg-white rounded-xl shadow-lg max-w-6xl w-full max-h-[100vh] overflow-y-auto relative p-6">
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 p-2 sm:p-4">
+                  <div className="bg-white rounded-xl shadow-lg max-w-6xl w-full max-h-[100vh] overflow-y-auto relative p-4 sm:p-6">
                     <button
-                      className="absolute top-2 right-2 text-gray-500 hover:text-red-600 text-2xl font-bold"
+                      className="absolute top-2 right-2 text-gray-500 hover:text-purple-600 text-xl sm:text-2xl font-bold"
                       onClick={() => setShowStaffLogs(false)}
                     >
                       &times;
                     </button>
-                    <h2 className="text-xl font-bold mb-4 text-purple-700">Staff Activity Logs</h2>
+                    <h2 className="text-lg sm:text-xl font-bold mb-4 text-purple-700">Staff Activity Logs</h2>
                     {staffLogsLoading ? (
                       <div className="text-center py-8 text-gray-400">Loading logs...</div>
                     ) : (
@@ -910,21 +910,21 @@ const RegistrarDashboard = () => {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="bg-white rounded-xl shadow-lg border border-gray-200 h-64 flex items-center justify-center"
+              className="bg-white rounded-xl shadow-lg border border-gray-200 h-48 sm:h-64 flex items-center justify-center"
             >
-              <div className="text-center p-8">
+              <div className="text-center p-4 sm:p-8">
                 <motion.div
                   animate={{ 
                     scale: [1, 1.05, 1],
                     rotate: [0, 5, -5, 0]
                   }}
                   transition={{ repeat: Infinity, duration: 4 }}
-                  className="mx-auto w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4"
+                  className="mx-auto w-12 h-12 sm:w-16 sm:h-16 bg-gray-100 rounded-full flex items-center justify-center mb-3 sm:mb-4"
                 >
-                  <FiUser className="text-gray-400" size={24} />
+                  <FiUser className="text-gray-400 sm:w-6 sm:h-6" size={20} />
                 </motion.div>
-                <h3 className="text-lg font-medium text-gray-900 mb-1">No Profile Selected</h3>
-                <p className="text-gray-500">
+                <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-1">No Profile Selected</h3>
+                <p className="text-gray-500 text-sm sm:text-base">
                   {selectedType 
                     ? `Select a ${selectedType.slice(0, -1)} to view details` 
                     : "Select a member to view profile"}
@@ -1007,8 +1007,8 @@ const RegistrarDashboard = () => {
       {/* Present Faculty Modal */}
       <AnimatePresence>
         {showPresentFacultyModal && (
-          <motion.div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-            <div className="bg-white rounded-xl shadow-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto relative p-6">
+          <motion.div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 p-2 sm:p-4">
+            <div className="bg-white rounded-xl shadow-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto relative p-4 sm:p-6">
               <button
                 className="absolute top-2 right-2 text-gray-500 hover:text-red-600 text-2xl font-bold"
                 onClick={() => setShowPresentFacultyModal(false)}
@@ -1016,20 +1016,20 @@ const RegistrarDashboard = () => {
                 &times;
               </button>
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-bold text-red-700">Present Faculty Today</h2>
+                <h2 className="text-lg sm:text-xl font-bold text-red-700">Present Faculty Today</h2>
                 <button
-                  className="ml-2 p-2 rounded-full hover:bg-gray-100 text-red-700"
+                  className="ml-2 p-1.5 sm:p-2 rounded-full hover:bg-gray-100 text-red-700"
                   onClick={fetchPresentFacultyList}
                   title="Refresh"
                   disabled={facultyListRefreshing}
                 >
-                  <FiRefreshCw size={20} className={facultyListRefreshing ? 'animate-spin' : ''} />
+                  <FiRefreshCw size={18} className={facultyListRefreshing ? 'animate-spin' : ''} />
                 </button>
               </div>
               {/* Branch-wise (Department-wise) Count */}
               <div className="mb-4">
-                <h3 className="font-semibold mb-2">Branch-wise Present Faculty Count</h3>
-                <ul className="grid grid-cols-2 gap-2">
+                <h3 className="font-semibold mb-2 text-sm sm:text-base">Branch-wise Present Faculty Count</h3>
+                <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   {departments.map(dept => {
                     const presentCount = presentFacultyList.filter(f => {
                       const facDeptId = f.departmentId ?? f.department_id;
@@ -1050,11 +1050,11 @@ const RegistrarDashboard = () => {
                         onClick={() => isClickable && handlePreviewFacultyPdf(dept.id)}
                         title={isClickable ? 'Preview PDF for this branch' : 'No data to preview'}
                       >
-                        <span>{dept.name}</span>
-                        <span className="font-bold flex items-center gap-1">
+                        <span className="text-sm sm:text-base">{dept.name}</span>
+                        <span className="font-bold flex items-center gap-1 text-sm sm:text-base">
                           {presentCount}/{totalCount}
                           {branchPdfLoading === dept.id && (
-                            <FiRefreshCw className="animate-spin ml-1" size={16} />
+                            <FiRefreshCw className="animate-spin ml-1" size={14} />
                           )}
                         </span>
                       </li>
@@ -1077,12 +1077,12 @@ const RegistrarDashboard = () => {
                   )}
                   {/* Summary row for total present/total faculty */}
                   <li
-                    className={`flex justify-between bg-red-100 rounded p-2 font-bold mt-2 col-span-2 cursor-pointer hover:bg-red-200 transition-colors ${branchPdfLoading === 'all' ? 'opacity-70' : ''}`}
+                    className={`flex justify-between bg-red-100 rounded p-2 font-bold mt-2 col-span-1 sm:col-span-2 cursor-pointer hover:bg-red-200 transition-colors ${branchPdfLoading === 'all' ? 'opacity-70' : ''}`}
                     onClick={() => handlePreviewFacultyPdf('all')}
                     title="Preview PDF for all faculties present today"
                   >
-                    <span>Total</span>
-                    <span className="flex items-center gap-1">
+                    <span className="text-sm sm:text-base">Total</span>
+                    <span className="flex items-center gap-1 text-sm sm:text-base">
                       {departments.reduce((sum, dept) => {
                         return sum + presentFacultyList.filter(f => {
                           const facDeptId = f.departmentId ?? f.department_id;
@@ -1096,7 +1096,7 @@ const RegistrarDashboard = () => {
                       /
                       {departments.reduce((sum, dept) => sum + (facultyDeptTotals[dept.id] || 0), 0)}
                       {branchPdfLoading === 'all' && (
-                        <FiRefreshCw className="animate-spin ml-1" size={16} />
+                        <FiRefreshCw className="animate-spin ml-1" size={14} />
                       )}
                     </span>
                   </li>
@@ -1104,7 +1104,7 @@ const RegistrarDashboard = () => {
               </div>
               <div className="flex justify-center mt-4">
                 <button
-                  className="px-4 py-2 bg-red-700 text-white rounded-lg font-semibold hover:bg-red-800 transition-colors shadow"
+                  className="px-3 sm:px-4 py-2 bg-red-700 text-white rounded-lg font-semibold hover:bg-red-800 transition-colors shadow text-sm sm:text-base"
                   onClick={() => { setShowPresentFacultyModal(false); navigate('/registrar/faculty-report'); }}
                 >
                  Report
@@ -1117,8 +1117,8 @@ const RegistrarDashboard = () => {
       {/* Present Staff Modal */}
       <AnimatePresence>
         {showPresentStaffModal && (
-          <motion.div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-            <div className="bg-white rounded-xl shadow-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto relative p-6">
+          <motion.div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 p-2 sm:p-4">
+            <div className="bg-white rounded-xl shadow-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto relative p-4 sm:p-6">
               <button
                 className="absolute top-2 right-2 text-gray-500 hover:text-purple-600 text-2xl font-bold"
                 onClick={() => setShowPresentStaffModal(false)}
@@ -1126,20 +1126,20 @@ const RegistrarDashboard = () => {
                 &times;
               </button>
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-bold text-purple-700">Present Non-Teaching Staff Today</h2>
+                <h2 className="text-lg sm:text-xl font-bold text-purple-700">Present Non-Teaching Staff Today</h2>
                 <button
-                  className="ml-2 p-2 rounded-full hover:bg-gray-100 text-purple-700"
+                  className="ml-2 p-1.5 sm:p-2 rounded-full hover:bg-gray-100 text-purple-700"
                   onClick={fetchPresentStaffList}
                   title="Refresh"
                   disabled={staffListRefreshing}
                 >
-                  <FiRefreshCw size={20} className={staffListRefreshing ? 'animate-spin' : ''} />
+                  <FiRefreshCw size={18} className={staffListRefreshing ? 'animate-spin' : ''} />
                 </button>
               </div>
               {/* Branch-wise (Department-wise) Count for Staff */}
               <div className="mb-4">
-                <h3 className="font-semibold mb-2">Branch-wise Present Non-Teaching Staff Count</h3>
-                <ul className="grid grid-cols-2 gap-2">
+                <h3 className="font-semibold mb-2 text-sm sm:text-base">Branch-wise Present Non-Teaching Staff Count</h3>
+                <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   {departments.map(dept => {
                     const presentCount = presentStaffList.filter(s => {
                       const staffDeptId = s.departmentId ?? s.department_id;
@@ -1160,11 +1160,11 @@ const RegistrarDashboard = () => {
                         onClick={() => isClickable && handlePreviewStaffPdf(dept.id)}
                         title={isClickable ? 'Preview PDF for this branch' : 'No data to preview'}
                       >
-                        <span>{dept.name}</span>
-                        <span className="font-bold flex items-center gap-1">
+                        <span className="text-sm sm:text-base">{dept.name}</span>
+                        <span className="font-bold flex items-center gap-1 text-sm sm:text-base">
                           {presentCount}/{totalCount}
                           {staffBranchPdfLoading === dept.id && (
-                            <FiRefreshCw className="animate-spin ml-1" size={16} />
+                            <FiRefreshCw className="animate-spin ml-1" size={14} />
                           )}
                         </span>
                       </li>
@@ -1187,12 +1187,12 @@ const RegistrarDashboard = () => {
                   )}
                   {/* Summary row for total present/total staff */}
                   <li
-                    className={`flex justify-between bg-purple-100 rounded p-2 font-bold mt-2 col-span-2 cursor-pointer hover:bg-purple-200 transition-colors ${staffBranchPdfLoading === 'all' ? 'opacity-70' : ''}`}
+                    className={`flex justify-between bg-purple-100 rounded p-2 font-bold mt-2 col-span-1 sm:col-span-2 cursor-pointer hover:bg-purple-200 transition-colors ${staffBranchPdfLoading === 'all' ? 'opacity-70' : ''}`}
                     onClick={() => handlePreviewStaffPdf('all')}
                     title="Preview PDF for all non-teaching staff present today"
                   >
-                    <span>Total</span>
-                    <span className="flex items-center gap-1">
+                    <span className="text-sm sm:text-base">Total</span>
+                    <span className="flex items-center gap-1 text-sm sm:text-base">
                       {departments.reduce((sum, dept) => {
                         return sum + presentStaffList.filter(s => {
                           const staffDeptId = s.departmentId ?? s.department_id;
@@ -1206,7 +1206,7 @@ const RegistrarDashboard = () => {
                       /
                       {departments.reduce((sum, dept) => sum + (staffDeptTotals[dept.id] || 0), 0)}
                       {staffBranchPdfLoading === 'all' && (
-                        <FiRefreshCw className="animate-spin ml-1" size={16} />
+                        <FiRefreshCw className="animate-spin ml-1" size={14} />
                       )}
                     </span>
                   </li>
@@ -1214,7 +1214,7 @@ const RegistrarDashboard = () => {
               </div>
               <div className="flex justify-center mt-4">
                 <button
-                  className="px-4 py-2 bg-purple-700 text-white rounded-lg font-semibold hover:bg-purple-800 transition-colors shadow"
+                  className="px-3 sm:px-4 py-2 bg-purple-700 text-white rounded-lg font-semibold hover:bg-purple-800 transition-colors shadow text-sm sm:text-base"
                   onClick={() => { setShowPresentStaffModal(false); navigate('/registrar/faculty-report'); }}
                 >
                   Download Report
@@ -1235,18 +1235,20 @@ const StatCard = ({ icon, title, value, color, delay = 0 }) => (
     transition={{ delay }}
     whileHover={{ y: -5, scale: 1.02 }}
     whileTap={{ scale: 0.98 }}
-    className={`bg-gradient-to-br ${color} rounded-xl shadow-lg text-white p-4 cursor-pointer transition-all`}
+    className={`bg-gradient-to-br ${color} rounded-xl shadow-lg text-white p-3 sm:p-4 cursor-pointer transition-all`}
   >
     <div className="flex items-center justify-between">
       <div>
-        <p className="text-sm font-medium opacity-90">{title}</p>
-        <h3 className="text-2xl font-bold">{value}</h3>
+        <p className="text-xs sm:text-sm font-medium opacity-90">{title}</p>
+        <h3 className="text-lg sm:text-xl lg:text-2xl font-bold">{value}</h3>
       </div>
       <motion.div 
         whileHover={{ rotate: 10 }}
-        className="p-2 bg-white bg-opacity-20 rounded-lg"
+        className="p-1.5 sm:p-2 bg-white bg-opacity-20 rounded-lg"
       >
-        {icon}
+        <div className="w-4 h-4 sm:w-5 sm:h-5">
+          {React.cloneElement(icon, { size: window.innerWidth < 640 ? 16 : 20 })}
+        </div>
       </motion.div>
     </div>
   </motion.div>
@@ -1257,17 +1259,18 @@ const MemberTypeButton = ({ active, onClick, icon, label, color }) => (
     whileHover={{ scale: 1.05 }}
     whileTap={{ scale: 0.95 }}
     onClick={onClick}
-    className={`p-3 rounded-lg flex flex-col items-center transition-all ${
+    className={`p-2 sm:p-3 rounded-lg flex flex-col items-center transition-all ${
       active 
         ? `${color} text-white shadow-md` 
         : 'bg-gray-100 text-gray-600 hover:shadow-sm'
     }`}
   >
-    <div className={`w-8 h-8 rounded-full flex items-center justify-center mb-1 ${
+    <div className={`w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center mb-1 ${
       active ? 'bg-white bg-opacity-20' : 'bg-white'
     }`}>
       {React.cloneElement(icon, { 
-        className: active ? 'text-white' : 'text-current'
+        className: active ? 'text-white' : 'text-current',
+        size: window.innerWidth < 640 ? 12 : 16
       })}
     </div>
     <span className="text-xs font-medium">{label}</span>

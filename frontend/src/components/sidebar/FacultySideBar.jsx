@@ -81,7 +81,7 @@ import { useIsMobile } from "../hooks/use-mobile";
   ];
   
 
-function MobileBottomTabsFaculty() {
+function MobileBottomTabsFaculty({ onLogout }) {
   const navigate = useNavigate();
   const location = useLocation();
   const tabs = [
@@ -90,14 +90,20 @@ function MobileBottomTabsFaculty() {
     { path: "/faculty/leave-apply", label: "Leaves", icon: <AiFillContainer /> },
     { path: "/faculty/faculty-profile", label: "Profile", icon: <FaUser /> },
     { path: "/faculty/faculty-settings", label: "Settings", icon: <AiOutlineSetting /> },
-    { path: "/", label: "Logout", icon: <AiOutlineLogout /> },
+    { path: "/", label: "Logout", icon: <AiOutlineLogout />, isLogout: true },
   ];
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-20 bg-[#b22b2f] text-white flex justify-between items-center px-1 py-1 shadow-t border-t border-[#a02529]">
       {tabs.map((tab) => (
         <button
           key={tab.path}
-          onClick={() => navigate(tab.path)}
+          onClick={() => {
+            if (tab.isLogout) {
+              onLogout();
+            } else {
+              navigate(tab.path);
+            }
+          }}
           className={`flex flex-col items-center flex-1 px-1 py-1 focus:outline-none ${location.pathname === tab.path ? 'text-[#d1a550]' : ''}`}
         >
           <span className="text-lg">{tab.icon}</span>
@@ -117,7 +123,7 @@ const FacultySideBar = ({ children }) => {
     return (
       <div className="relative min-h-screen bg-gray-100 pb-14">
         <main className="flex-1 p-2 sm:p-4 overflow-auto">{children}</main>
-        <MobileBottomTabsFaculty />
+        <MobileBottomTabsFaculty onLogout={handleLogout} />
       </div>
     );
   }

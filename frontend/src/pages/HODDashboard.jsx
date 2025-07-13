@@ -30,7 +30,7 @@ import HeaderMobile from '../components/common/HeaderMobile';
 import { useIsMobile } from '../components/hooks/use-mobile';
 import { AiFillBell, AiOutlineFilePdf, AiOutlineSetting, AiOutlineLogout } from 'react-icons/ai';
 
-const MobileBottomTabsHOD = () => {
+const MobileBottomTabsHOD = ({ onLogout }) => {
   const navigate = useNavigate();
   const location = window.location.pathname;
   const tabs = [
@@ -39,14 +39,20 @@ const MobileBottomTabsHOD = () => {
     { path: '/hod/report', label: 'Report', icon: <AiOutlineFilePdf /> },
     { path: '/hod/view-stress-level', label: 'Stress', icon: <FiActivity /> },
     { path: '/hod/hod-settings', label: 'Settings', icon: <AiOutlineSetting /> },
-    { path: '/', label: 'Logout', icon: <AiOutlineLogout /> },
+    { path: '/', label: 'Logout', icon: <AiOutlineLogout />, isLogout: true },
   ];
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-20 bg-red-900 text-white flex justify-between items-center px-1 py-1 shadow-t border-t border-red-800">
       {tabs.map((tab) => (
         <button
           key={tab.path}
-          onClick={() => navigate(tab.path)}
+          onClick={() => {
+            if (tab.isLogout) {
+              onLogout();
+            } else {
+              navigate(tab.path);
+            }
+          }}
           className={`flex flex-col items-center flex-1 px-1 py-1 focus:outline-none ${location === tab.path ? 'text-yellow-300' : ''}`}
         >
           <span className="text-lg">{tab.icon}</span>
@@ -67,6 +73,7 @@ const HODDashboard = () => {
   const [facultyStressData, setFacultyStressData] = useState([]);
   const [facultyStressLoading, setFacultyStressLoading] = useState(true);
   const [facultyStressError, setFacultyStressError] = useState(null);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
   
   // State for all data with proper initialization
   const [dashboardData, setDashboardData] = useState({
@@ -117,6 +124,21 @@ const HODDashboard = () => {
 
   // Add a ref for the non-teaching staff section
   const nonTeachingStaffRef = useRef(null);
+
+  const handleLogout = () => {
+    setShowLogoutModal(true);
+  };
+
+  const confirmLogout = () => {
+    localStorage.removeItem('token');
+    sessionStorage.removeItem('token');
+    setShowLogoutModal(false);
+    navigate('/');
+  };
+
+  const cancelLogout = () => {
+    setShowLogoutModal(false);
+  };
 
   // Fetch dashboard data and faculty members
   useEffect(() => {
@@ -448,7 +470,7 @@ const HODDashboard = () => {
             ></motion.div>
           </motion.div>
         </div>
-        {isMobile && <MobileBottomTabsHOD />}
+        {isMobile && <MobileBottomTabsHOD onLogout={handleLogout} />}
       </>
     );
   }
@@ -456,21 +478,21 @@ const HODDashboard = () => {
   return (
     <>
       {isMobile ? <HeaderHOD /> : <HeaderMobile title="Dashboard" />}
-      <div className={`flex-1 overflow-auto bg-gray-50 p-4 sm:p-6 ${isMobile ? 'pt-16 pb-14' : ''}`}>
+      <div className={`flex-1 overflow-auto bg-gray-50 p-3 sm:p-4 md:p-6 ${isMobile ? 'pt-16 pb-14' : ''}`}>
         {/* Header */}
         <motion.header
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ type: "spring", stiffness: 300 }}
-          className={`bg-white rounded-xl shadow-md p-6 mb-6 border ${theme.border}`}
+          className={`bg-white rounded-xl shadow-md p-4 sm:p-6 mb-4 sm:mb-6 border ${theme.border}`}
         >
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
+          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 lg:gap-0">
             <div>
               <motion.h1 
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.1 }}
-                className="text-2xl font-bold text-gray-900"
+                className="text-xl sm:text-2xl font-bold text-gray-900"
               >
                 HOD <span className={theme.text}>Dashboard</span>
               </motion.h1>
@@ -480,22 +502,22 @@ const HODDashboard = () => {
                 transition={{ delay: 0.2 }}
                 className="text-gray-600 space-y-1"
               >
-                <p className="font-medium">{dashboardData.name || 'HOD Name'}</p>
-                <p className="text-sm">ERP ID: {dashboardData.hodErpId || 'Not Available'}</p>
-                <p className="text-sm">{dashboardData.department || 'Department'} - {dashboardData.branch || 'Branch'}</p>
+                <p className="font-medium text-sm sm:text-base">{dashboardData.name || 'HOD Name'}</p>
+                <p className="text-xs sm:text-sm">ERP ID: {dashboardData.hodErpId || 'Not Available'}</p>
+                <p className="text-xs sm:text-sm">{dashboardData.department || 'Department'} - {dashboardData.branch || 'Branch'}</p>
               </motion.div>
             </div>
             <motion.div 
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.3 }}
-              className="mt-4 md:mt-0"
+              className="mt-4 lg:mt-0 w-full lg:w-auto"
             >
-              <div className="flex space-x-2 mb-6">
-                {['overview', 'faculty', 'nonteaching', 'students'].map((tab) => (
+              <div className="flex flex-wrap gap-2 mb-4 sm:mb-6">
+                {['overview', 'faculty', 'totalActivities', 'ongoingActivities', 'students'].map((tab) => (
                   <motion.button
                     key={tab}
-                    className={`px-4 py-2 rounded-lg font-semibold transition-colors duration-200 ${
+                    className={`px-2 sm:px-4 py-2 rounded-lg font-semibold transition-colors duration-200 text-xs sm:text-sm ${
                       activeTab === tab ? theme.primary + ' text-white' : 'bg-white text-gray-700 border border-gray-200'
                     }`}
                     onClick={() => setActiveTab(tab)}
@@ -504,8 +526,11 @@ const HODDashboard = () => {
                     {tab === 'overview' ? <FiHome className="inline mr-1" /> : 
                      tab === 'faculty' ? <FiUserCheck className="inline mr-1" /> : 
                      tab === 'students' ? <FiUsers className="inline mr-1" /> :
-                     tab === 'nonteaching' ? <FiUsers className="inline mr-1" /> : null}
-                    {tab === 'nonteaching' ? 'Non-Teaching Staff' : tab.charAt(0).toUpperCase() + tab.slice(1)}
+                     tab === 'totalActivities' ? <FiActivity className="inline mr-1" /> :
+                     tab === 'ongoingActivities' ? <FiActivity className="inline mr-1" /> : null}
+                    {tab === 'totalActivities' ? 'Total Department Activities' : 
+                     tab === 'ongoingActivities' ? 'Ongoing Department Activities' : 
+                     tab.charAt(0).toUpperCase() + tab.slice(1)}
                   </motion.button>
                 ))}
               </div>
@@ -515,7 +540,7 @@ const HODDashboard = () => {
 
         {/* Main Content */}
         <motion.div 
-          className="space-y-6"
+          className="space-y-4 sm:space-y-6"
           variants={containerVariants}
           initial="hidden"
           animate="visible"
@@ -524,25 +549,25 @@ const HODDashboard = () => {
           {activeTab === 'overview' && (
             <>
               {/* Stats Cards */}
-              <motion.div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+              <motion.div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5">
                 {[
                   { 
                     title: 'Total Students', 
                     value: dashboardData.departmentStats?.totalStudents || 0, 
-                    icon: <FiUsers className="text-white" size={24} />, 
+                    icon: <FiUsers className="text-white sm:w-6 sm:h-6" size={20} />, 
                     trend: 'up',
                   },
                   { 
                     title: 'Faculty Members', 
                     value: dashboardData.departmentStats?.totalFaculty || 0, 
-                    icon: <FiUserCheck className="text-white" size={24} />, 
+                    icon: <FiUserCheck className="text-white sm:w-6 sm:h-6" size={20} />, 
                     trend: 'neutral',
                     onClick: () => setActiveTab('faculty')
                   },
                   { 
                     title: 'Non-Teaching Staff',
                     value: dashboardData.staffCount || 0,
-                    icon: <FiUsers className="text-white" size={24} />,
+                    icon: <FiUsers className="text-white sm:w-6 sm:h-6" size={20} />,
                     trend: 'neutral',
                     onClick: () => {
                       setActiveTab('faculty');
@@ -554,78 +579,81 @@ const HODDashboard = () => {
                     }
                   },
                   {
-                    title: 'Ongoing Projects',
+                    title: 'Total Department Activities',
                     value: dashboardData.departmentStats?.ongoingProjects || 0,
-                    icon: <FiAward className="text-white" size={24} />,
+                    icon: <FiActivity className="text-white sm:w-6 sm:h-6" size={20} />,
                     trend: 'neutral',
+                    onClick: () => {
+                      alert('Coming Soon!');
+                    }
                   }
                 ].map((stat, index) => (
                   <motion.div
                     key={stat.title}
                     variants={itemVariants}
                     whileHover="hover"
-                    className={`${theme.primary} text-white rounded-xl p-5 shadow-lg ${stat.onClick ? 'cursor-pointer' : ''}`}
+                    className={`${theme.primary} text-white rounded-xl p-3 sm:p-5 shadow-lg ${stat.onClick ? 'cursor-pointer' : ''}`}
                     onClick={stat.onClick}
                   >
                     <div className="flex justify-between items-start">
-                      <div className="w-12 h-12 rounded-lg bg-white bg-opacity-20 flex items-center justify-center mb-4">
+                      <div className="w-8 h-8 sm:w-12 sm:h-12 rounded-lg bg-white bg-opacity-20 flex items-center justify-center mb-3 sm:mb-4">
                         {stat.icon}
                       </div>
                     </div>
-                    <h3 className="text-2xl font-bold mb-1">{stat.value}</h3>
-                    <p className="text-sm opacity-90">{stat.title}</p>
+                    <h3 className="text-lg sm:text-2xl font-bold mb-1">{stat.value}</h3>
+                    <p className="text-xs sm:text-sm opacity-90">{stat.title}</p>
                   </motion.div>
                 ))}
               </motion.div>
 
               {/* New row of white stat boxes */}
-              <motion.div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mt-6">
-                <div className="bg-white rounded-xl p-5 shadow flex flex-col items-start border border-gray-100">
-                  <div className="w-10 h-10 rounded-lg bg-red-100 flex items-center justify-center mb-3">
-                    <FiUsers className="text-red-600" size={22} />
+              <motion.div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5 mt-4 sm:mt-6">
+                <div className="bg-white rounded-xl p-3 sm:p-5 shadow flex flex-col items-start border border-gray-100">
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-red-100 flex items-center justify-center mb-2 sm:mb-3">
+                    <FiUsers className="text-red-600 sm:w-[22px] sm:h-[22px]" size={18} />
                   </div>
-                  <h3 className="text-xl font-bold mb-1">{todayCounts.students}</h3>
-                  <p className="text-sm text-gray-600">Students Present Today</p>
+                  <h3 className="text-lg sm:text-xl font-bold mb-1">{todayCounts.students}</h3>
+                  <p className="text-xs sm:text-sm text-gray-600">Students Present Today</p>
                 </div>
-                <div className="bg-white rounded-xl p-5 shadow flex flex-col items-start border border-gray-100 cursor-pointer hover:bg-red-50 transition" onClick={() => navigate('/hod/report')}>
-                  <div className="w-10 h-10 rounded-lg bg-red-100 flex items-center justify-center mb-3">
-                    <FiUserCheck className="text-red-600" size={22} />
+                <div className="bg-white rounded-xl p-3 sm:p-5 shadow flex flex-col items-start border border-gray-100 cursor-pointer hover:bg-red-50 transition" onClick={() => navigate('/hod/report')}>
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-red-100 flex items-center justify-center mb-2 sm:mb-3">
+                    <FiUserCheck className="text-red-600 sm:w-[22px] sm:h-[22px]" size={18} />
                   </div>
-                  <h3 className="text-xl font-bold mb-1">{todayCounts.faculty}</h3>
-                  <p className="text-sm text-gray-600">Faculty Present Today</p>
+                  <h3 className="text-lg sm:text-xl font-bold mb-1">{todayCounts.faculty}</h3>
+                  <p className="text-xs sm:text-sm text-gray-600">Faculty Present Today</p>
                 </div>
-                <div className="bg-white rounded-xl p-5 shadow flex flex-col items-start border border-gray-100 cursor-pointer hover:bg-red-50 transition" onClick={() => navigate('/hod/report')}>
-                  <div className="w-10 h-10 rounded-lg bg-red-100 flex items-center justify-center mb-3">
-                    <FiUsers className="text-red-600" size={22} />
+                <div className="bg-white rounded-xl p-3 sm:p-5 shadow flex flex-col items-start border border-gray-100 cursor-pointer hover:bg-red-50 transition" onClick={() => navigate('/hod/report')}>
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-red-100 flex items-center justify-center mb-2 sm:mb-3">
+                    <FiUsers className="text-red-600 sm:w-[22px] sm:h-[22px]" size={18} />
                   </div>
-                  <h3 className="text-xl font-bold mb-1">{todayCounts.staff}</h3>
-                  <p className="text-sm text-gray-600">Non-Teaching Staff Present Today</p>
+                  <h3 className="text-lg sm:text-xl font-bold mb-1">{todayCounts.staff}</h3>
+                  <p className="text-xs sm:text-sm text-gray-600">Non-Teaching Staff Present Today</p>
                 </div>
-                <div className="bg-white rounded-xl p-5 shadow flex flex-col items-start border border-gray-100">
-                  <div className="w-10 h-10 rounded-lg bg-red-100 flex items-center justify-center mb-3">
-                    <FiAward className="text-red-600" size={22} />
+                <div className="bg-white rounded-xl p-3 sm:p-5 shadow flex flex-col items-start border border-gray-100 cursor-pointer hover:bg-red-50 transition" onClick={() => alert('Coming Soon!')}>
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-red-100 flex items-center justify-center mb-2 sm:mb-3">
+                    <FiActivity className="text-red-600 sm:w-[22px] sm:h-[22px]" size={18} />
                   </div>
-                  <h3 className="text-xl font-bold mb-1">{dashboardData.departmentStats?.pendingProjects || 0}</h3>
-                  <p className="text-sm text-gray-600">Projects Pending</p>
+                  <h3 className="text-lg sm:text-xl font-bold mb-1">{dashboardData.departmentStats?.pendingProjects || 0}</h3>
+                  <p className="text-xs sm:text-sm text-gray-600">Ongoing Department Activities</p>
                 </div>
               </motion.div>
 
               {/* Custom Quick Sections: Recent Leave Approvals & Top 5 Faculty Logs */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mt-4 sm:mt-6">
                 {/* Recent Leave Approvals */}
                 <RecentLeaveApprovals />
                 {/* Faculty Stress Notifications */}
                 <motion.div
                   variants={itemVariants}
-                  className="bg-white rounded-xl shadow-sm p-6 border border-red-200 h-full"
+                  className="bg-white rounded-xl shadow-sm p-4 sm:p-6 border border-red-200 h-full"
                 >
-                  <h3 className="text-lg font-bold mb-4 flex items-center text-red-800">
+                  <h3 className="text-base sm:text-lg font-bold mb-3 sm:mb-4 flex items-center text-red-800">
                     <FiAlertTriangle className="mr-2 text-red-800" /> Faculty Stress Notifications
                   </h3>
                   {facultyStressLoading ? (
-                    <div className="text-gray-500">Loading...</div>
+                    <div className="text-gray-500 text-sm">Loading...</div>
                   ) : facultyStressError ? (
-                    <div className="text-red-500">{facultyStressError}</div>
+                    <div className="text-red-500 text-sm">{facultyStressError}</div>
                   ) : (
                     (() => {
                       // Filter for faculty stressed for more than 7 days
@@ -636,37 +664,59 @@ const HODDashboard = () => {
                         return (faculty.status === 'Stressed' || faculty.status === 'At Risk') && days >= 7;
                       });
                       if (stressedFaculty.length === 0) {
-                        return <div className="text-gray-500">No faculty have been stressed for more than 7 days.</div>;
+                        return <div className="text-gray-500 text-sm">No faculty have been stressed for more than 7 days.</div>;
                       }
                       return (
                         <div className="overflow-x-auto">
-                          <table className="w-full">
-                            <thead>
-                              <tr className="text-left text-sm text-red-700 border-b border-red-200">
-                                <th className="pb-3">Name</th>
-                                <th className="pb-3">ERP ID</th>
-                                <th className="pb-3">Stress Level</th>
-                                <th className="pb-3">Days Stressed</th>
-                                <th className="pb-3">Last Updated</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {stressedFaculty.map(faculty => {
-                                const days = Math.floor((now - new Date(faculty.timestamp)) / (1000 * 60 * 60 * 24));
-                                return (
-                                  <tr key={faculty.erpid} className="border-b border-red-100 bg-red-50">
-                                    <td className="py-3 font-medium cursor-pointer text-red-800" onClick={() => handlePersonClick('faculty', faculty.id, faculty.name)}>{faculty.name}</td>
-                                    <td className="py-3 text-red-700">{faculty.erpid}</td>
-                                    <td className="py-3">
-                                      <span className="px-2 py-1 text-xs rounded-full bg-red-200 text-red-900 font-semibold">{faculty.status}</span>
-                                    </td>
-                                    <td className="py-3 text-red-700 font-bold">{days} days</td>
-                                    <td className="py-3 text-xs text-gray-500">{faculty.timestamp ? new Date(faculty.timestamp).toLocaleString() : 'N/A'}</td>
-                                  </tr>
-                                );
-                              })}
-                            </tbody>
-                          </table>
+                          {/* Mobile Card View */}
+                          <div className="block sm:hidden space-y-3">
+                            {stressedFaculty.map(faculty => {
+                              const days = Math.floor((now - new Date(faculty.timestamp)) / (1000 * 60 * 60 * 24));
+                              return (
+                                <div key={faculty.erpid} className="bg-red-50 rounded-lg p-3 border border-red-200">
+                                  <div className="flex justify-between items-start mb-2">
+                                    <span className="font-medium text-red-800 text-sm cursor-pointer" onClick={() => handlePersonClick('faculty', faculty.id, faculty.name)}>{faculty.name}</span>
+                                    <span className="px-2 py-1 text-xs rounded-full bg-red-200 text-red-900 font-semibold">{faculty.status}</span>
+                                  </div>
+                                  <div className="text-xs text-red-700 space-y-1">
+                                    <div>ERP ID: {faculty.erpid}</div>
+                                    <div>Days Stressed: <span className="font-bold">{days} days</span></div>
+                                    <div className="text-gray-500">Last Updated: {faculty.timestamp ? new Date(faculty.timestamp).toLocaleString() : 'N/A'}</div>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                          {/* Desktop Table View */}
+                          <div className="hidden sm:block">
+                            <table className="w-full">
+                              <thead>
+                                <tr className="text-left text-sm text-red-700 border-b border-red-200">
+                                  <th className="pb-3">Name</th>
+                                  <th className="pb-3">ERP ID</th>
+                                  <th className="pb-3">Stress Level</th>
+                                  <th className="pb-3">Days Stressed</th>
+                                  <th className="pb-3">Last Updated</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {stressedFaculty.map(faculty => {
+                                  const days = Math.floor((now - new Date(faculty.timestamp)) / (1000 * 60 * 60 * 24));
+                                  return (
+                                    <tr key={faculty.erpid} className="border-b border-red-100 bg-red-50">
+                                      <td className="py-3 font-medium cursor-pointer text-red-800" onClick={() => handlePersonClick('faculty', faculty.id, faculty.name)}>{faculty.name}</td>
+                                      <td className="py-3 text-red-700">{faculty.erpid}</td>
+                                      <td className="py-3">
+                                        <span className="px-2 py-1 text-xs rounded-full bg-red-200 text-red-900 font-semibold">{faculty.status}</span>
+                                      </td>
+                                      <td className="py-3 text-red-700 font-bold">{days} days</td>
+                                      <td className="py-3 text-xs text-gray-500">{faculty.timestamp ? new Date(faculty.timestamp).toLocaleString() : 'N/A'}</td>
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
+                          </div>
                         </div>
                       );
                     })()
@@ -690,19 +740,77 @@ const HODDashboard = () => {
               {/* Student Attendance */}
               <motion.div
                 variants={itemVariants}
-                className="bg-white rounded-xl shadow-sm p-6 border border-gray-100 mb-6"
+                className="bg-white rounded-xl shadow-sm p-4 sm:p-6 border border-gray-100 mb-4 sm:mb-6"
               >
-                <div className="flex justify-between items-center mb-6">
-                  <h2 className="text-xl font-bold flex items-center">
+                <div className="flex justify-between items-center mb-4 sm:mb-6">
+                  <h2 className="text-lg sm:text-xl font-bold flex items-center">
                     <FiUsers className={`mr-2 ${theme.text}`} />
                     Student Attendance
                   </h2>
-                  <button className={`text-sm ${theme.text} font-medium flex items-center`}>
+                  <button className={`text-xs sm:text-sm ${theme.text} font-medium flex items-center`}>
                     View All <FiChevronRight className="ml-1" />
                   </button>
                 </div>
 
-                <div className="overflow-x-auto">
+                {/* Mobile Card View */}
+                <div className="block sm:hidden space-y-3">
+                  {(dashboardData.studentAttendance || []).map((course, index) => {
+                    const total = (course.present || 0) + (course.absent || 0);
+                    const percentage = calculatePercentage(course.present || 0, total);
+                    
+                    return (
+                      <motion.div
+                        key={index}
+                        variants={itemVariants}
+                        className="border border-gray-200 rounded-lg p-3 hover:bg-red-50"
+                        whileHover={{ x: 5 }}
+                      >
+                        <div className="space-y-2">
+                          <div className="flex justify-between items-center">
+                            <span className="font-medium text-sm">{course.course || 'Unknown Course'}</span>
+                            <span className="text-xs text-gray-500">{course.date || 'Unknown Date'}</span>
+                          </div>
+                          <div className="grid grid-cols-2 gap-2 text-xs">
+                            <div className="flex justify-between">
+                              <span>Present:</span>
+                              <span className="text-green-600 font-medium">{course.present || 0}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>Absent:</span>
+                              <span className="text-red-600 font-medium">{course.absent || 0}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>Late:</span>
+                              <span className="text-yellow-600 font-medium">{course.late || 0}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>Professor:</span>
+                              <span className="text-gray-700">{course.professor || 'Unknown'}</span>
+                            </div>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-xs text-gray-600">Room: {course.room || 'Unknown'}</span>
+                            <div className="flex items-center">
+                              <div className="w-12 bg-gray-200 rounded-full h-2 mr-2">
+                                <div 
+                                  className={`h-2 rounded-full ${
+                                    percentage >= 90 ? 'bg-green-500' :
+                                    percentage >= 75 ? 'bg-yellow-500' : 'bg-red-500'
+                                  }`}
+                                  style={{ width: `${percentage}%` }}
+                                ></div>
+                              </div>
+                              <span className="text-xs font-medium">{percentage}%</span>
+                            </div>
+                          </div>
+                        </div>
+                      </motion.div>
+                    );
+                  })}
+                </div>
+
+                {/* Desktop Table View */}
+                <div className="hidden sm:block overflow-x-auto">
                   <table className="w-full">
                     <thead>
                       <tr className="text-left text-sm text-gray-500 border-b border-gray-200">
@@ -760,38 +868,38 @@ const HODDashboard = () => {
               {/* Student Performance */}
               <motion.div
                 variants={itemVariants}
-                className="bg-white rounded-xl shadow-sm p-6 border border-gray-100"
+                className="bg-white rounded-xl shadow-sm p-4 sm:p-6 border border-gray-100"
               >
-                <div className="flex justify-between items-center mb-6">
-                  <h2 className="text-xl font-bold flex items-center">
+                <div className="flex justify-between items-center mb-4 sm:mb-6">
+                  <h2 className="text-lg sm:text-xl font-bold flex items-center">
                     <FiBarChart2 className={`mr-2 ${theme.text}`} />
                     Student Performance
                   </h2>
-                  <button className={`text-sm ${theme.text} font-medium flex items-center`}>
+                  <button className={`text-xs sm:text-sm ${theme.text} font-medium flex items-center`}>
                     View All <FiChevronRight className="ml-1" />
                   </button>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                   {(dashboardData.studentPerformance || []).map((course, index) => (
                     <motion.div
                       key={index}
                       variants={itemVariants}
                       whileHover="hover"
-                      className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
+                      className="border border-gray-200 rounded-lg p-3 sm:p-4 hover:shadow-md transition-shadow"
                     >
-                      <h3 className="font-bold text-gray-900 mb-2">{course.course || 'Unknown Course'}</h3>
-                      <div className="flex justify-between mb-3">
-                        <span className="text-sm text-gray-600">Average Grade:</span>
-                        <span className="font-medium">{course.avgGrade || 0}%</span>
+                      <h3 className="font-bold text-gray-900 mb-2 text-sm sm:text-base">{course.course || 'Unknown Course'}</h3>
+                      <div className="flex justify-between mb-2 sm:mb-3">
+                        <span className="text-xs sm:text-sm text-gray-600">Average Grade:</span>
+                        <span className="font-medium text-sm sm:text-base">{course.avgGrade || 0}%</span>
                       </div>
-                      <div className="flex justify-between mb-3">
-                        <span className="text-sm text-gray-600">Top Performer:</span>
-                        <span className="font-medium">{course.topPerformer || 'Unknown'}</span>
+                      <div className="flex justify-between mb-2 sm:mb-3">
+                        <span className="text-xs sm:text-sm text-gray-600">Top Performer:</span>
+                        <span className="font-medium text-sm sm:text-base">{course.topPerformer || 'Unknown'}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-sm text-gray-600">Improvement:</span>
-                        <span className={`font-medium ${
+                        <span className="text-xs sm:text-sm text-gray-600">Improvement:</span>
+                        <span className={`font-medium text-sm sm:text-base ${
                           (course.improvement || '').startsWith('+') ? 'text-green-600' : 'text-red-600'
                         }`}>
                           {course.improvement || '0%'}
@@ -800,6 +908,48 @@ const HODDashboard = () => {
                     </motion.div>
                   ))}
                 </div>
+              </motion.div>
+            </motion.div>
+          )}
+
+          {/* Total Department Activities Tab */}
+          {activeTab === 'totalActivities' && (
+            <motion.div
+              variants={containerVariants}
+              initial="hidden"
+              animate="visible"
+              className="flex items-center justify-center min-h-[400px]"
+            >
+              <motion.div
+                variants={itemVariants}
+                className="text-center"
+              >
+                <div className="w-24 h-24 mx-auto mb-6 bg-red-100 rounded-full flex items-center justify-center">
+                  <FiActivity className="text-red-600 text-4xl" />
+                </div>
+                <h2 className="text-2xl font-bold text-gray-800 mb-4">Coming Soon!</h2>
+                <p className="text-gray-600 text-lg">Total Department Activities feature is under development.</p>
+              </motion.div>
+            </motion.div>
+          )}
+
+          {/* Ongoing Department Activities Tab */}
+          {activeTab === 'ongoingActivities' && (
+            <motion.div
+              variants={containerVariants}
+              initial="hidden"
+              animate="visible"
+              className="flex items-center justify-center min-h-[400px]"
+            >
+              <motion.div
+                variants={itemVariants}
+                className="text-center"
+              >
+                <div className="w-24 h-24 mx-auto mb-6 bg-red-100 rounded-full flex items-center justify-center">
+                  <FiActivity className="text-red-600 text-4xl" />
+                </div>
+                <h2 className="text-2xl font-bold text-gray-800 mb-4">Coming Soon!</h2>
+                <p className="text-gray-600 text-lg">Ongoing Department Activities feature is under development.</p>
               </motion.div>
             </motion.div>
           )}
@@ -815,10 +965,10 @@ const HODDashboard = () => {
               <motion.div
                 ref={nonTeachingStaffRef}
                 variants={itemVariants}
-                className="bg-white rounded-xl shadow-sm p-6 border border-gray-100 mb-6"
+                className="bg-white rounded-xl shadow-sm p-4 sm:p-6 border border-gray-100 mb-4 sm:mb-6"
               >
-                <div className="flex justify-between items-center mb-6">
-                  <h2 className="text-xl font-bold flex items-center">
+                <div className="flex justify-between items-center mb-4 sm:mb-6">
+                  <h2 className="text-lg sm:text-xl font-bold flex items-center">
                     <FiUsers className={`mr-2 ${theme.text}`} />
                     Department Faculty ({facultyMembers.length})
                   </h2>
@@ -828,42 +978,77 @@ const HODDashboard = () => {
                     <p className="text-gray-500">No faculty members found in your department.</p>
                   </div>
                 ) : (
-                  <div className="overflow-x-auto">
-                    <table className="w-full">
-                      <thead>
-                        <tr className="text-left text-sm text-gray-500 border-b border-gray-200">
-                          <th className="pb-3">ERP ID</th>
-                          <th className="pb-3">Name</th>
-                          <th className="pb-3">Email</th>
-                          <th className="pb-3">Last Active Location</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {facultyMembers.map((faculty) => {
-                          const logsForFaculty = facultyLogs.filter(log => log.erp_id === faculty.erpid);
-                          let lastLocation = 'N/A';
-                          if (logsForFaculty.length > 0) {
-                            logsForFaculty.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-                            lastLocation = logsForFaculty[0].classroom || 'N/A';
-                          }
-                          return (
-                            <motion.tr
-                              key={faculty.id}
-                              variants={itemVariants}
-                              className="border-b border-gray-100 hover:bg-red-50 cursor-pointer"
-                              whileHover={{ x: 5 }}
-                              onClick={() => handlePersonClick('faculty', faculty.id, faculty.name)}
-                            >
-                              <td className="py-4 font-medium">{faculty.erpid || 'N/A'}</td>
-                              <td className="py-4">{faculty.name || 'Unknown'}</td>
-                              <td className="py-4">{faculty.email || 'N/A'}</td>
-                              <td className="py-4">{lastLocation}</td>
-                            </motion.tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
+                  <>
+                    {/* Mobile Card View */}
+                    <div className="block sm:hidden space-y-3">
+                      {facultyMembers.map((faculty) => {
+                        const logsForFaculty = facultyLogs.filter(log => log.erp_id === faculty.erpid);
+                        let lastLocation = 'N/A';
+                        if (logsForFaculty.length > 0) {
+                          logsForFaculty.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+                          lastLocation = logsForFaculty[0].classroom || 'N/A';
+                        }
+                        return (
+                          <motion.div
+                            key={faculty.id}
+                            variants={itemVariants}
+                            className="border border-gray-200 rounded-lg p-3 hover:bg-red-50 cursor-pointer"
+                            whileHover={{ x: 5 }}
+                            onClick={() => handlePersonClick('faculty', faculty.id, faculty.name)}
+                          >
+                            <div className="space-y-2">
+                              <div className="flex justify-between items-center">
+                                <span className="font-medium text-sm">{faculty.name || 'Unknown'}</span>
+                                <span className="text-xs text-gray-500">ERP: {faculty.erpid || 'N/A'}</span>
+                              </div>
+                              <div className="text-xs text-gray-600">
+                                <div>Email: {faculty.email || 'N/A'}</div>
+                                <div>Last Location: {lastLocation}</div>
+                              </div>
+                            </div>
+                          </motion.div>
+                        );
+                      })}
+                    </div>
+
+                    {/* Desktop Table View */}
+                    <div className="hidden sm:block overflow-x-auto">
+                      <table className="w-full">
+                        <thead>
+                          <tr className="text-left text-sm text-gray-500 border-b border-gray-200">
+                            <th className="pb-3">ERP ID</th>
+                            <th className="pb-3">Name</th>
+                            <th className="pb-3">Email</th>
+                            <th className="pb-3">Last Active Location</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {facultyMembers.map((faculty) => {
+                            const logsForFaculty = facultyLogs.filter(log => log.erp_id === faculty.erpid);
+                            let lastLocation = 'N/A';
+                            if (logsForFaculty.length > 0) {
+                              logsForFaculty.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+                              lastLocation = logsForFaculty[0].classroom || 'N/A';
+                            }
+                            return (
+                              <motion.tr
+                                key={faculty.id}
+                                variants={itemVariants}
+                                className="border-b border-gray-100 hover:bg-red-50 cursor-pointer"
+                                whileHover={{ x: 5 }}
+                                onClick={() => handlePersonClick('faculty', faculty.id, faculty.name)}
+                              >
+                                <td className="py-4 font-medium">{faculty.erpid || 'N/A'}</td>
+                                <td className="py-4">{faculty.name || 'Unknown'}</td>
+                                <td className="py-4">{faculty.email || 'N/A'}</td>
+                                <td className="py-4">{lastLocation}</td>
+                              </motion.tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </>
                 )}
               </motion.div>
             </motion.div>
@@ -879,10 +1064,10 @@ const HODDashboard = () => {
               <motion.div
                 ref={nonTeachingStaffRef}
                 variants={itemVariants}
-                className="bg-white rounded-xl shadow-sm p-6 border border-gray-100 mb-6"
+                className="bg-white rounded-xl shadow-sm p-4 sm:p-6 border border-gray-100 mb-4 sm:mb-6"
               >
-                <div className="flex justify-between items-center mb-6">
-                  <h2 className="text-xl font-bold flex items-center">
+                <div className="flex justify-between items-center mb-4 sm:mb-6">
+                  <h2 className="text-lg sm:text-xl font-bold flex items-center">
                     <FiUsers className={`mr-2 ${theme.text}`} />
                     Non-Teaching Staff ({nonTeachingStaff.length})
                   </h2>
@@ -892,32 +1077,58 @@ const HODDashboard = () => {
                     <p className="text-gray-500">No non-teaching staff found in your department.</p>
                   </div>
                 ) : (
-                  <div className="overflow-x-auto">
-                    <table className="w-full">
-                      <thead>
-                        <tr className="text-left text-sm text-gray-500 border-b border-gray-200">
-                          <th className="pb-3">ERP ID</th>
-                          <th className="pb-3">Name</th>
-                          <th className="pb-3">Email</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {nonTeachingStaff.map((staff) => (
-                          <motion.tr
-                            key={staff.id}
-                            variants={itemVariants}
-                            className="border-b border-gray-100 hover:bg-red-50 cursor-pointer"
-                            whileHover={{ x: 5 }}
-                            onClick={() => handlePersonClick('staff', staff.id, staff.name)}
-                          >
-                            <td className="py-4 font-medium">{staff.erpid || 'N/A'}</td>
-                            <td className="py-4">{staff.name || 'Unknown'}</td>
-                            <td className="py-4">{staff.email || 'N/A'}</td>
-                          </motion.tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                  <>
+                    {/* Mobile Card View */}
+                    <div className="block sm:hidden space-y-3">
+                      {nonTeachingStaff.map((staff) => (
+                        <motion.div
+                          key={staff.id}
+                          variants={itemVariants}
+                          className="border border-gray-200 rounded-lg p-3 hover:bg-red-50 cursor-pointer"
+                          whileHover={{ x: 5 }}
+                          onClick={() => handlePersonClick('staff', staff.id, staff.name)}
+                        >
+                          <div className="space-y-2">
+                            <div className="flex justify-between items-center">
+                              <span className="font-medium text-sm">{staff.name || 'Unknown'}</span>
+                              <span className="text-xs text-gray-500">ERP: {staff.erpid || 'N/A'}</span>
+                            </div>
+                            <div className="text-xs text-gray-600">
+                              <div>Email: {staff.email || 'N/A'}</div>
+                            </div>
+                          </div>
+                        </motion.div>
+                      ))}
+                    </div>
+
+                    {/* Desktop Table View */}
+                    <div className="hidden sm:block overflow-x-auto">
+                      <table className="w-full">
+                        <thead>
+                          <tr className="text-left text-sm text-gray-500 border-b border-gray-200">
+                            <th className="pb-3">ERP ID</th>
+                            <th className="pb-3">Name</th>
+                            <th className="pb-3">Email</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {nonTeachingStaff.map((staff) => (
+                            <motion.tr
+                              key={staff.id}
+                              variants={itemVariants}
+                              className="border-b border-gray-100 hover:bg-red-50 cursor-pointer"
+                              whileHover={{ x: 5 }}
+                              onClick={() => handlePersonClick('staff', staff.id, staff.name)}
+                            >
+                              <td className="py-4 font-medium">{staff.erpid || 'N/A'}</td>
+                              <td className="py-4">{staff.name || 'Unknown'}</td>
+                              <td className="py-4">{staff.email || 'N/A'}</td>
+                            </motion.tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </>
                 )}
               </motion.div>
             </motion.div>
@@ -930,18 +1141,18 @@ const HODDashboard = () => {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+                className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 sm:p-4"
                 onClick={() => setShowFacultyModal(false)}
               >
                 <motion.div
                   initial={{ scale: 0.9, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
                   exit={{ scale: 0.9, opacity: 0 }}
-                  className="bg-white rounded-xl shadow-lg w-full max-w-4xl max-h-[80vh] overflow-hidden"
+                  className="bg-white rounded-xl shadow-lg w-full max-w-4xl max-h-[90vh] sm:max-h-[80vh] overflow-hidden"
                   onClick={e => e.stopPropagation()}
                 >
-                  <div className="p-6 border-b border-gray-200 flex justify-between items-center">
-                    <h2 className="text-xl font-bold flex items-center">
+                  <div className="p-3 sm:p-6 border-b border-gray-200 flex justify-between items-center">
+                    <h2 className="text-lg sm:text-xl font-bold flex items-center">
                       <FiUsers className="mr-2 text-red-600" />
                       Department Faculty Members ({facultyMembers.length})
                     </h2>
@@ -949,27 +1160,27 @@ const HODDashboard = () => {
                       onClick={() => setShowFacultyModal(false)}
                       className="text-gray-500 hover:text-gray-700 p-2 hover:bg-gray-100 rounded-full transition-colors"
                     >
-                      <FiX size={24} />
+                      <FiX size={20} className="sm:w-6 sm:h-6" />
                     </button>
                   </div>
                   
-                  <div className="p-6 overflow-y-auto max-h-[calc(80vh-8rem)]">
+                  <div className="p-3 sm:p-6 overflow-y-auto max-h-[calc(90vh-6rem)] sm:max-h-[calc(80vh-8rem)]">
                     {facultyMembers.length === 0 ? (
                       <div className="text-center py-8">
                         <p className="text-gray-500">No faculty members found in your department.</p>
                       </div>
                     ) : (
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                         {facultyMembers.map((faculty) => (
                           <motion.div
                             key={faculty.id}
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
-                            className="bg-gray-50 rounded-lg p-4 hover:bg-red-50 transition-colors"
+                            className="bg-gray-50 rounded-lg p-3 sm:p-4 hover:bg-red-50 transition-colors"
                           >
-                            <div className="font-semibold text-lg mb-2">{faculty.name || 'N/A'}</div>
-                            <div className="text-sm text-gray-600 mb-1">ERP ID: {faculty.erpid || 'N/A'}</div>
-                            <div className="text-sm text-gray-600 mb-1">{faculty.email || 'N/A'}</div>
+                            <div className="font-semibold text-base sm:text-lg mb-2">{faculty.name || 'N/A'}</div>
+                            <div className="text-xs sm:text-sm text-gray-600 mb-1">ERP ID: {faculty.erpid || 'N/A'}</div>
+                            <div className="text-xs sm:text-sm text-gray-600 mb-1">{faculty.email || 'N/A'}</div>
                             <div className="flex items-center mt-2">
                               <span className={`px-2 py-1 text-xs rounded-full ${
                                 faculty.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
@@ -997,28 +1208,28 @@ const HODDashboard = () => {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+                className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 sm:p-4"
                 onClick={() => setShowProfileModal(false)}
               >
                 <motion.div
                   initial={{ scale: 0.9, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
                   exit={{ scale: 0.9, opacity: 0 }}
-                  className="bg-white rounded-xl shadow-lg w-full max-w-5xl max-h-[90vh] overflow-hidden"
+                  className="bg-white rounded-xl shadow-lg w-full max-w-5xl max-h-[95vh] sm:max-h-[90vh] overflow-hidden"
                   onClick={e => e.stopPropagation()}
                 >
-                  <div className="p-6 border-b border-gray-200 flex justify-between items-center">
-                    <h2 className="text-xl font-bold flex items-center">
+                  <div className="p-3 sm:p-6 border-b border-gray-200 flex justify-between items-center">
+                    <h2 className="text-lg sm:text-xl font-bold flex items-center">
                       {selectedPerson?.name || (selectedPerson?.type === 'faculty' ? 'Faculty' : 'Non-Teaching Staff')} Logs
                     </h2>
                     <button
                       onClick={() => setShowProfileModal(false)}
                       className="text-gray-500 hover:text-gray-700 p-2 hover:bg-gray-100 rounded-full transition-colors"
                     >
-                      <FiX size={24} />
+                      <FiX size={20} className="sm:w-6 sm:h-6" />
                     </button>
                   </div>
-                  <div className="p-6 overflow-y-auto max-h-[calc(90vh-8rem)]">
+                  <div className="p-3 sm:p-6 overflow-y-auto max-h-[calc(95vh-6rem)] sm:max-h-[calc(90vh-8rem)]">
                     <FacultyLogDisplay logs={profileLogs || []} loading={profileLoading} />
                   </div>
                 </motion.div>
@@ -1027,7 +1238,19 @@ const HODDashboard = () => {
           </AnimatePresence>
         </motion.div>
       </div>
-      {isMobile && <MobileBottomTabsHOD />}
+              {isMobile && <MobileBottomTabsHOD onLogout={handleLogout} />}
+      {showLogoutModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+          <div className="bg-white rounded-xl shadow-lg p-6 max-w-sm w-full">
+            <h2 className="text-xl font-bold mb-4 text-red-700">Confirm Logout</h2>
+            <p className="mb-6 text-gray-700">Are you sure you want to logout?</p>
+            <div className="flex justify-end gap-3">
+              <button onClick={cancelLogout} className="px-4 py-2 rounded bg-gray-200 text-gray-700 hover:bg-gray-300">Cancel</button>
+              <button onClick={confirmLogout} className="px-4 py-2 rounded bg-[#b22b2f] text-white hover:bg-[#a02529]">Logout</button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 };
@@ -1065,23 +1288,23 @@ function RecentFacultyLogs({ facultyMembers = [], handlePersonClick }) {
   }, []);
 
   return (
-    <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100 h-full">
-      <h3 className="text-lg font-bold mb-4 flex items-center">
+    <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 border border-gray-100 h-full">
+      <h3 className="text-base sm:text-lg font-bold mb-3 sm:mb-4 flex items-center">
         <FiUserCheck className="mr-2 text-red-800" /> Recent Faculty Logs
       </h3>
       {loading ? (
-        <div className="text-gray-500">Loading...</div>
+        <div className="text-gray-500 text-sm">Loading...</div>
       ) : error ? (
-        <div className="text-red-500">{error}</div>
+        <div className="text-red-500 text-sm">{error}</div>
       ) : logs.length === 0 ? (
-        <div className="text-gray-500">No logs found.</div>
+        <div className="text-gray-500 text-sm">No logs found.</div>
       ) : (
         <ul className="divide-y divide-gray-200">
           {logs.map((log, idx) => (
-            <li key={log.id || idx} className="py-3 flex flex-col">
+            <li key={log.id || idx} className="py-2 sm:py-3 flex flex-col">
               <div className="flex items-center justify-between">
                 <span
-                  className="font-medium text-gray-900 cursor-pointer"
+                  className="font-medium text-gray-900 cursor-pointer text-sm sm:text-base"
                   onClick={() => {
                     let facultyId = log.faculty_id;
                     let facultyName = log.person_name;
@@ -1141,39 +1364,39 @@ function RecentLeaveApprovals() {
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100 h-full">
-      <h3 className="text-lg font-bold mb-4 flex items-center">
+    <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 border border-gray-100 h-full">
+      <h3 className="text-base sm:text-lg font-bold mb-3 sm:mb-4 flex items-center">
         <FiBook className="mr-2 text-red-800" /> Recent Leave Approval Requests
       </h3>
       {loading ? (
-        <div className="text-gray-500">Loading...</div>
+        <div className="text-gray-500 text-sm">Loading...</div>
       ) : error ? (
-        <div className="text-red-500">{error}</div>
+        <div className="text-red-500 text-sm">{error}</div>
       ) : leaveApplications.length === 0 ? (
-        <div className="text-gray-500">No pending leave requests.</div>
+        <div className="text-gray-500 text-sm">No pending leave requests.</div>
       ) : (
         <ul className="divide-y divide-gray-200">
           {leaveApplications.map((app, idx) => (
-            <li key={app.ErpStaffId || idx} className="py-3 flex flex-col">
+            <li key={app.ErpStaffId || idx} className="py-2 sm:py-3 flex flex-col">
               <div className="flex items-center justify-between">
-                <span className="font-medium text-gray-900">{app.StaffName}</span>
+                <span className="font-medium text-gray-900 text-sm sm:text-base">{app.StaffName}</span>
                 <span className="text-xs text-gray-500">{app.leaveType}</span>
               </div>
               <div className="text-xs text-gray-600 mt-1">{app.fromDate} to {app.toDate}</div>
               <div className="flex gap-2 mt-2">
                 <button
-                  className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 flex items-center text-xs disabled:opacity-50"
+                  className="px-2 sm:px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 flex items-center text-xs disabled:opacity-50"
                   disabled={actionLoading === app.ErpStaffId}
                   onClick={() => handleAction(app, 'approve')}
                 >
-                  <Check size={14} className="mr-1" /> Approve
+                  <Check size={12} className="sm:w-[14px] sm:h-[14px] mr-1" /> Approve
                 </button>
                 <button
-                  className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 flex items-center text-xs disabled:opacity-50"
+                  className="px-2 sm:px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 flex items-center text-xs disabled:opacity-50"
                   disabled={actionLoading === app.ErpStaffId}
                   onClick={() => handleAction(app, 'reject')}
                 >
-                  <X size={14} className="mr-1" /> Reject
+                  <X size={12} className="sm:w-[14px] sm:h-[14px] mr-1" /> Reject
                 </button>
               </div>
             </li>

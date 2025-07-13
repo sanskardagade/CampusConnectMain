@@ -75,9 +75,9 @@ const Chatbot = () => {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 10 }}
-            className="fixed bottom-20 right-6 z-50 flex justify-center w-60 pointer-events-none"
+            className="fixed bottom-20 right-4 sm:right-6 z-50 flex justify-center w-48 sm:w-60 pointer-events-none"
           >
-            <div className="bg-red-100 text-red-700 px-4 py-2 rounded-t-lg font-semibold shadow text-center w-full">
+            <div className="bg-red-100 text-red-700 px-3 py-2 rounded-t-lg font-semibold shadow text-center w-full text-sm sm:text-base">
               How may I help you?
             </div>
           </motion.div>
@@ -86,14 +86,14 @@ const Chatbot = () => {
 
       {/* Chat Button */}
       <motion.button
-        className="fixed bottom-6 right-6 bg-red-700 text-white p-4 rounded-full shadow-lg hover:bg-red-800 transition-colors z-50"
+        className="fixed bottom-4 sm:bottom-6 right-4 sm:right-6 bg-red-700 text-white p-3 sm:p-4 rounded-full shadow-lg hover:bg-red-800 transition-colors z-50"
         whileHover={{ scale: 1.1 }}
         whileTap={{ scale: 0.9 }}
         onClick={() => setIsOpen(true)}
         onMouseEnter={() => setShowHelpText(true)}
         onMouseLeave={() => setShowHelpText(false)}
       >
-        <FiMessageCircle size={24} />
+        <FiMessageCircle size={20} className="sm:w-6 sm:h-6" />
       </motion.button>
 
       {/* Chat Window */}
@@ -103,11 +103,11 @@ const Chatbot = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 20 }}
-            className="fixed bottom-24 right-6 w-96 h-[500px] bg-white rounded-lg shadow-xl flex flex-col z-50"
+            className="fixed inset-0 sm:inset-auto sm:bottom-20 sm:right-6 sm:w-96 sm:h-[500px] bg-white rounded-none sm:rounded-lg shadow-xl flex flex-col z-50"
           >
             {/* Chat Header */}
-            <div className="bg-red-700 text-white p-4 rounded-t-lg flex justify-between items-center">
-              <h3 className="font-semibold">Campus Connect Assistant</h3>
+            <div className="bg-red-700 text-white p-3 sm:p-4 rounded-none sm:rounded-t-lg flex justify-between items-center">
+              <h3 className="font-semibold text-sm sm:text-base">Campus Connect Assistant</h3>
               <div className="flex items-center space-x-2">
                 <motion.button
                   onClick={handleClearChat}
@@ -116,7 +116,7 @@ const Chatbot = () => {
                   whileTap={{ scale: 0.9 }}
                   title="Clear chat"
                 >
-                  <FiTrash2 size={20} />
+                  <FiTrash2 size={18} className="sm:w-5 sm:h-5" />
                 </motion.button>
                 <motion.button
                   onClick={() => setIsOpen(false)}
@@ -124,13 +124,13 @@ const Chatbot = () => {
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.9 }}
                 >
-                  <FiX size={20} />
+                  <FiX size={18} className="sm:w-5 sm:h-5" />
                 </motion.button>
               </div>
             </div>
 
             {/* Messages Container */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-3 sm:space-y-4">
               {messages.map((message, index) => (
                 <motion.div
                   key={index}
@@ -139,7 +139,7 @@ const Chatbot = () => {
                   className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}
                 >
                   <div
-                    className={`max-w-[80%] rounded-lg p-3 ${
+                    className={`max-w-[85%] sm:max-w-[80%] rounded-lg p-2 sm:p-3 text-sm sm:text-base ${
                       message.type === 'user'
                         ? 'bg-red-700 text-white'
                         : 'bg-gray-100 text-gray-800'
@@ -155,7 +155,7 @@ const Chatbot = () => {
                   animate={{ opacity: 1 }}
                   className="flex justify-start"
                 >
-                  <div className="bg-gray-100 text-gray-800 rounded-lg p-3">
+                  <div className="bg-gray-100 text-gray-800 rounded-lg p-2 sm:p-3">
                     <div className="flex space-x-2">
                       <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" />
                       <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-100" />
@@ -168,7 +168,7 @@ const Chatbot = () => {
             </div>
 
             {/* Input Area */}
-            <div className="p-4 border-t">
+            <div className="p-3 sm:p-4 border-t">
               <div className="flex space-x-2">
                 <input
                   type="text"
@@ -176,17 +176,17 @@ const Chatbot = () => {
                   onChange={(e) => setInput(e.target.value)}
                   onKeyPress={(e) => e.key === 'Enter' && handleSend()}
                   placeholder="Type your message..."
-                  className="flex-1 p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-red-700"
+                  className="flex-1 p-2 sm:p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-red-700 text-sm sm:text-base"
                   disabled={isLoading}
                 />
                 <button
                   onClick={handleSend}
                   disabled={isLoading}
-                  className={`bg-red-700 text-white p-2 rounded-lg transition-colors ${
+                  className={`bg-red-700 text-white p-2 sm:p-3 rounded-lg transition-colors ${
                     isLoading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-red-800'
                   }`}
                 >
-                  <FiSend size={20} />
+                  <FiSend size={18} className="sm:w-5 sm:h-5" />
                 </button>
               </div>
             </div>

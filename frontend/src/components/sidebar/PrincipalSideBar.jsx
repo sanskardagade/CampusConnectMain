@@ -98,7 +98,7 @@ import { FiActivity } from "react-icons/fi";
   
 
 // Mobile bottom tab bar component
-function MobileBottomTabs() {
+function MobileBottomTabs({ onLogout }) {
   const navigate = useNavigate();
   const location = useLocation();
   const tabs = [
@@ -107,14 +107,20 @@ function MobileBottomTabs() {
     { path: "/principal/faculty-report", label: "Report", icon: <AiOutlineFilePdf /> },
     { path: "/principal/view-stress-level", label: "Stress", icon: <FiActivity /> },
     { path: "/principal/principal-settings", label: "Settings", icon: <AiOutlineSetting /> },
-    { path: "/", label: "Logout", icon: <AiOutlineLogout /> },
+    { path: "/", label: "Logout", icon: <AiOutlineLogout />, isLogout: true },
   ];
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-20 bg-[#b22b2f] text-white flex justify-between items-center px-1 py-1 shadow-t border-t border-[#a02529]">
       {tabs.map((tab) => (
         <button
           key={tab.path}
-          onClick={() => navigate(tab.path)}
+          onClick={() => {
+            if (tab.isLogout) {
+              onLogout();
+            } else {
+              navigate(tab.path);
+            }
+          }}
           className={`flex flex-col items-center flex-1 px-1 py-1 focus:outline-none ${location.pathname === tab.path ? 'text-[#d1a550]' : ''}`}
         >
           <span className="text-lg">{tab.icon}</span>
@@ -170,7 +176,19 @@ const PrincipalSideBar = ({ children }) => {
     return (
       <div className="w-screen min-h-screen bg-gray-100 pb-14">
         <main className="flex-1 p-2 sm:p-4 overflow-auto">{children}</main>
-        <MobileBottomTabs />
+        <MobileBottomTabs onLogout={handleLogout} />
+        {showLogoutModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+            <div className="bg-white rounded-xl shadow-lg p-6 max-w-sm w-full">
+              <h2 className="text-xl font-bold mb-4 text-[#b22b2f]">Confirm Logout</h2>
+              <p className="mb-6 text-gray-700">Are you sure you want to logout?</p>
+              <div className="flex justify-end gap-3">
+                <button onClick={cancelLogout} className="px-4 py-2 rounded bg-gray-200 text-gray-700 hover:bg-gray-300">Cancel</button>
+                <button onClick={confirmLogout} className="px-4 py-2 rounded bg-[#b22b2f] text-white hover:bg-[#a02529]">Logout</button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }

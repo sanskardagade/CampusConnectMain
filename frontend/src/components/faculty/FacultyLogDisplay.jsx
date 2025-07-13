@@ -27,10 +27,10 @@ const FacultyLogDisplay = ({ logs = [], facultyName }) => {
   // Handle null logs
   if (!logs || logs === null) {
     return (
-      <div className="bg-gradient-to-br from-blue-50 to-indigo-100 p-12 rounded-xl text-center">
-        <Activity className="mx-auto mb-4 text-gray-400" size={48} />
-        <p className="text-gray-600 text-xl font-medium">No faculty logs for today</p>
-        <p className="text-gray-500 mt-2">Check back later for updates</p>
+      <div className="bg-gradient-to-br from-blue-50 to-indigo-100 p-6 sm:p-12 rounded-xl text-center">
+        <Activity className="mx-auto mb-4 text-gray-400 sm:w-12 sm:h-12" size={32} />
+        <p className="text-gray-600 text-lg sm:text-xl font-medium">No faculty logs for today</p>
+        <p className="text-gray-500 mt-2 text-sm sm:text-base">Check back later for updates</p>
       </div>
     );
   }
@@ -153,57 +153,105 @@ const FacultyLogDisplay = ({ logs = [], facultyName }) => {
         const entries = logsByClassroom[selectedClassroom] || [];
         return (
           <div className="max-h-[70vh] overflow-y-auto pr-2">
-            <button className="mb-4 text-blue-600 hover:underline" onClick={() => setSelectedClassroom(null)}>&larr; Back to all classrooms</button>
-            <h2 className="text-xl font-bold mb-4">{selectedClassroom} - All Activity Instances</h2>
-            <table className="min-w-full text-left border mb-2">
-              <thead>
-                <tr>
-                  <th className="border px-2 py-1">Faculty</th>
-                  <th className="border px-2 py-1">ERP ID</th>
-                  <th className="border px-2 py-1">Camera IP</th>
-                  <th className="border px-2 py-1">Timestamp</th>
-                </tr>
-              </thead>
-              <tbody>
-                {entries.map((log, i) => (
-                  <tr key={log.id || i} className={i % 2 === 0 ? 'bg-gray-50' : ''}>
-                    <td className="border px-2 py-1">{log.person_name}</td>
-                    <td className="border px-2 py-1">{log.erp_id}</td>
-                    <td className="border px-2 py-1">{log.camera_ip}</td>
-                    <td className="border px-2 py-1">{new Date(log.timestamp).toLocaleString()}</td>
+            <button className="mb-4 text-blue-600 hover:underline text-sm sm:text-base" onClick={() => setSelectedClassroom(null)}>&larr; Back to all classrooms</button>
+            <h2 className="text-lg sm:text-xl font-bold mb-4">{selectedClassroom} - All Activity Instances</h2>
+            {/* Mobile Card View */}
+            <div className="block sm:hidden space-y-3">
+              {entries.map((log, i) => (
+                <div key={log.id || i} className="bg-gray-50 rounded-lg p-3 border">
+                  <div className="flex items-center mb-2">
+                    <User className="text-blue-600 mr-2" size={16} />
+                    <span className="font-medium text-sm">{log.person_name}</span>
+                  </div>
+                  <div className="space-y-1 text-xs">
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">ERP ID:</span>
+                      <span className="font-mono">{log.erp_id}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Camera IP:</span>
+                      <span className="font-mono">{log.camera_ip}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Time:</span>
+                      <span>{new Date(log.timestamp).toLocaleString()}</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            {/* Desktop Table View */}
+            <div className="hidden sm:block">
+              <table className="min-w-full text-left border mb-2">
+                <thead>
+                  <tr>
+                    <th className="border px-2 py-1 text-sm">Faculty</th>
+                    <th className="border px-2 py-1 text-sm">ERP ID</th>
+                    <th className="border px-2 py-1 text-sm">Camera IP</th>
+                    <th className="border px-2 py-1 text-sm">Timestamp</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {entries.map((log, i) => (
+                    <tr key={log.id || i} className={i % 2 === 0 ? 'bg-gray-50' : ''}>
+                      <td className="border px-2 py-1 text-sm">{log.person_name}</td>
+                      <td className="border px-2 py-1 text-sm">{log.erp_id}</td>
+                      <td className="border px-2 py-1 text-sm">{log.camera_ip}</td>
+                      <td className="border px-2 py-1 text-sm">{new Date(log.timestamp).toLocaleString()}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         );
       }
       // Show list/table of classrooms
       return (
         <div className="max-h-[70vh] overflow-y-auto pr-2">
-          <h2 className="text-xl font-bold mb-4">All Classrooms</h2>
-          <table className="min-w-full text-left border mb-2">
-            <thead>
-              <tr>
-                <th className="border px-4 py-2">Classroom</th>
-                <th className="border px-4 py-2">Activity Count</th>
-                <th className="border px-4 py-2">Show Entries</th>
-              </tr>
-            </thead>
-            <tbody>
-              {Object.entries(logsByClassroom).map(([classroom, entries], idx) => (
-                <tr key={classroom} className={idx % 2 === 0 ? 'bg-gray-50' : ''}>
-                  <td className="border px-4 py-2">{classroom}</td>
-                  <td className="border px-4 py-2">{entries.length}</td>
-                  <td className="border px-4 py-2">
-                    <button className="text-blue-600 hover:underline" onClick={() => setSelectedClassroom(classroom)}>
-                      View Entries
-                    </button>
-                  </td>
+          <h2 className="text-lg sm:text-xl font-bold mb-4">All Classrooms</h2>
+          {/* Mobile Card View */}
+          <div className="block sm:hidden space-y-3">
+            {Object.entries(logsByClassroom).map(([classroom, entries], idx) => (
+              <div key={classroom} className="bg-gray-50 rounded-lg p-3 border">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="font-medium text-sm">{classroom}</span>
+                  <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs">{entries.length} activities</span>
+                </div>
+                <button 
+                  className="text-blue-600 hover:underline text-sm w-full text-left"
+                  onClick={() => setSelectedClassroom(classroom)}
+                >
+                  View Entries →
+                </button>
+              </div>
+            ))}
+          </div>
+          {/* Desktop Table View */}
+          <div className="hidden sm:block">
+            <table className="min-w-full text-left border mb-2">
+              <thead>
+                <tr>
+                  <th className="border px-4 py-2 text-sm">Classroom</th>
+                  <th className="border px-4 py-2 text-sm">Activity Count</th>
+                  <th className="border px-4 py-2 text-sm">Show Entries</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {Object.entries(logsByClassroom).map(([classroom, entries], idx) => (
+                  <tr key={classroom} className={idx % 2 === 0 ? 'bg-gray-50' : ''}>
+                    <td className="border px-4 py-2 text-sm">{classroom}</td>
+                    <td className="border px-4 py-2 text-sm">{entries.length}</td>
+                    <td className="border px-4 py-2 text-sm">
+                      <button className="text-blue-600 hover:underline" onClick={() => setSelectedClassroom(classroom)}>
+                        View Entries
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       );
     } else if (modalType === 'distribution') {
@@ -213,28 +261,56 @@ const FacultyLogDisplay = ({ logs = [], facultyName }) => {
         const percent = total ? ((entries.length / total) * 100).toFixed(2) : 0;
         return (
           <div className="max-h-[70vh] overflow-y-auto pr-2">
-            <button className="mb-4 text-blue-600 hover:underline" onClick={() => setSelectedClassroom(null)}>&larr; Back to all classrooms</button>
-            <h2 className="text-xl font-bold mb-4">{selectedClassroom} - Activity Distribution ({percent}%)</h2>
-            <table className="min-w-full text-left border mb-2">
-              <thead>
-                <tr>
-                  <th className="border px-2 py-1">Faculty</th>
-                  <th className="border px-2 py-1">ERP ID</th>
-                  <th className="border px-2 py-1">Camera IP</th>
-                  <th className="border px-2 py-1">Timestamp</th>
-                </tr>
-              </thead>
-              <tbody>
-                {entries.map((log, i) => (
-                  <tr key={log.id || i} className={i % 2 === 0 ? 'bg-gray-50' : ''}>
-                    <td className="border px-2 py-1">{log.person_name}</td>
-                    <td className="border px-2 py-1">{log.erp_id}</td>
-                    <td className="border px-2 py-1">{log.camera_ip}</td>
-                    <td className="border px-2 py-1">{new Date(log.timestamp).toLocaleString()}</td>
+            <button className="mb-4 text-blue-600 hover:underline text-sm sm:text-base" onClick={() => setSelectedClassroom(null)}>&larr; Back to all classrooms</button>
+            <h2 className="text-lg sm:text-xl font-bold mb-4">{selectedClassroom} - Activity Distribution ({percent}%)</h2>
+            {/* Mobile Card View */}
+            <div className="block sm:hidden space-y-3">
+              {entries.map((log, i) => (
+                <div key={log.id || i} className="bg-gray-50 rounded-lg p-3 border">
+                  <div className="flex items-center mb-2">
+                    <User className="text-blue-600 mr-2" size={16} />
+                    <span className="font-medium text-sm">{log.person_name}</span>
+                  </div>
+                  <div className="space-y-1 text-xs">
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">ERP ID:</span>
+                      <span className="font-mono">{log.erp_id}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Camera IP:</span>
+                      <span className="font-mono">{log.camera_ip}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Time:</span>
+                      <span>{new Date(log.timestamp).toLocaleString()}</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            {/* Desktop Table View */}
+            <div className="hidden sm:block">
+              <table className="min-w-full text-left border mb-2">
+                <thead>
+                  <tr>
+                    <th className="border px-2 py-1 text-sm">Faculty</th>
+                    <th className="border px-2 py-1 text-sm">ERP ID</th>
+                    <th className="border px-2 py-1 text-sm">Camera IP</th>
+                    <th className="border px-2 py-1 text-sm">Timestamp</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {entries.map((log, i) => (
+                    <tr key={log.id || i} className={i % 2 === 0 ? 'bg-gray-50' : ''}>
+                      <td className="border px-2 py-1 text-sm">{log.person_name}</td>
+                      <td className="border px-2 py-1 text-sm">{log.erp_id}</td>
+                      <td className="border px-2 py-1 text-sm">{log.camera_ip}</td>
+                      <td className="border px-2 py-1 text-sm">{new Date(log.timestamp).toLocaleString()}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         );
       }
@@ -242,32 +318,55 @@ const FacultyLogDisplay = ({ logs = [], facultyName }) => {
       const total = logsForModal.length;
       return (
         <div className="max-h-[70vh] overflow-y-auto pr-2">
-          <h2 className="text-xl font-bold mb-4">All Classrooms</h2>
-          <table className="min-w-full text-left border mb-2">
-            <thead>
-              <tr>
-                <th className="border px-4 py-2">Classroom</th>
-                <th className="border px-4 py-2">Distribution (%)</th>
-                <th className="border px-4 py-2">Show Entries</th>
-              </tr>
-            </thead>
-            <tbody>
-              {Object.entries(logsByClassroom).map(([classroom, entries], idx) => {
-                const percent = total ? ((entries.length / total) * 100).toFixed(2) : 0;
-                return (
-                  <tr key={classroom} className={idx % 2 === 0 ? 'bg-gray-50' : ''}>
-                    <td className="border px-4 py-2">{classroom}</td>
-                    <td className="border px-4 py-2">{percent}%</td>
-                    <td className="border px-4 py-2">
-                      <button className="text-blue-600 hover:underline" onClick={() => setSelectedClassroom(classroom)}>
-                        View Entries
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+          <h2 className="text-lg sm:text-xl font-bold mb-4">All Classrooms</h2>
+          {/* Mobile Card View */}
+          <div className="block sm:hidden space-y-3">
+            {Object.entries(logsByClassroom).map(([classroom, entries], idx) => {
+              const percent = total ? ((entries.length / total) * 100).toFixed(2) : 0;
+              return (
+                <div key={classroom} className="bg-gray-50 rounded-lg p-3 border">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="font-medium text-sm">{classroom}</span>
+                    <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-xs">{percent}%</span>
+                  </div>
+                  <button 
+                    className="text-blue-600 hover:underline text-sm w-full text-left"
+                    onClick={() => setSelectedClassroom(classroom)}
+                  >
+                    View Entries →
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+          {/* Desktop Table View */}
+          <div className="hidden sm:block">
+            <table className="min-w-full text-left border mb-2">
+              <thead>
+                <tr>
+                  <th className="border px-4 py-2 text-sm">Classroom</th>
+                  <th className="border px-4 py-2 text-sm">Distribution (%)</th>
+                  <th className="border px-4 py-2 text-sm">Show Entries</th>
+                </tr>
+              </thead>
+              <tbody>
+                {Object.entries(logsByClassroom).map(([classroom, entries], idx) => {
+                  const percent = total ? ((entries.length / total) * 100).toFixed(2) : 0;
+                  return (
+                    <tr key={classroom} className={idx % 2 === 0 ? 'bg-gray-50' : ''}>
+                      <td className="border px-4 py-2 text-sm">{classroom}</td>
+                      <td className="border px-4 py-2 text-sm">{percent}%</td>
+                      <td className="border px-4 py-2 text-sm">
+                        <button className="text-blue-600 hover:underline" onClick={() => setSelectedClassroom(classroom)}>
+                          View Entries
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         </div>
       );
     }
@@ -294,13 +393,13 @@ const FacultyLogDisplay = ({ logs = [], facultyName }) => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <div className="min-h-screen bg-gray-50 p-3 sm:p-6">
       {/* Modal */}
       {modalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-lg p-8 max-w-lg w-full relative">
+        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 p-2 sm:p-4">
+          <div className="bg-white rounded-lg shadow-lg p-4 sm:p-8 max-w-lg w-full relative max-h-[90vh] overflow-y-auto">
             <button
-              className="absolute top-2 right-2 text-gray-500 hover:text-gray-800 text-2xl font-bold"
+              className="absolute top-2 right-2 text-gray-500 hover:text-gray-800 text-xl sm:text-2xl font-bold"
               onClick={() => setModalOpen(false)}
             >
               &times;
@@ -309,125 +408,100 @@ const FacultyLogDisplay = ({ logs = [], facultyName }) => {
           </div>
         </div>
       )}
-      <div className="max-w-7xl mx-auto space-y-6">
+      <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6">
         {/* Header */}
-        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-          <div className="flex items-center justify-between">
+        <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 border border-gray-200">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div className="flex items-center space-x-3">
-              <div className="bg-blue-100 p-3 rounded-lg">
-                <Activity className="text-blue-600" size={24} />
+              <div className="bg-blue-100 p-2 sm:p-3 rounded-lg">
+                <Activity className="text-blue-600 sm:w-6 sm:h-6" size={20} />
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">{displayName} </h1>
-                <p className="text-gray-600">Real-time monitoring and analytics</p>
+                <h1 className="text-xl sm:text-2xl font-bold text-gray-900">{displayName} </h1>
+                <p className="text-gray-600 text-sm sm:text-base">Real-time monitoring and analytics</p>
               </div>
             </div>
-            <div className="flex items-center space-x-3">
-              <button className="hidden sm:inline-flex items-center space-x-2 px-4 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors" onClick={() => window.location.reload()}>
-                <RefreshCw size={16} />
-                <span>Refresh</span>
+            <div className="flex items-center space-x-2 sm:space-x-3">
+              <button className="inline-flex items-center space-x-1 sm:space-x-2 px-2 sm:px-4 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors text-sm" onClick={() => window.location.reload()}>
+                <RefreshCw size={14} className="sm:w-4 sm:h-4" />
+                <span className="hidden sm:inline">Refresh</span>
               </button>
               <button
-                className="hidden sm:inline-flex items-center space-x-2 px-4 py-2 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-colors"
+                className="inline-flex items-center space-x-1 sm:space-x-2 px-2 sm:px-4 py-2 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-colors text-sm"
                 onClick={handleExportCSV}
               >
-                <Download size={16} />
-                <span>Export</span>
+                <Download size={14} className="sm:w-4 sm:h-4" />
+                <span className="hidden sm:inline">Export</span>
               </button>
             </div>
           </div>
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+          <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 border border-gray-200">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-gray-600 text-sm font-medium">Total Activities</p>
-                <p className="text-3xl font-bold text-gray-900 mt-1">{stats.totalLogs}</p>
+                <p className="text-gray-600 text-xs sm:text-sm font-medium">Total Activities</p>
+                <p className="text-2xl sm:text-3xl font-bold text-gray-900 mt-1">{stats.totalLogs}</p>
               </div>
-              <div className="bg-blue-100 p-3 rounded-lg">
-                <Activity className="text-blue-600" size={24} />
+              <div className="bg-blue-100 p-2 sm:p-3 rounded-lg">
+                <Activity className="text-blue-600 sm:w-6 sm:h-6" size={20} />
               </div>
             </div>
-            <div className="flex items-center mt-4 text-sm">
-              <TrendingUp className="text-green-500 mr-1" size={16} />
+            <div className="flex items-center mt-3 sm:mt-4 text-xs sm:text-sm">
+              <TrendingUp className="text-green-500 mr-1 sm:w-4 sm:h-4" size={14} />
               <span className="text-green-500 font-medium">+12%</span>
               <span className="text-gray-600 ml-1">from last hour</span>
             </div>
           </div>
 
-          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+          <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 border border-gray-200">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-gray-600 text-sm font-medium">Active Locations</p>
-                <p className="text-3xl font-bold text-gray-900 mt-1">{stats.uniqueClassrooms}</p>
+                <p className="text-gray-600 text-xs sm:text-sm font-medium">Active Locations</p>
+                <p className="text-2xl sm:text-3xl font-bold text-gray-900 mt-1">{stats.uniqueClassrooms}</p>
               </div>
-              <div className="bg-green-100 p-3 rounded-lg">
-                <MapPin className="text-green-600" size={24} />
+              <div className="bg-green-100 p-2 sm:p-3 rounded-lg">
+                <MapPin className="text-green-600 sm:w-6 sm:h-6" size={20} />
               </div>
             </div>
-            <div className="flex items-center mt-4 text-sm">
+            <div className="flex items-center mt-3 sm:mt-4 text-xs sm:text-sm">
               <span className="text-gray-600">Classrooms monitored</span>
             </div>
           </div>
 
-          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-            <div className="flex items-center justify-between mb-4">
+          <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 border border-gray-200 sm:col-span-2 lg:col-span-1">
+            <div className="flex items-center justify-between mb-3 sm:mb-4">
               <div>
-                <p className="text-gray-600 text-sm font-medium">Recent Activity</p>
-                {/* <p className="text-lg font-bold text-gray-900 mt-1">
-                  {logs.length > 0 ? logs[0].person_name : 'No activity'}
-                </p> */}
+                <p className="text-gray-600 text-xs sm:text-sm font-medium">Recent Activity</p>
               </div>
-              <div className="bg-purple-100 p-3 rounded-lg">
-                <Clock className="text-purple-600" size={24} />
+              <div className="bg-purple-100 p-2 sm:p-3 rounded-lg">
+                <Clock className="text-purple-600 sm:w-6 sm:h-6" size={20} />
               </div>
             </div>
-            <div className="space-y-2 text-sm">
+            <div className="space-y-2 text-xs sm:text-sm">
               <div className="flex justify-between">
                 <span className="text-gray-600">Recent:</span>
                 <span className="text-gray-900 font-medium">
                   {logs.length > 0 ? `${new Date(logs[0].timestamp).toLocaleDateString()} ${new Date(logs[0].timestamp).toLocaleTimeString()}` : 'N/A'}
                 </span>
               </div>
-              {/* <div className="flex justify-between">
-                <span className="text-gray-600">First log:</span>
-                <span className="text-gray-900 font-medium">
-                  {logs.length > 0 ? new Date(logs[logs.length - 1].timestamp).toLocaleTimeString() : 'N/A'}
-                </span>
-              </div> */}
             </div>
           </div>
-
-          {/* <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-600 text-sm font-medium">Active Cameras</p>
-                <p className="text-3xl font-bold text-gray-900 mt-1">{stats.activeCameras}</p>
-              </div>
-              <div className="bg-orange-100 p-3 rounded-lg">
-                <Camera className="text-orange-600" size={24} />
-              </div>
-            </div>
-            <div className="flex items-center mt-4 text-sm">
-              <Eye className="text-blue-500 mr-1" size={16} />
-              <span className="text-gray-600">Online and recording</span>
-            </div>
-          </div> */}
         </div>
 
         {/* Charts Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
           {/* Location Activity Chart */}
           <div
-            className="bg-white rounded-xl shadow-sm p-6 border border-gray-200 cursor-pointer hover:shadow-lg transition-shadow"
+            className="bg-white rounded-xl shadow-sm p-4 sm:p-6 border border-gray-200 cursor-pointer hover:shadow-lg transition-shadow"
           >
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-lg font-semibold text-gray-900">Location Activity</h3>
-              <MapPin className="text-gray-400" size={20} />
+            <div className="flex items-center justify-between mb-4 sm:mb-6">
+              <h3 className="text-base sm:text-lg font-semibold text-gray-900">Location Activity</h3>
+              <MapPin className="text-gray-400 sm:w-5 sm:h-5" size={18} />
             </div>
-            <ResponsiveContainer width="100%" height={300}>
+            <ResponsiveContainer width="100%" height={250} className="sm:h-[300px]">
               <BarChart data={chartData.classroomData}
                 onClick={state => {
                   if (state && state.activeLabel) {
@@ -438,14 +512,15 @@ const FacultyLogDisplay = ({ logs = [], facultyName }) => {
                 }}
               >
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                <XAxis dataKey="name" tick={{ fontSize: 12 }} />
-                <YAxis tick={{ fontSize: 12 }} />
+                <XAxis dataKey="name" tick={{ fontSize: 10 }} className="sm:text-xs" />
+                <YAxis tick={{ fontSize: 10 }} className="sm:text-xs" />
                 <Tooltip 
                   contentStyle={{ 
                     backgroundColor: '#fff', 
                     border: '1px solid #e5e7eb',
                     borderRadius: '8px',
-                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                    fontSize: '12px'
                   }} 
                 />
                 <Bar dataKey="value" fill="#3B82F6" radius={[4, 4, 0, 0]}
@@ -463,19 +538,20 @@ const FacultyLogDisplay = ({ logs = [], facultyName }) => {
 
           {/* Activity Distribution */}
           <div
-            className="bg-white rounded-xl shadow-sm p-6 border border-gray-200 cursor-pointer hover:shadow-lg transition-shadow"
+            className="bg-white rounded-xl shadow-sm p-4 sm:p-6 border border-gray-200 cursor-pointer hover:shadow-lg transition-shadow"
           >
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-lg font-semibold text-gray-900">Activity Distribution</h3>
-              <Activity className="text-gray-400" size={20} />
+            <div className="flex items-center justify-between mb-4 sm:mb-6">
+              <h3 className="text-base sm:text-lg font-semibold text-gray-900">Activity Distribution</h3>
+              <Activity className="text-gray-400 sm:w-5 sm:h-5" size={18} />
             </div>
-            <ResponsiveContainer width="100%" height={300}>
+            <ResponsiveContainer width="100%" height={250} className="sm:h-[300px]">
               <PieChart>
                 <Pie
                   data={chartData.classroomData}
                   cx="50%"
                   cy="50%"
-                  outerRadius={100}
+                  outerRadius={80}
+                  className="sm:w-24 sm:h-24"
                   dataKey="value"
                   label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
                   onClick={(_, index) => {
@@ -499,13 +575,13 @@ const FacultyLogDisplay = ({ logs = [], facultyName }) => {
 
         {/* Recent Activity Table */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-          <div className="p-6 border-b border-gray-200">
-            <div className="flex items-center justify-between flex-wrap gap-4">
-              <h3 className="text-lg font-semibold text-gray-900">Recent Activity</h3>
-              <div className="flex flex-wrap items-center gap-3">
+          <div className="p-4 sm:p-6 border-b border-gray-200">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <h3 className="text-base sm:text-lg font-semibold text-gray-900">Recent Activity</h3>
+              <div className="flex flex-col sm:flex-row flex-wrap items-start sm:items-center gap-2 sm:gap-3">
                 {/* Faculty Filter */}
                 <select
-                  className="px-3 py-2 border rounded text-sm"
+                  className="px-2 sm:px-3 py-2 border rounded text-xs sm:text-sm w-full sm:w-auto"
                   value={filterFaculty}
                   onChange={e => setFilterFaculty(e.target.value)}
                 >
@@ -516,7 +592,7 @@ const FacultyLogDisplay = ({ logs = [], facultyName }) => {
                 </select>
                 {/* Classroom Filter */}
                 <select
-                  className="px-3 py-2 border rounded text-sm"
+                  className="px-2 sm:px-3 py-2 border rounded text-xs sm:text-sm w-full sm:w-auto"
                   value={filterClassroom}
                   onChange={e => setFilterClassroom(e.target.value)}
                 >
@@ -526,26 +602,28 @@ const FacultyLogDisplay = ({ logs = [], facultyName }) => {
                   ))}
                 </select>
                 {/* Date Range */}
-                <input
-                  type="date"
-                  className="px-3 py-2 border rounded text-sm"
-                  value={dateRange.start}
-                  onChange={e => setDateRange(r => ({ ...r, start: e.target.value }))}
-                  max={dateRange.end || undefined}
-                  placeholder="Start date"
-                />
-                <span className="mx-1 text-gray-400">to</span>
-                <input
-                  type="date"
-                  className="px-3 py-2 border rounded text-sm"
-                  value={dateRange.end}
-                  onChange={e => setDateRange(r => ({ ...r, end: e.target.value }))}
-                  min={dateRange.start || undefined}
-                  placeholder="End date"
-                />
+                <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                  <input
+                    type="date"
+                    className="px-2 sm:px-3 py-2 border rounded text-xs sm:text-sm"
+                    value={dateRange.start}
+                    onChange={e => setDateRange(r => ({ ...r, start: e.target.value }))}
+                    max={dateRange.end || undefined}
+                    placeholder="Start date"
+                  />
+                  <span className="mx-1 text-gray-400 text-center sm:text-left">to</span>
+                  <input
+                    type="date"
+                    className="px-2 sm:px-3 py-2 border rounded text-xs sm:text-sm"
+                    value={dateRange.end}
+                    onChange={e => setDateRange(r => ({ ...r, end: e.target.value }))}
+                    min={dateRange.start || undefined}
+                    placeholder="End date"
+                  />
+                </div>
                 {/* Reset Filters */}
                 <button
-                  className="px-3 py-2 bg-gray-100 text-gray-700 rounded text-sm hover:bg-gray-200"
+                  className="px-2 sm:px-3 py-2 bg-gray-100 text-gray-700 rounded text-xs sm:text-sm hover:bg-gray-200 w-full sm:w-auto"
                   onClick={() => {
                     setFilterFaculty('');
                     setFilterClassroom('');
@@ -557,31 +635,73 @@ const FacultyLogDisplay = ({ logs = [], facultyName }) => {
               </div>
             </div>
           </div>
-          <div className="overflow-x-auto">
+          
+          {/* Mobile Card View */}
+          <div className="block sm:hidden">
+            {filteredLogs.length === 0 ? (
+              <div className="p-6 text-center text-gray-400 text-sm">No activity found for selected filters.</div>
+            ) : (
+              <div className="divide-y divide-gray-200">
+                {filteredLogs.map((log, index) => (
+                  <div key={log.id} className="p-4 hover:bg-gray-50 transition-colors">
+                    <div className="flex items-start space-x-3 mb-3">
+                      <div className="bg-blue-100 p-2 rounded-full flex-shrink-0">
+                        <User className="text-blue-600" size={16} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-medium text-gray-900 truncate">
+                          {log.person_name}
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          ERP: {log.erp_id}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="space-y-2 text-xs">
+                      <div className="flex items-center">
+                        <MapPin className="text-gray-400 mr-2" size={14} />
+                        <span className="text-gray-900 font-medium">{log.classroom}</span>
+                      </div>
+                      <div className="flex items-center">
+                        <Camera className="text-gray-400 mr-2" size={14} />
+                        <span className="text-gray-600 font-mono">{log.camera_ip}</span>
+                      </div>
+                      <div className="flex items-center">
+                        <Clock className="text-gray-400 mr-2" size={14} />
+                        <span className="text-gray-900">
+                          {new Date(log.timestamp).toLocaleString()}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Desktop Table View */}
+          <div className="hidden sm:block overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 sm:px-6 py-3 sm:py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Faculty Member
                   </th>
-                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 sm:px-6 py-3 sm:py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Location
                   </th>
-                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 sm:px-6 py-3 sm:py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Camera IP
                   </th>
-                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 sm:px-6 py-3 sm:py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Timestamp
                   </th>
-                  {/* <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Status
-                  </th> */}
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {filteredLogs.map((log, index) => (
                   <tr key={log.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
                       <div className="flex items-center">
                         <div className="bg-blue-100 p-2 rounded-full mr-3">
                           <User className="text-blue-600" size={16} />
@@ -594,22 +714,21 @@ const FacultyLogDisplay = ({ logs = [], facultyName }) => {
                             ERP: {log.erp_id}
                           </div>
                         </div>
-
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
                       <div className="flex items-center">
                         <MapPin className="text-gray-400 mr-2" size={16} />
                         <span className="text-sm font-medium text-gray-900">{log.classroom}</span>
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
                       <div className="flex items-center">
                         <Camera className="text-gray-400 mr-2" size={16} />
                         <span className="text-sm text-gray-600 font-mono">{log.camera_ip}</span>
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
                       <div className="flex items-center">
                         <Clock className="text-gray-400 mr-2" size={16} />
                         <span className="text-sm text-gray-900">
@@ -617,17 +736,11 @@ const FacultyLogDisplay = ({ logs = [], facultyName }) => {
                         </span>
                       </div>
                     </td>
-                    {/* <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                        <div className="w-2 h-2 bg-green-400 rounded-full mr-2"></div>
-                        Active
-                      </span>
-                    </td> */}
                   </tr>
                 ))}
                 {filteredLogs.length === 0 && (
                   <tr>
-                    <td colSpan={5} className="text-center py-8 text-gray-400">No activity found for selected filters.</td>
+                    <td colSpan={4} className="text-center py-8 text-gray-400">No activity found for selected filters.</td>
                   </tr>
                 )}
               </tbody>

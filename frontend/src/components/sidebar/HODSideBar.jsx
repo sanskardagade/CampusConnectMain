@@ -89,7 +89,7 @@ const routes = [
   { path: "/", name: "Logout", icon: <AiOutlineLogout /> },
 ];
 
-function MobileBottomTabsHOD() {
+function MobileBottomTabsHOD({ onLogout }) {
   const navigate = useNavigate();
   const location = useLocation();
   const tabs = [
@@ -98,14 +98,20 @@ function MobileBottomTabsHOD() {
     { path: '/hod/report', label: 'Report', icon: <AiOutlineFilePdf /> },
     { path: '/hod/view-stress-level', label: 'Stress', icon: <FiActivity /> },
     { path: '/hod/hod-settings', label: 'Settings', icon: <AiOutlineSetting /> },
-    { path: '/', label: 'Logout', icon: <AiOutlineLogout /> },
+    { path: '/', label: 'Logout', icon: <AiOutlineLogout />, isLogout: true },
   ];
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-20 bg-[#b22b2f] text-white flex justify-between items-center px-1 py-1 shadow-t border-t border-[#a02529]">
       {tabs.map((tab) => (
         <button
           key={tab.path}
-          onClick={() => navigate(tab.path)}
+          onClick={() => {
+            if (tab.isLogout) {
+              onLogout();
+            } else {
+              navigate(tab.path);
+            }
+          }}
           className={`flex flex-col items-center flex-1 px-1 py-1 focus:outline-none ${location.pathname === tab.path ? 'text-[#d1a550]' : ''}`}
         >
           <span className="text-lg">{tab.icon}</span>
@@ -121,8 +127,37 @@ const HODSideBar = ({ children }) => {
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const navigate = useNavigate();
 
+  // Move these handlers up so they're defined before use
+  const handleLogout = () => {
+    setShowLogoutModal(true);
+  };
+
+  const confirmLogout = () => {
+    localStorage.removeItem('token');
+    sessionStorage.removeItem('token');
+    setShowLogoutModal(false);
+    navigate('/');
+  };
+
+  const cancelLogout = () => {
+    setShowLogoutModal(false);
+  };
+
   if (isMobile) {
-    return <div className="relative min-h-screen pb-14"><main className="flex-1 bg-gray-100 p-4 overflow-auto">{children}</main><MobileBottomTabsHOD /></div>;
+    return <div className="relative min-h-screen pb-14"><main className="flex-1 bg-gray-100 p-4 overflow-auto">{children}</main><MobileBottomTabsHOD onLogout={handleLogout} />
+      {showLogoutModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+          <div className="bg-white rounded-xl shadow-lg p-6 max-w-sm w-full">
+            <h2 className="text-xl font-bold mb-4 text-red-700">Confirm Logout</h2>
+            <p className="mb-6 text-gray-700">Are you sure you want to logout?</p>
+            <div className="flex justify-end gap-3">
+              <button onClick={cancelLogout} className="px-4 py-2 rounded bg-gray-200 text-gray-700 hover:bg-gray-300">Cancel</button>
+              <button onClick={confirmLogout} className="px-4 py-2 rounded bg-[#b22b2f] text-white hover:bg-[#a02529]">Logout</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>;
   }
   // Sidebar should always be open
   const isOpen = true;
@@ -143,21 +178,6 @@ const HODSideBar = ({ children }) => {
       width: "auto",
       transition: { duration: 0.3 },
     },
-  };
-
-  const handleLogout = () => {
-    setShowLogoutModal(true);
-  };
-
-  const confirmLogout = () => {
-    localStorage.removeItem('token');
-    sessionStorage.removeItem('token');
-    setShowLogoutModal(false);
-    navigate('/');
-  };
-
-  const cancelLogout = () => {
-    setShowLogoutModal(false);
   };
 
   return (
