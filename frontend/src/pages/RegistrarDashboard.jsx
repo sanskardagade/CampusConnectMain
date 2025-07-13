@@ -129,7 +129,7 @@ const RegistrarDashboard = () => {
   const fetchPendingLeaves = async () => {
     try {
       const token = localStorage.getItem('token');
-      const res = await axios.get('http://69.62.83.14:9000/api/registrar/faculty-leave-approval', {
+      const res = await axios.get('http://69.62.83.14:9000/api/registrar/leave-applications', {
         headers: { Authorization: `Bearer ${token}` }
       });
       const pending = (res.data || []).filter(l => l.PrincipalApproval === 'Pending').length;
@@ -372,7 +372,7 @@ const RegistrarDashboard = () => {
 
   // Handler for navigating to faculty leave approval
   const handleNavigateLeaveApproval = () => {
-    navigate('/registrar/faculty-leave-approval');
+    navigate('/registrar/leave-applications');
   };
 
   // Fetch faculty totals per department

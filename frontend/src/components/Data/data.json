@@ -1,346 +1,143 @@
-
-[{
+[
+  {
     "studentInfo": {
-      "rollNumber": "SCOC08",
-      "name": "REHAN MAMIDWAR",
-      "class": "SE Computer C div",
-      "academicYear": "2024-25",
-      "semester": "IV",
-      "reportPeriod": "1/01/2025 to 26/4/2025"
+      "name": "John Doe",
+      "rollNumber": "2023001",
+      "class": "Computer Engineering",
+      "academicYear": "2023-24",
+      "semester": "4",
+      "reportPeriod": "August 2023 - December 2023"
     },
     "attendance": {
       "summary": {
-        "totalTheoryPercentage": 57.81,
-        "totalPracticalPercentage": 86.96,
-        "averageAttendance": 72.38
+        "totalTheoryPercentage": 78.5,
+        "totalPracticalPercentage": 82.3,
+        "averageAttendance": 80.4
       },
-      "monthly": [
-        {
-          "month": "January",
-          "period": "1/01/2025 to 31/01/2025",
-          "summary": {
-            "totalTheoryPercentage": 62.50,
-            "totalPracticalPercentage": 90.00,
-            "averageAttendance": 76.25
-          },
-          "subjects": [
-            {
-              "code": "M-III",
-              "name": "Mathematics III",
-              "faculty": "AN",
-              "theory": {
-                "attended": 12,
-                "total": 15,
-                "percentage": 80.00
-              },
-              "practical": null
-            },
-            {
-              "code": "DSA",
-              "name": "Data Structures and Algorithms",
-              "faculty": "RM",
-              "theory": {
-                "attended": 10,
-                "total": 12,
-                "percentage": 83.33
-              },
-              "practical": null
-            },
-            {
-              "code": "MP",
-              "name": "Microprocessor",
-              "faculty": "BS",
-              "theory": {
-                "attended": 11,
-                "total": 14,
-                "percentage": 78.57
-              },
-              "practical": null
-            },
-            {
-              "code": "PPL",
-              "name": "Principles of Programming Languages",
-              "faculty": "AS",
-              "theory": {
-                "attended": 12,
-                "total": 13,
-                "percentage": 92.31
-              },
-              "practical": null
-            },
-            {
-              "code": "DSAL",
-              "name": "Data Structures and Algorithms Lab",
-              "faculty": "RM, AS",
-              "theory": null,
-              "practical": {
-                "attended": 7,
-                "total": 8,
-                "percentage": 87.50
-              }
-            }
-          ]
-        },
-        {
-          "month": "February",
-          "period": "1/02/2025 to 28/02/2025",
-          "summary": {
-            "totalTheoryPercentage": 60.00,
-            "totalPracticalPercentage": 85.71,
-            "averageAttendance": 72.86
-          },
-          "subjects": [
-            {
-              "code": "M-III",
-              "name": "Mathematics III",
-              "faculty": "AN",
-              "theory": {
-                "attended": 13,
-                "total": 16,
-                "percentage": 81.25
-              },
-              "practical": null
-            },
-            {
-              "code": "DSA",
-              "name": "Data Structures and Algorithms",
-              "faculty": "RM",
-              "theory": {
-                "attended": 10,
-                "total": 12,
-                "percentage": 83.33
-              },
-              "practical": null
-            },
-            {
-              "code": "MP",
-              "name": "Microprocessor",
-              "faculty": "BS",
-              "theory": {
-                "attended": 12,
-                "total": 14,
-                "percentage": 85.71
-              },
-              "practical": null
-            },
-            {
-              "code": "PPL",
-              "name": "Principles of Programming Languages",
-              "faculty": "AS",
-              "theory": {
-                "attended": 12,
-                "total": 13,
-                "percentage": 92.31
-              },
-              "practical": null
-            },
-            {
-              "code": "DSAL",
-              "name": "Data Structures and Algorithms Lab",
-              "faculty": "RM, AS",
-              "theory": null,
-              "practical": {
-                "attended": 6,
-                "total": 7,
-                "percentage": 85.71
-              }
-            }
-          ]
-        },
-        {
-          "month": "March",
-          "period": "1/03/2025 to 31/03/2025",
-          "summary": {
-            "totalTheoryPercentage": 58.82,
-            "totalPracticalPercentage": 87.50,
-            "averageAttendance": 73.16
-          },
-          "subjects": [
-            {
-              "code": "M-III",
-              "name": "Mathematics III",
-              "faculty": "AN",
-              "theory": {
-                "attended": 15,
-                "total": 16,
-                "percentage": 93.75
-              },
-              "practical": null
-            },
-            {
-              "code": "DSA",
-              "name": "Data Structures and Algorithms",
-              "faculty": "RM",
-              "theory": {
-                "attended": 11,
-                "total": 12,
-                "percentage": 91.67
-              },
-              "practical": null
-            },
-            {
-              "code": "MP",
-              "name": "Microprocessor",
-              "faculty": "BS",
-              "theory": {
-                "attended": 12,
-                "total": 14,
-                "percentage": 85.71
-              },
-              "practical": null
-            },
-            {
-              "code": "PPL",
-              "name": "Principles of Programming Languages",
-              "faculty": "AS",
-              "theory": {
-                "attended": 12,
-                "total": 13,
-                "percentage": 92.31
-              },
-              "practical": null
-            },
-            {
-              "code": "DSAL",
-              "name": "Data Structures and Algorithms Lab",
-              "faculty": "RM, AS",
-              "theory": null,
-              "practical": {
-                "attended": 7,
-                "total": 8,
-                "percentage": 87.50
-              }
-            }
-          ]
-        },
-        {
-          "month": "April",
-          "period": "1/04/2025 to 26/04/2025",
-          "summary": {
-            "totalTheoryPercentage": 53.33,
-            "totalPracticalPercentage": 85.00,
-            "averageAttendance": 69.17
-          },
-          "subjects": [
-            {
-              "code": "M-III",
-              "name": "Mathematics III",
-              "faculty": "AN",
-              "theory": {
-                "attended": 10,
-                "total": 12,
-                "percentage": 83.33
-              },
-              "practical": null
-            },
-            {
-              "code": "DSA",
-              "name": "Data Structures and Algorithms",
-              "faculty": "RM",
-              "theory": {
-                "attended": 6,
-                "total": 8,
-                "percentage": 75.00
-              },
-              "practical": null
-            },
-            {
-              "code": "MP",
-              "name": "Microprocessor",
-              "faculty": "BS",
-              "theory": {
-                "attended": 8,
-                "total": 10,
-                "percentage": 80.00
-              },
-              "practical": null
-            },
-            {
-              "code": "PPL",
-              "name": "Principles of Programming Languages",
-              "faculty": "AS",
-              "theory": {
-                "attended": 8,
-                "total": 9,
-                "percentage": 88.89
-              },
-              "practical": null
-            },
-            {
-              "code": "DSAL",
-              "name": "Data Structures and Algorithms Lab",
-              "faculty": "RM, AS",
-              "theory": null,
-              "practical": {
-                "attended": 4,
-                "total": 5,
-                "percentage": 80.00
-              }
-            }
-          ]
-        }
-      ],
       "subjects": [
         {
-          "code": "M-III",
-          "name": "Mathematics III",
-          "faculty": "AN",
+          "code": "CS401",
+          "name": "Data Structures",
+          "faculty": "Dr. Smith",
           "theory": {
-            "attended": 40,
-            "total": 47,
-            "percentage": 85.00
+            "totalClasses": 45,
+            "attendedClasses": 36,
+            "percentage": 80.0
           },
-          "practical": null
-        },
-        {
-          "code": "DSA",
-          "name": "Data Structures and Algorithms",
-          "faculty": "RM",
-          "theory": {
-            "attended": 31,
-            "total": 36,
-            "percentage": 86.11
-          },
-          "practical": null
-        },
-        {
-          "code": "MP",
-          "name": "Microprocessor",
-          "faculty": "BS",
-          "theory": {
-            "attended": 35,
-            "total": 42,
-            "percentage": 83.00
-          },
-          "practical": null
-        },
-        {
-          "code": "PPL",
-          "name": "Principles of Programming Languages",
-          "faculty": "AS",
-          "theory": {
-            "attended": 36,
-            "total": 39,
-            "percentage": 92.31
-          },
-          "practical": null
-        },
-        {
-          "code": "DSAL",
-          "name": "Data Structures and Algorithms Lab",
-          "faculty": "RM, AS",
-          "theory": null,
           "practical": {
-            "attended": 20,
-            "total": 23,
-            "percentage": 86.96
+            "totalClasses": 30,
+            "attendedClasses": 25,
+            "percentage": 83.3
+          }
+        },
+        {
+          "code": "CS402",
+          "name": "Database Management",
+          "faculty": "Prof. Johnson",
+          "theory": {
+            "totalClasses": 42,
+            "attendedClasses": 31,
+            "percentage": 73.8
+          },
+          "practical": {
+            "totalClasses": 28,
+            "attendedClasses": 24,
+            "percentage": 85.7
+          }
+        },
+        {
+          "code": "CS403",
+          "name": "Computer Networks",
+          "faculty": "Dr. Williams",
+          "theory": {
+            "totalClasses": 40,
+            "attendedClasses": 35,
+            "percentage": 87.5
+          },
+          "practical": {
+            "totalClasses": 25,
+            "attendedClasses": 22,
+            "percentage": 88.0
+          }
+        },
+        {
+          "code": "CS404",
+          "name": "Software Engineering",
+          "faculty": "Prof. Brown",
+          "theory": {
+            "totalClasses": 38,
+            "attendedClasses": 28,
+            "percentage": 73.7
+          },
+          "practical": {
+            "totalClasses": 20,
+            "attendedClasses": 18,
+            "percentage": 90.0
+          }
+        }
+      ],
+      "monthly": [
+        {
+          "month": "August",
+          "summary": {
+            "totalTheoryPercentage": 85.2,
+            "totalPracticalPercentage": 88.5,
+            "averageAttendance": 86.9
+          },
+          "details": {
+            "totalClasses": 85,
+            "attendedClasses": 74
+          }
+        },
+        {
+          "month": "September",
+          "summary": {
+            "totalTheoryPercentage": 82.1,
+            "totalPracticalPercentage": 86.2,
+            "averageAttendance": 84.2
+          },
+          "details": {
+            "totalClasses": 92,
+            "attendedClasses": 77
+          }
+        },
+        {
+          "month": "October",
+          "summary": {
+            "totalTheoryPercentage": 79.8,
+            "totalPracticalPercentage": 83.1,
+            "averageAttendance": 81.5
+          },
+          "details": {
+            "totalClasses": 88,
+            "attendedClasses": 72
+          }
+        },
+        {
+          "month": "November",
+          "summary": {
+            "totalTheoryPercentage": 76.3,
+            "totalPracticalPercentage": 80.8,
+            "averageAttendance": 78.6
+          },
+          "details": {
+            "totalClasses": 95,
+            "attendedClasses": 75
+          }
+        },
+        {
+          "month": "December",
+          "summary": {
+            "totalTheoryPercentage": 72.1,
+            "totalPracticalPercentage": 76.5,
+            "averageAttendance": 74.3
+          },
+          "details": {
+            "totalClasses": 90,
+            "attendedClasses": 67
           }
         }
       ]
-    },
-    "institutionInfo": {
-      "name": "Dr. D. Y. Patil Institute of Technology",
-      "department": "Department of Computer Engineering",
-      "location": "Pimpri, Pune - 411 018"
     }
-  }]
+  }
+] 

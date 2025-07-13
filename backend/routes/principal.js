@@ -1439,4 +1439,28 @@ router.get('/staff-attendance-report', async (req, res) => {
   }
 });
 
+// Get faculty count per department
+router.get('/faculty-department-counts', async (req, res) => {
+  try {
+    const rows = await sql`
+      SELECT department_id, COUNT(*) AS count FROM faculty WHERE is_active = true GROUP BY department_id`;
+    res.json(rows);
+  } catch (error) {
+    console.error('Principal: Error fetching faculty department counts:', error);
+    res.status(500).json({ message: 'Failed to fetch faculty department counts' });
+  }
+});
+
+// Get staff count per department
+router.get('/staff-department-counts', async (req, res) => {
+  try {
+    const rows = await sql`
+      SELECT department_id, COUNT(*) AS count FROM non_teaching_staff GROUP BY department_id`;
+    res.json(rows);
+  } catch (error) {
+    console.error('Principal: Error fetching staff department counts:', error);
+    res.status(500).json({ message: 'Failed to fetch staff department counts' });
+  }
+});
+
 module.exports = router;
