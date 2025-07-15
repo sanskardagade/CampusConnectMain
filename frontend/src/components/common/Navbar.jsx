@@ -62,7 +62,7 @@ const Navbar = () => {
     setAdminError("");
     setAdminLoading(true);
     try {
-      const endpoint = "http://localhost:5000/api/admin/login"; // Updated admin login endpoint
+      const endpoint = "http://69.62.83.14:5000/api/admin/login"; // Updated admin login endpoint
       const response = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },

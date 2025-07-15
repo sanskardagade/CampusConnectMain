@@ -35,7 +35,7 @@ const FacultyProfile = () => {
         console.log('Fetching faculty profile...')
         console.log('Token:', token) // Debug token
 
-        const response = await axios.get('http://localhost:5000/api/faculty/dashboard', {
+        const response = await axios.get('http://69.62.83.14:5000/api/faculty/dashboard', {
           headers: {
             Authorization: `Bearer ${token}`
           }

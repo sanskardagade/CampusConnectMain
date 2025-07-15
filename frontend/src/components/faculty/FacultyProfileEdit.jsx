@@ -24,7 +24,7 @@ const FacultyProfileEdit = () => {
         }
 
         console.log('Fetching faculty profile...')
-        const response = await axios.get('http://localhost:5000/api/faculty/dashboard', {
+        const response = await axios.get('http://69.62.83.14:5000/api/faculty/dashboard', {
           headers: {
             Authorization: `Bearer ${token}`
           }
@@ -73,7 +73,7 @@ const FacultyProfileEdit = () => {
 
       console.log('Submitting update with data:', { email: formData.email })
       const response = await axios.put(
-        'http://localhost:5000/api/faculty/profile',
+        'http://69.62.83.14:5000/api/faculty/profile',
         { email: formData.email },
         {
           headers: {

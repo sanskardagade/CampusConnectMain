@@ -117,7 +117,7 @@ const AdminDashboard = () => {
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
-      const response = await axios.get('http://localhost:5000/api/admin/dashboard', {
+      const response = await axios.get('http://69.62.83.14:5000/api/admin/dashboard', {
         headers: { Authorization: `Bearer ${token}` }
       });
       setStats(response.data.stats);
@@ -133,7 +133,7 @@ const AdminDashboard = () => {
   const fetchPendingLeaves = async () => {
     try {
       const token = localStorage.getItem('token');
-      const res = await axios.get('http://localhost:5000/api/admin/faculty-leave-approval', {
+      const res = await axios.get('http://69.62.83.14:5000/api/admin/faculty-leave-approval', {
         headers: { Authorization: `Bearer ${token}` }
       });
       const pending = (res.data || []).filter(l => l.AdminApproval === 'Pending').length;
@@ -147,7 +147,7 @@ const AdminDashboard = () => {
     try {
       const token = localStorage.getItem('token');
       // Faculty logs
-      const facultyRes = await axios.get('http://localhost:5000/api/admin/faculty-logs', {
+      const facultyRes = await axios.get('http://69.62.83.14:5000/api/admin/faculty-logs', {
         headers: { Authorization: `Bearer ${token}` }
       });
       const today = dayjs().format('YYYY-MM-DD');
@@ -159,7 +159,7 @@ const AdminDashboard = () => {
       });
       setPresentFaculty(facultyToday.size);
       // Staff logs
-      const staffRes = await axios.get('http://localhost:5000/api/admin/staff-logs', {
+      const staffRes = await axios.get('http://69.62.83.14:5000/api/admin/staff-logs', {
         headers: { Authorization: `Bearer ${token}` }
       });
       const staffToday = new Set();
@@ -170,7 +170,7 @@ const AdminDashboard = () => {
       });
       setPresentStaff(staffToday.size);
       // Students: fetch from backend endpoint
-      const studentRes = await axios.get('http://localhost:5000/api/admin/student-attendance-today', {
+      const studentRes = await axios.get('http://69.62.83.14:5000/api/admin/student-attendance-today', {
         headers: { Authorization: `Bearer ${token}` }
       });
       setPresentStudents(studentRes.data.count || 0);
@@ -184,7 +184,7 @@ const AdminDashboard = () => {
   const fetchPresentFacultyStaffSummary = async () => {
     try {
       const token = localStorage.getItem('token');
-      const res = await axios.get('http://localhost:5000/api/admin/present-faculty-staff-summary', {
+      const res = await axios.get('http://69.62.83.14:5000/api/admin/present-faculty-staff-summary', {
         headers: { Authorization: `Bearer ${token}` }
       });
       // Find today's date in the summary
@@ -214,7 +214,7 @@ const AdminDashboard = () => {
     try {
       const token = localStorage.getItem('token');
       const response = await axios.get(
-        'http://localhost:5000/api/admin/all-members',
+        'http://69.62.83.14:5000/api/admin/all-members',
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setMembers(response.data.members);
@@ -228,7 +228,7 @@ const AdminDashboard = () => {
       setSelectedType(type);
       const token = localStorage.getItem('token');
       const response = await axios.get(
-        `http://localhost:5000/api/admin/members?deptId=${deptId}&type=${type}`,
+        `http://69.62.83.14:5000/api/admin/members?deptId=${deptId}&type=${type}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setMembers(response.data.members);
@@ -243,7 +243,7 @@ const AdminDashboard = () => {
       setProfileLoading(true);
       const token = localStorage.getItem('token');
       const response = await axios.get(
-        `http://localhost:5000/api/admin/profile/${memberId}?type=${selectedType}`,
+        `http://69.62.83.14:5000/api/admin/profile/${memberId}?type=${selectedType}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setProfileData(response.data);
@@ -253,7 +253,7 @@ const AdminDashboard = () => {
         setShowFacultyLogs(false);
         try {
           const logsRes = await axios.get(
-            `http://localhost:5000/api/admin/faculty-logs/${memberId}`,
+            `http://69.62.83.14:5000/api/admin/faculty-logs/${memberId}`,
             { headers: { Authorization: `Bearer ${token}` } }
           );
           setFacultyLogs(logsRes.data.logs || []);
@@ -268,7 +268,7 @@ const AdminDashboard = () => {
         setShowStaffLogs(false);
         try {
           const logsRes = await axios.get(
-            `http://localhost:5000/api/admin/staff-logs/${memberId}`,
+            `http://69.62.83.14:5000/api/admin/staff-logs/${memberId}`,
             { headers: { Authorization: `Bearer ${token}` } }
           );
           setStaffLogs(logsRes.data.logs || []);
@@ -345,7 +345,7 @@ const AdminDashboard = () => {
     setDownloading(true);
     try {
         const token = localStorage.getItem('token');
-        const response = await axios.get('http://localhost:5000/api/admin/faculty-attendance-report', {
+        const response = await axios.get('http://69.62.83.14:5000/api/admin/faculty-attendance-report', {
             headers: { Authorization: `Bearer ${token}` },
             params: { departmentId: reportDept, fromDate, toDate, format },
             responseType: 'blob',
@@ -375,7 +375,7 @@ const AdminDashboard = () => {
     setFacultyListRefreshing(true);
     try {
       const token = localStorage.getItem('token');
-      const res = await axios.get('http://localhost:5000/api/admin/present-faculty-today', {
+      const res = await axios.get('http://69.62.83.14:5000/api/admin/present-faculty-today', {
         headers: { Authorization: `Bearer ${token}` }
       });
       const facultyList = res.data.presentFaculty || [];
@@ -399,7 +399,7 @@ const AdminDashboard = () => {
     setStaffListRefreshing(true);
     try {
       const token = localStorage.getItem('token');
-      const res = await axios.get('http://localhost:5000/api/admin/present-staff-today', {
+      const res = await axios.get('http://69.62.83.14:5000/api/admin/present-staff-today', {
         headers: { Authorization: `Bearer ${token}` }
       });
       const staffList = res.data.presentStaff || [];
@@ -427,7 +427,7 @@ const AdminDashboard = () => {
   const fetchFacultyDeptTotals = async () => {
     try {
       const token = localStorage.getItem('token');
-      const res = await axios.get('http://localhost:5000/api/admin/faculty-department-counts', {
+      const res = await axios.get('http://69.62.83.14:5000/api/admin/faculty-department-counts', {
         headers: { Authorization: `Bearer ${token}` }
       });
       // Convert to map: { department_id: count }
@@ -445,7 +445,7 @@ const AdminDashboard = () => {
   const fetchStaffDeptTotals = async () => {
     try {
       const token = localStorage.getItem('token');
-      const res = await axios.get('http://localhost:5000/api/admin/staff-department-counts', {
+      const res = await axios.get('http://69.62.83.14:5000/api/admin/staff-department-counts', {
         headers: { Authorization: `Bearer ${token}` }
       });
       // Convert to map: { department_id: count }
@@ -465,7 +465,7 @@ const AdminDashboard = () => {
     try {
       const token = localStorage.getItem('token');
       const today = dayjs().format('YYYY-MM-DD');
-      const response = await axios.get('http://localhost:5000/api/admin/faculty-attendance-report', {
+      const response = await axios.get('http://69.62.83.14:5000/api/admin/faculty-attendance-report', {
         headers: { Authorization: `Bearer ${token}` },
         params: { departmentId: deptId, format: 'pdf', fromDate: today, toDate: today },
         responseType: 'blob',
@@ -486,7 +486,7 @@ const AdminDashboard = () => {
     try {
       const token = localStorage.getItem('token');
       const today = dayjs().format('YYYY-MM-DD');
-      const response = await axios.get('http://localhost:5000/api/admin/staff-attendance-report', {
+      const response = await axios.get('http://69.62.83.14:5000/api/admin/staff-attendance-report', {
         headers: { Authorization: `Bearer ${token}` },
         params: { departmentId: deptId, format: 'pdf', fromDate: today, toDate: today },
         responseType: 'blob',

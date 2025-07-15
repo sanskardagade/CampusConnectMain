@@ -36,8 +36,8 @@ const SignInPage = () => {
 
     try {
       const endpoint = formData.role === 'student' 
-        ? "http://localhost:5000/api/student/login"
-        : "http://localhost:5000/api/auth/login";
+        ? "http://69.62.83.14:5000/api/student/login"
+        : "http://69.62.83.14:5000/api/auth/login";
 
       const response = await fetch(endpoint, {
         method: "POST",

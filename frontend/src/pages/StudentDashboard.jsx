@@ -56,7 +56,7 @@ const StudentDashboard = () => {
         }
 
         // Fetch dashboard data
-        const dashboardResponse = await fetch('http://localhost:5000/api/student/dashboard', {
+        const dashboardResponse = await fetch('http://69.62.83.14:5000/api/student/dashboard', {
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -75,7 +75,7 @@ const StudentDashboard = () => {
         const dashboardData = await dashboardResponse.json();
 
         // Fetch attendance data
-        const attendanceResponse = await fetch('http://localhost:5000/api/student/attendance', {
+        const attendanceResponse = await fetch('http://69.62.83.14:5000/api/student/attendance', {
           headers: {
             'Authorization': `Bearer ${token}`
           }
