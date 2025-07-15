@@ -71,6 +71,13 @@ const verifyPrincipal = (req, res, next) => {
   next();
 };
 
+const verifyAdmin = (req, res, next) => {
+  if (req.user.role !== 'admin') {
+    return res.status(403).json({ error: 'Access denied. Admin role required' });
+  }
+  next();
+};
+
 const verifyRegistrar = (req, res, next) => {
   if (req.user.role !== 'registrar') {
     return res.status(403).json({ error: 'Access denied. Registrar role required' });
