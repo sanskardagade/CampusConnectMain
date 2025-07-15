@@ -154,7 +154,7 @@ const HODDashboard = () => {
         console.log('Fetching dashboard and faculty data...');
 
         // Fetch faculty members first
-        const facultyResponse = await fetch('http://69.62.83.14:9000/api/hod/faculty', {
+        const facultyResponse = await fetch('http://localhost:5000/api/hod/faculty', {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
@@ -178,7 +178,7 @@ const HODDashboard = () => {
         setFacultyMembers(facultyData || []); // Ensure facultyData is an array
 
         // Fetch faculty logs for last active location
-        const logsResponse = await fetch('http://69.62.83.14:9000/api/hod/faculty-log', {
+        const logsResponse = await fetch('http://localhost:5000/api/hod/faculty-log', {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
@@ -194,7 +194,7 @@ const HODDashboard = () => {
         setFacultyLogs(logsData);
 
         // Fetch dashboard data
-        const dashboardResponse = await fetch('http://69.62.83.14:9000/api/hod/dashboard', {
+        const dashboardResponse = await fetch('http://localhost:5000/api/hod/dashboard', {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
@@ -212,7 +212,7 @@ const HODDashboard = () => {
         // Fetch non-teaching staff list for department
         let staffList = [];
         try {
-          const staffRes = await fetch('http://69.62.83.14:9000/api/hod/nonteaching', {
+          const staffRes = await fetch('http://localhost:5000/api/hod/nonteaching', {
             method: 'GET',
             headers: {
               'Content-Type': 'application/json',
@@ -228,7 +228,7 @@ const HODDashboard = () => {
         // Fetch attendance logs count for department
         let attendanceLogsCount = 0;
         try {
-          const logsRes = await fetch('http://69.62.83.14:9000/api/hod/faculty-log', {
+          const logsRes = await fetch('http://localhost:5000/api/hod/faculty-log', {
             method: 'GET',
             headers: {
               'Content-Type': 'application/json',
@@ -299,7 +299,7 @@ const HODDashboard = () => {
     const fetchFacultyStress = async () => {
       setFacultyStressLoading(true);
       try {
-        const response = await fetch('http://69.62.83.14:9000/api/faculty/student-stress-level', {
+        const response = await fetch('http://localhost:5000/api/faculty/student-stress-level', {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`,
             'Content-Type': 'application/json'
@@ -397,8 +397,8 @@ const HODDashboard = () => {
     setProfileLoading(true);
     setProfileLogs([]);
     const url = type === 'faculty'
-      ? `http://69.62.83.14:9000/api/hod/faculty-profile/${id}`
-      : `http://69.62.83.14:9000/api/hod/staff-profile/${id}`;
+      ? `http://localhost:5000/api/hod/faculty-profile/${id}`
+      : `http://localhost:5000/api/hod/staff-profile/${id}`;
     fetch(url, {
       headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
     })
@@ -417,13 +417,13 @@ const HODDashboard = () => {
       try {
         const token = localStorage.getItem('token');
         const [facultyRes, studentRes, staffRes] = await Promise.all([
-          axios.get('http://69.62.83.14:9000/api/hod/faculty-today-attendance-count', { 
+          axios.get('http://localhost:5000/api/hod/faculty-today-attendance-count', { 
             headers: { Authorization: `Bearer ${token}` } 
           }).catch(e => ({ data: { count: 0 } })), // Fallback if error
-          axios.get('http://69.62.83.14:9000/api/hod/student-today-attendance-count', { 
+          axios.get('http://localhost:5000/api/hod/student-today-attendance-count', { 
             headers: { Authorization: `Bearer ${token}` } 
           }).catch(e => ({ data: { count: 0 } })),
-          axios.get('http://69.62.83.14:9000/api/hod/nonteaching-today-attendance-count', { 
+          axios.get('http://localhost:5000/api/hod/nonteaching-today-attendance-count', { 
             headers: { Authorization: `Bearer ${token}` } 
           }).catch(e => ({ data: { count: 0 } }))
         ]);
@@ -1267,7 +1267,7 @@ function RecentFacultyLogs({ facultyMembers = [], handlePersonClick }) {
       setError(null);
       try {
         const token = localStorage.getItem('token');
-        const res = await fetch('http://69.62.83.14:9000/api/hod/recent-faculty-logs', {
+        const res = await fetch('http://localhost:5000/api/hod/recent-faculty-logs', {
           headers: { 'Authorization': `Bearer ${token}` },
         });
         if (!res.ok) throw new Error('Failed to fetch logs');
@@ -1338,7 +1338,7 @@ function RecentLeaveApprovals() {
     const fetchLeaves = async () => {
       try {
         setLoading(true);
-        const res = await axios.get('http://69.62.83.14:9000/api/hod/leave-approval');
+        const res = await axios.get('http://localhost:5000/api/hod/leave-approval');
         setLeaveApplications(Array.isArray(res.data) ? res.data.filter(app => app.HodApproval === 'Pending').slice(0, 5) : []);
       } catch (err) {
         setError('Could not load leave requests');
@@ -1352,7 +1352,7 @@ function RecentLeaveApprovals() {
   const handleAction = async (application, action) => {
     setActionLoading(application.ErpStaffId);
     try {
-      await axios.put(`http://69.62.83.14:9000/api/hod/leave-approval/${application.ErpStaffId}`, {
+      await axios.put(`http://localhost:5000/api/hod/leave-approval/${application.ErpStaffId}`, {
         HodApproval: action === 'approve' ? 'Approved' : 'Rejected',
       });
       setLeaveApplications(prev => prev.filter(app => app.ErpStaffId !== application.ErpStaffId));
