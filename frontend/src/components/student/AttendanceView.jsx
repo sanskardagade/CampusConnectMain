@@ -7,8 +7,6 @@ import {
   Calendar, User, Book, Activity, ChevronDown, ChevronUp, AlertCircle,
   Clock, BarChart3, Target
 } from 'lucide-react';
-// Import student data from the JSON file
-import studentData from "../Data/data.json";
 
 const AttendanceView = () => {
   const [student, setStudent] = useState(null);

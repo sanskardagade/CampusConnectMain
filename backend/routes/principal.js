@@ -1389,7 +1389,32 @@ router.get('/staff-attendance-report', async (req, res) => {
           const hours = Math.floor(durationMs / (1000 * 60 * 60));
           const minutes = Math.floor((durationMs / (1000 * 60)) % 60);
           const seconds = Math.floor((durationMs / 1000) % 60);
-          duration = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
+          duration = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        }
+        const row = [
+          serialNumber.toString(),
+          toISTDateString(r.first_log),
+          r.staff_name,
+          r.erp_id,
+          r.department_name,
+          firstLog.toTimeString().split(' ')[0],
+          lastLog.toTimeString().split(' ')[0],
+          duration
+        ];
+        let x = startX;
+        row.forEach((cell, i) => {
+          doc.rect(x, y, colWidths[i], 18).stroke();
+          doc.text(String(cell), x + 2, y + 5, { width: colWidths[i] - 4, align: 'center', ellipsis: true });
+          x += colWidths[i];
+        });
+        y += 18;
+        rowCount++;
+        serialNumber++;
+        if (rowCount % 20 === 0) {
+          doc.addPage();
+          y = doc.y;
+          drawHeader();
+          y = doc.y;
         }
       });
       doc.end();
