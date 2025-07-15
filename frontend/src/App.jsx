@@ -14,7 +14,7 @@ import Contact from "./pages/Contact";
 import Features from "./pages/Features";
 import FacultyDashboard from './pages/FacultyDashboard';
 import { AuthProvider } from './context/AuthContext';
-// import AdminDashboard from "./admin/AdminDashboard";
+import Admin from "./routes/Admin";
 import Chatbot from "./components/Chatbot";
 
 const App = () => {
@@ -27,6 +27,7 @@ const App = () => {
             <Route path="/signup" element={<SignUpPage/>}/>
             <Route path="/signin" element={<SignInPage/>} />
             <Route path="/about" element={<About />} />
+            <Route path="/admin/*" element={<Admin/>}/>
             
             <Route path="/contact" element={<Contact />} />
             <Route path="/features" element={<Features/>} />

@@ -1,67 +1,143 @@
 import { NavLink } from "react-router-dom";
-import { FaBars, FaUserPlus, FaTrashAlt, FaUsers } from "react-icons/fa";
-import { AiOutlineSetting, AiOutlinePlus, AiOutlineDatabase } from "react-icons/ai";
-import { BiAnalyse, BiMap } from "react-icons/bi";
+import { FaBars, FaHome, FaUser } from "react-icons/fa";
+import { BiAnalyse, BiSearch } from "react-icons/bi";
+import {
+  AiOutlineSetting,
+  AiFillDatabase,
+  AiOutlinePlus,
+  AiFillEye,
+  AiOutlineLogout,
+  AiFillBell,
+  AiTwotoneFileExclamation,
+  AiOutlineFilePdf,
+} from "react-icons/ai";
 import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import SidebarMenu from "./SideBarMenu";
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from "react-router-dom";
+import { useIsMobile } from "../hooks/use-mobile";
+import { FiActivity } from "react-icons/fi";
 
-const adminRoutes = [
-  {
-    path: "", // Relative to /admin
-    name: "Dashboard",
-    icon: <AiOutlineDatabase />,
-  },
-  {
-    path: "add-student",
-    name: "Add Student",
-    icon: <FaUserPlus />,
-  },
-  {
-    path: "add-faculty",
-    name: "Add Faculty",
-    icon: <AiOutlinePlus />,
-  },
-  {
-    path: "delete-user",
-    name: "Delete User",
-    icon: <FaTrashAlt />,
-  },
-  {
-    path: "view-departments",
-    name: "View Departments",
-    icon: <BiAnalyse />,
-  },
-  {
-    path: "view-locations",
-    name: "View Student Locations",
-    icon: <BiMap />,
-  },
-  {
-    path: "admin-settings",
-    name: "Settings",
-    icon: <AiOutlineSetting />,
-    subRoutes: [
-      {
-        path: "admin-settings/edit-profile",
-        name: "Edit Profile",
-        icon: <FaUsers />,
-      },
-      {
-        path: "admin-settings/change-password",
-        name: "Change Password",
-        icon: <AiOutlineSetting />,
-      },
-    ],
-  },
-];
+
+  const routes = [
+    {
+      path: "/admin",
+      name: "Dashboard",
+      icon: <FaHome />,
+    },
+    // {
+    //   path: "/principal/view-student",
+    //   name: "View Student Attendance",
+    //   icon: <FaUser />,
+    //},
+    // {
+    //   path: "/principal/view-faculty",
+    //   name: "View Faculty Attendance",
+    //   icon: <AiOutlinePlus />,
+    // },
+    {
+      path: "/admin/view-stress-level",
+      name: "View Faculty Stress Level",
+      icon: <AiTwotoneFileExclamation />,
+    },
+   
+    
+    // {
+    //   path: "/admin/faculty-leave-approval",
+    //   name: "Faculty Leave Approval",
+    //   icon: <AiFillBell />,
+    
+    // },
+    
+    // {
+    //     path: "/principal/view-student-location",
+    //     name: "View Student Location",
+    //     icon: <BiAnalyse />,
+    //   },
+    // {
+    //   path: "/principal/department-statistics",
+    //   name: "View Department Statistics",
+    //   icon: <BiAnalyse />,
+    // },
+    {
+      path: "/admin/faculty-report",
+      name: "Faculty Attendance Report",
+      icon: <AiOutlineFilePdf />,
+    },
+    // {
+    //   path: "/principal/classroom-distribution",
+    //   name: "Classroom Distribution",
+    //   icon: <BiAnalyse />,
+    // },
+    
+    {
+      path: "/admin/admin-profile",
+      name: "Profile",
+      icon: <FaUser />,
+    },
+    {
+      path: "/admin/admin-settings",
+      name: "Settings",
+      icon: <AiOutlineSetting />,
+      subRoutes: [
+        {
+          path: "/admin/admin-settings/edit-profile",
+          name: "Edit Profile",
+          icon: <AiFillDatabase />,
+        },
+        {
+          path: "/admin/admin-settings/change-password",
+          name: "Change Password",
+          icon: <AiFillEye />,
+        },
+      ],
+    },
+    
+    { path: "/", name: "Logout", icon: <AiOutlineLogout /> },
+  ];
+  
+
+// Mobile bottom tab bar component
+function MobileBottomTabs({ onLogout }) {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const tabs = [
+    { path: "/admin", label: "Dashboard", icon: <FaHome /> },
+    { path: "/admin/faculty-leave-approval", label: "Leaves", icon: <AiFillBell /> },
+    { path: "/admin/faculty-report", label: "Report", icon: <AiOutlineFilePdf /> },
+    { path: "/admin/view-stress-level", label: "Stress", icon: <FiActivity /> },
+    { path: "/admin/admin-settings", label: "Settings", icon: <AiOutlineSetting /> },
+    { path: "/", label: "Logout", icon: <AiOutlineLogout />, isLogout: true },
+  ];
+  return (
+    <nav className="fixed bottom-0 left-0 right-0 z-20 bg-[#b22b2f] text-white flex justify-between items-center px-1 py-1 shadow-t border-t border-[#a02529]">
+      {tabs.map((tab) => (
+        <button
+          key={tab.path}
+          onClick={() => {
+            if (tab.isLogout) {
+              onLogout();
+            } else {
+              navigate(tab.path);
+            }
+          }}
+          className={`flex flex-col items-center flex-1 px-1 py-1 focus:outline-none ${location.pathname === tab.path ? 'text-[#d1a550]' : ''}`}
+        >
+          <span className="text-lg">{tab.icon}</span>
+          <span className="text-[10px] leading-none">{tab.label}</span>
+        </button>
+      ))}
+    </nav>
+  );
+}
 
 const AdminSideBar = ({ children }) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const toggle = () => setIsOpen(!isOpen);
+  const isMobile = useIsMobile();
+  const location = useLocation();
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const navigate = useNavigate();
+  // Sidebar should always be open
+  const isOpen = true;
 
   const inputAnimation = {
     hidden: { width: 0, padding: 0, transition: { duration: 0.2 } },
@@ -96,17 +172,36 @@ const AdminSideBar = ({ children }) => {
     setShowLogoutModal(false);
   };
 
+  if (isMobile) {
+    return (
+      <div className="w-screen min-h-screen bg-gray-100 pb-14">
+        <main className="flex-1 p-2 sm:p-4 overflow-auto">{children}</main>
+        <MobileBottomTabs onLogout={handleLogout} />
+        {showLogoutModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+            <div className="bg-white rounded-xl shadow-lg p-6 max-w-sm w-full">
+              <h2 className="text-xl font-bold mb-4 text-[#b22b2f]">Confirm Logout</h2>
+              <p className="mb-6 text-gray-700">Are you sure you want to logout?</p>
+              <div className="flex justify-end gap-3">
+                <button onClick={cancelLogout} className="px-4 py-2 rounded bg-gray-200 text-gray-700 hover:bg-gray-300">Cancel</button>
+                <button onClick={confirmLogout} className="px-4 py-2 rounded bg-[#b22b2f] text-white hover:bg-[#a02529]">Logout</button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="flex w-screen h-screen overflow-hidden">
-      {/* Sidebar */}
       <motion.div
         animate={{
-          width: isOpen ? "200px" : "45px",
+          width: "200px",
           transition: { duration: 0.5, type: "spring", damping: 10 },
         }}
-        className="bg-red-950 text-white h-full overflow-y-auto shadow-lg"
+        className="bg-[#b22b2f] text-white h-full overflow-y-auto shadow-lg"
       >
-        {/* Header */}
         <div className="flex items-center justify-between p-3">
           <AnimatePresence>
             {isOpen && (
@@ -117,16 +212,15 @@ const AdminSideBar = ({ children }) => {
                 exit="hidden"
                 className="text-lg font-bold"
               >
-                AdminPanel
+                CampusConnect
               </motion.h1>
             )}
           </AnimatePresence>
-          <FaBars onClick={toggle} className="cursor-pointer text-xl" />
         </div>
 
-        {/* Search Box */}
-        <div className="flex items-center px-2 py-2">
-          <BiAnalyse />
+        {/* Search box */}
+        {/* <div className="flex items-center px-2 py-2">
+          <BiSearch />
           <AnimatePresence>
             {isOpen && (
               <motion.input
@@ -136,15 +230,15 @@ const AdminSideBar = ({ children }) => {
                 variants={inputAnimation}
                 type="text"
                 placeholder="Search"
-                className="ml-2 bg-red-800 text-white rounded px-2 py-1 outline-none w-full"
+                className="ml-2 bg-[#a02529] text-white rounded px-2 py-1 outline-none w-full"
               />
             )}
           </AnimatePresence>
-        </div>
+        </div> */}
 
         {/* Routes */}
         <nav className="flex flex-col gap-1 px-2">
-          {adminRoutes.map((route, index) => {
+          {routes.map((route, index) => {
             if (route.subRoutes) {
               return (
                 <SidebarMenu
@@ -152,7 +246,6 @@ const AdminSideBar = ({ children }) => {
                   route={route}
                   showAnimation={showAnimation}
                   isOpen={isOpen}
-                  setIsOpen={setIsOpen}
                 />
               );
             }
@@ -161,7 +254,7 @@ const AdminSideBar = ({ children }) => {
               return (
                 <button
                   key={index}
-                  className="flex items-center gap-3 p-2 rounded hover:bg-gray-700 transition w-full text-left"
+                  className="flex items-center gap-3 p-2 rounded hover:bg-[#d1a550] transition w-full text-left"
                   onClick={handleLogout}
                 >
                   <div className="text-xl">{route.icon}</div>
@@ -186,8 +279,8 @@ const AdminSideBar = ({ children }) => {
                 to={route.path}
                 key={index}
                 className={({ isActive }) =>
-                  `flex items-center gap-3 p-2 rounded hover:bg-gray-700 transition ${
-                    isActive ? "bg-gray-800" : ""
+                  `flex items-center gap-3 p-2 rounded hover:bg-[#d1a550] transition ${
+                    isActive ? "bg-[#d1a550]" : ""
                   }`
                 }
                 onClick={() => {
@@ -216,17 +309,19 @@ const AdminSideBar = ({ children }) => {
         </nav>
       </motion.div>
 
-      {/* Main Content */}
-      <main className="flex-1 bg-gray-100 p-4 overflow-auto">{children}</main>
+      {/* Right side content */}
+      <main className="flex-1 bg-gray-100 p-4 overflow-auto">
+        {children}
+      </main>
 
       {showLogoutModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
           <div className="bg-white rounded-xl shadow-lg p-6 max-w-sm w-full">
-            <h2 className="text-xl font-bold mb-4 text-red-700">Confirm Logout</h2>
+            <h2 className="text-xl font-bold mb-4 text-[#b22b2f">Confirm Logout</h2>
             <p className="mb-6 text-gray-700">Are you sure you want to logout?</p>
             <div className="flex justify-end gap-3">
               <button onClick={cancelLogout} className="px-4 py-2 rounded bg-gray-200 text-gray-700 hover:bg-gray-300">Cancel</button>
-              <button onClick={confirmLogout} className="px-4 py-2 rounded bg-red-600 text-white hover:bg-red-700">Logout</button>
+              <button onClick={confirmLogout} className="px-4 py-2 rounded bg-[#b22b2f] text-white hover:bg-[#a02529]">Logout</button>
             </div>
           </div>
         </div>

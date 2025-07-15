@@ -109,6 +109,7 @@ const verifyStudent = (req, res, next) => {
 module.exports = {
   authenticateToken,
   verifyPrincipal,
+  verifyAdmin,
   verifyRegistrar,
   verifyHOD,
   verifyFaculty,

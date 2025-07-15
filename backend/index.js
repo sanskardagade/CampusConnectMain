@@ -30,6 +30,7 @@ app.use('/api/hod', hodRoutes);
 app.use('/api/principal', principalRoutes);
 app.use('/api/registrar', registrarRoutes);
 app.use('/api/chatbot', chatbotRoutes);
+app.use('/api/admin', require('./routes/admin'));
 
 
 app.get('/api/hod/faculty-log', authenticateToken, async (req, res) => {

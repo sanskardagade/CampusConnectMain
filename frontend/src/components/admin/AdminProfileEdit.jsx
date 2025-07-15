@@ -25,7 +25,7 @@ const AdminProfileEdit = () => {
         throw new Error('No authentication token found');
       }
 
-      const response = await axios.get('http://69.62.83.14:9000/api/admin/dashboard', {
+      const response = await axios.get('http://69.62.83.14:9000/api/admin/profile', {
         headers: {
           Authorization: `Bearer ${token}`
         }

@@ -5,10 +5,47 @@ const sql = require('../config/neonsetup');
 const AdminModel = require('../models/Admin.js');
 const { verifyAdmin } = require('../middleware/auth');
 const PDFDocument = require('pdfkit');
+const jwt = require('jsonwebtoken');
 
-// Protect all admin routes
-router.use(authenticateToken);
-router.use(verifyAdmin);
+// Admin Login Endpoint (should be before authentication middleware)
+router.post('/login', async (req, res) => {
+  const { adminname, password } = req.body;
+  console.log('Login request body:', req.body);
+  try {
+    const admin = await AdminModel.findByErp(adminname);
+    console.log('Admin found in DB:', admin);
+    if (!admin) {
+      return res.status(401).json({ message: 'Invalid credentials' });
+    }
+    const isValid = password === admin.password;
+    console.log('Password provided:', password, 'Stored password:', admin.password, 'Match:', isValid);
+    if (!isValid) {
+      return res.status(401).json({ message: 'Invalid credentials' });
+    }
+    // Generate JWT
+    const jwt = require('jsonwebtoken');
+    const token = jwt.sign(
+      { id: admin.id, role: 'admin' },
+      process.env.JWT_SECRET || 'your_jwt_secret',
+      { expiresIn: '1d' }
+    );
+    res.json({
+      token,
+      user: {
+        id: admin.id,
+        adminname: admin.adminname,
+        role: 'admin'
+      }
+    });
+  } catch (error) {
+    console.error('Admin login error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Protect all admin routes (after login)
+router.use(require('../middleware/auth').authenticateToken);
+router.use(require('../middleware/auth').verifyAdmin);
 
 // route to get all members
 router.get('/all-members', authenticateToken, verifyAdmin, async (req, res) => {
@@ -35,15 +72,12 @@ router.get('/profile', async (req, res) => {
 
     const [admin] = await sql`
       SELECT 
-        id, 
-        erpid AS erpStaffId, 
-        name, 
-        email, 
-        start_date AS startDate, 
-        end_date AS endDate, 
-        is_active AS isActive
+        id,
+        adminname,
+        name,
+        email
       FROM admin
-      WHERE erpid = ${req.user.id}
+      WHERE id = ${req.user.id}
     `;
 
     if (!admin) {
@@ -79,15 +113,12 @@ router.put('/profile', async (req, res) => {
         name = ${name},
         email = ${email},
         updated_at = NOW()
-      WHERE erpid = ${req.user.id}
+      WHERE id = ${req.user.id}
       RETURNING 
         id, 
-        erpid AS erpStaffId, 
+        adminname,
         name, 
-        email, 
-        start_date AS startDate, 
-        end_date AS endDate, 
-        is_active AS isActive
+        email
     `;
 
     if (!updatedAdmin) {
@@ -333,18 +364,22 @@ router.put('/change-password', async (req, res) => {
       return res.status(400).json({ message: 'Both passwords are required' });
     }
 
-    const admin = await AdminModel.findByErp(req.user.id);
+    // Find admin by id
+    const [admin] = await sql`
+      SELECT * FROM admin WHERE id = ${req.user.id}
+    `;
     if (!admin) {
       return res.status(404).json({ message: 'Admin not found' });
     }
 
-    const isValid = await AdminModel.comparePassword(currentPassword, admin.passwordHash);
-    if (!isValid) {
+    // Compare current password (plain text for now)
+    if (currentPassword !== admin.password) {
       return res.status(401).json({ message: 'Current password is incorrect' });
     }
 
-    // Update password in database
-    const updated = await AdminModel.updatePassword(req.user.id, newPassword);
+    // Update password
+    const [updated] = await sql`
+      UPDATE admin SET password = ${newPassword}, updated_at = NOW() WHERE id = ${req.user.id} RETURNING id`;
     if (!updated) {
       return res.status(500).json({ message: 'Failed to update password' });
     }
@@ -387,21 +422,10 @@ router.get('/faculty-logs/:id', async (req, res) => {
 });
 
 // Add this route for staff logs
-router.get('/staff-logs/:id', async (req, res) => {
+router.get('/staff-logs', async (req, res) => {
   try {
-    const { id } = req.params;
-    // Get ERP ID for the staff
-    const [staff] = await sql`
-      SELECT erpid FROM non_teaching_staff WHERE id = ${id}
-    `;
-    if (!staff) {
-      return res.status(404).json({ message: 'Staff not found' });
-    }
-    // Get all logs for this staff from the 'faculty_logs' table
-    const logs = await sql`
-      SELECT * FROM faculty_logs WHERE erp_id = ${staff.erpid} ORDER BY timestamp DESC
-    `;
-    res.json({ logs });
+    // Placeholder: return an empty array for now
+    res.json({ logs: [] });
   } catch (error) {
     console.error('Error fetching staff logs:', error);
     res.status(500).json({ message: 'Failed to fetch staff logs' });
@@ -692,6 +716,7 @@ router.get('/faculty-attendance-report', async (req, res) => {
   }
 });
 
+/*
 // REPLACE the /student-attendance-today endpoint with this:
 router.get('/student-attendance-today', async (req, res) => {
   try {
@@ -714,6 +739,7 @@ router.get('/student-attendance-today', async (req, res) => {
     res.status(500).json({ message: 'Failed to fetch present students' });
   }
 });
+*/
 
 
 router.get('/view-stress-level', authenticateToken, async (req, res) => {
@@ -1202,7 +1228,7 @@ router.get('/present-faculty-today', async (req, res) => {
       ORDER BY department_name, faculty_name
     `;
     const rows = Array.isArray(records) ? records : (records.rows || []);
-    res.json({ presentFaculty: rows });
+    res.json({ presentFaculty: rows, count: rows.length });
   } catch (e) {
     console.error('Error fetching present faculty today:', e);
     res.status(500).json({ message: 'Failed to fetch present faculty today' });
@@ -1253,7 +1279,7 @@ router.get('/present-staff-today', async (req, res) => {
       ORDER BY department_name, staff_name
     `;
     const rows = Array.isArray(records) ? records : (records.rows || []);
-    res.json({ presentStaff: rows });
+    res.json({ presentStaff: rows, count: rows.length });
   } catch (e) {
     console.error('Error fetching present staff today:', e);
     res.status(500).json({ message: 'Failed to fetch present staff today' });
@@ -1485,6 +1511,32 @@ router.get('/staff-department-counts', async (req, res) => {
   } catch (error) {
     console.error('Admin: Error fetching staff department counts:', error);
     res.status(500).json({ message: 'Failed to fetch staff department counts' });
+  }
+});
+
+// Faculty Leave Approval (for admin)
+router.get('/faculty-leave-approval', async (req, res) => {
+  try {
+    // Fetch all faculty leave requests (customize as needed for admin)
+    const leaves = await sql`
+      SELECT * FROM faculty_leave ORDER BY "fromDate" DESC`;
+    res.json(leaves);
+  } catch (error) {
+    console.error('Error fetching faculty leave approvals:', error);
+    res.status(500).json({ message: 'Failed to fetch faculty leave approvals' });
+  }
+});
+
+// Faculty Logs (for admin)
+router.get('/faculty-logs', async (req, res) => {
+  try {
+    // Fetch all faculty logs (customize as needed for admin)
+    const logs = await sql`
+      SELECT * FROM faculty_logs ORDER BY timestamp DESC`;
+    res.json({ logs });
+  } catch (error) {
+    console.error('Error fetching faculty logs:', error);
+    res.status(500).json({ message: 'Failed to fetch faculty logs' });
   }
 });
 

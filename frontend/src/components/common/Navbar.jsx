@@ -60,14 +60,14 @@ const Navbar = () => {
     setAdminError("");
     setAdminLoading(true);
     try {
-      const endpoint = "http://69.62.83.14:9000/api/auth/login";
+      const endpoint = "http://69.62.83.14:9000/api/admin/login"; // Updated admin login endpoint
       const response = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          erpstaffid: adminForm.username,
+          adminname: adminForm.username,
           password: adminForm.password,
-          role: "principal"
+          role: "admin" // Set role to admin
         })
       });
       const data = await response.json();
@@ -79,7 +79,7 @@ const Navbar = () => {
       localStorage.setItem("role", data.user.role);
       updateUser(data.user);
       setShowAdminLogin(false);
-      navigate("/principal");
+      navigate("/admin"); // Navigate to admin dashboard/route
     } catch (err) {
       setAdminError(err.message || "An error occurred during login");
     } finally {
