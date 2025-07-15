@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
 import axios from 'axios';
 
-const PrincipalChangePassword = () => {
+const AdminChangePassword = () => {
   const [form, setForm] = useState({
     currentPassword: '',
     newPassword: '',
@@ -45,7 +45,7 @@ const PrincipalChangePassword = () => {
     try {
       const token = localStorage.getItem('token');
       const response = await axios.put(
-        'http://69.62.83.14:9000/api/principal/change-password',
+        'http://69.62.83.14:9000/api/admin/change-password',
         {
           currentPassword,
           newPassword,
@@ -88,7 +88,7 @@ const PrincipalChangePassword = () => {
   return (
     <div className="min-h-screen bg-[#f3f4f6] text-white flex items-center justify-center p-6">
       <div className="w-full max-w-md bg-[#b22b2f] p-8 rounded-xl shadow-lg">
-        <h2 className="text-2xl font-bold mb-6 text-center text-[#d1a550]">Change Principal Password</h2>
+        <h2 className="text-2xl font-bold mb-6 text-center text-[#d1a550]">Change Admin Password</h2>
         <form onSubmit={handleSubmit}>
           {renderInput('Current Password', 'currentPassword', 'current')}
           {renderInput('New Password', 'newPassword', 'new')}
@@ -107,4 +107,4 @@ const PrincipalChangePassword = () => {
   );
 };
 
-export default PrincipalChangePassword;
+export default AdminChangePassword;

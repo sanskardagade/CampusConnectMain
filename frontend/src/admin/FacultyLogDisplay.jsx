@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
 
-const FacultyLogDisplay = ({ logs = [] }) => {
+const AdminFacultyLogDisplay = ({ logs = [] }) => {
   const [selectedView, setSelectedView] = useState('overview');
   const [selectedTimeRange, setSelectedTimeRange] = useState('today');
   const [modalOpen, setModalOpen] = useState(false);
@@ -591,4 +591,4 @@ const FacultyLogDisplay = ({ logs = [] }) => {
   );
 };
 
-export default FacultyLogDisplay;
+export default AdminFacultyLogDisplay;

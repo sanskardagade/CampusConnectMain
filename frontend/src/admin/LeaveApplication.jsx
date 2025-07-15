@@ -3,7 +3,7 @@ import { Check, X, ChevronDown, ChevronUp, AlertCircle, Clock } from 'lucide-rea
 import axios from 'axios';
 import HeaderMobile from '../common/HeaderMobile';
 
-export default function LeaveApplication() {
+export default function AdminLeaveApplication() {
   // Get token from localStorage or sessionStorage
   const [token] = useState(localStorage.getItem('token') || sessionStorage.getItem('token'));
   const [selectedApplication, setSelectedApplication] = useState(null);
@@ -17,7 +17,7 @@ export default function LeaveApplication() {
 
   // Load recent actions from sessionStorage on component mount
   useEffect(() => {
-    const savedActions = sessionStorage.getItem('principalRecentActions');
+    const savedActions = sessionStorage.getItem('adminRecentActions');
     if (savedActions) {
       setRecentActions(JSON.parse(savedActions));
     }
@@ -25,7 +25,7 @@ export default function LeaveApplication() {
 
   // Save recent actions to sessionStorage whenever they change
   useEffect(() => {
-    sessionStorage.setItem('principalRecentActions', JSON.stringify(recentActions));
+    sessionStorage.setItem('adminRecentActions', JSON.stringify(recentActions));
   }, [recentActions]);
 
   const addRecentAction = (action) => {
@@ -40,7 +40,7 @@ export default function LeaveApplication() {
   useEffect(() => {
     const fetchLeaveApplications = async () => {
       try {
-        const response = await axios.get('http://69.62.83.14:9000/api/principal/faculty-leave-approval', {
+        const response = await axios.get('http://69.62.83.14:9000/api/admin/faculty-leave-approval', {
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -50,11 +50,11 @@ export default function LeaveApplication() {
           // Log the exact structure of the first application
           if (response.data.length > 0) {
             console.log('First application structure:', response.data[0]);
-            console.log('PrincipalApproval value:', response.data[0].PrincipalApproval);
+            console.log('AdminApproval value:', response.data[0].AdminApproval);
           }
           setLeaveApplications(response.data);
           const pendingApps = response.data.filter(app => 
-            app.PrincipalApproval === "Pending"
+            app.AdminApproval === "Pending"
           );
           console.log('Pending applications:', pendingApps);
         } else {
@@ -83,8 +83,8 @@ export default function LeaveApplication() {
 
     try {
       const response = await axios.put(
-        `http://69.62.83.14:9000/api/principal/faculty-leave-approval/${application.ErpStaffId}`,
-        { PrincipalApproval: 'Approved' },
+        `http://69.62.83.14:9000/api/admin/faculty-leave-approval/${application.ErpStaffId}`,
+        { AdminApproval: 'Approved' },
         {
           headers: {
             'Authorization': `Bearer ${token}`
@@ -95,7 +95,7 @@ export default function LeaveApplication() {
       if (response.status === 200) {
         setLeaveApplications(leaveApplications.map(app => 
           app.ErpStaffId === application.ErpStaffId ? 
-            {...app, PrincipalApproval: "Approved", FinalStatus: "Approved"} : app
+            {...app, AdminApproval: "Approved", FinalStatus: "Approved"} : app
         ));
         addNotification(`Approved leave for ${application.StaffName}`);
         addRecentAction({
@@ -123,8 +123,8 @@ export default function LeaveApplication() {
     }
     try {
       const response = await axios.put(
-        `http://69.62.83.14:9000/api/principal/faculty-leave-approval/${selectedApplication.ErpStaffId}`,
-        { PrincipalApproval: 'Rejected' },
+        `http://69.62.83.14:9000/api/admin/faculty-leave-approval/${selectedApplication.ErpStaffId}`,
+        { AdminApproval: 'Rejected' },
         {
           headers: {
             'Authorization': `Bearer ${token}`
@@ -134,7 +134,7 @@ export default function LeaveApplication() {
       if (response.status === 200) {
         setLeaveApplications(leaveApplications.map(app => 
           app.ErpStaffId === selectedApplication.ErpStaffId ? 
-            {...app, PrincipalApproval: "Rejected", FinalStatus: "Rejected"} : app
+            {...app, AdminApproval: "Rejected", FinalStatus: "Rejected"} : app
         ));
         addNotification(`Rejected leave for ${selectedApplication.StaffName}`);
         addRecentAction({
@@ -211,11 +211,11 @@ export default function LeaveApplication() {
                     <span className={`text-xs font-medium px-2.5 py-0.5 rounded-full ${
                       selectedTab === 'Pending' ? 'bg-yellow-100 text-yellow-800' : selectedTab === 'Approved' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                     }`}>
-                      {leaveApplications.filter(app => app.PrincipalApproval === selectedTab).length} {selectedTab.toLowerCase()}
+                      {leaveApplications.filter(app => app.AdminApproval === selectedTab).length} {selectedTab.toLowerCase()}
                     </span>
                   </div>
                   <div className="space-y-3">
-                    {leaveApplications.filter(app => app.PrincipalApproval === selectedTab).map((application, index) => (
+                    {leaveApplications.filter(app => app.AdminApproval === selectedTab).map((application, index) => (
                       <div 
                         key={`pending-${application.ErpStaffId}-${index}`}
                         className={`border rounded-lg p-3 cursor-pointer transition-all duration-200 ${
@@ -254,7 +254,7 @@ export default function LeaveApplication() {
                       </div>
                     ))}
                     
-                    {leaveApplications.filter(app => app.PrincipalApproval === selectedTab).length === 0 && (
+                    {leaveApplications.filter(app => app.AdminApproval === selectedTab).length === 0 && (
                       <div className="text-center py-8 text-gray-500 bg-gray-50 rounded-lg">
                         <AlertCircle className="mx-auto h-8 w-8 text-gray-400 mb-2" />
                         <p>No {selectedTab.toLowerCase()} applications</p>
@@ -381,7 +381,7 @@ export default function LeaveApplication() {
                     </div>
 
                     {/* Action Buttons */}
-                    {selectedApplication.PrincipalApproval === "Pending" && (
+                    {selectedApplication.AdminApproval === "Pending" && (
                       <div className="mt-8 flex justify-end space-x-4">
                         <button 
                           onClick={() => handleApprove(selectedApplication)}

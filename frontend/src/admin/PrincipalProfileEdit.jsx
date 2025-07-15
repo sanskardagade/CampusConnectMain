@@ -2,12 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
-const PrincipalProfileEdit = () => {
+const AdminProfileEdit = () => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     name: '',
     email: '',
-    designation: 'Principal'
+    designation: 'Admin'
   });
 
   const [message, setMessage] = useState('');
@@ -25,7 +25,7 @@ const PrincipalProfileEdit = () => {
         throw new Error('No authentication token found');
       }
 
-      const response = await axios.get('http://69.62.83.14:9000/api/principal/dashboard', {
+      const response = await axios.get('http://69.62.83.14:9000/api/admin/dashboard', {
         headers: {
           Authorization: `Bearer ${token}`
         }
@@ -34,7 +34,7 @@ const PrincipalProfileEdit = () => {
       setFormData({
         name: response.data.name || '',
         email: response.data.email || '',
-        designation: 'Principal'
+        designation: 'Admin'
       });
       setLoading(false);
     } catch (error) {
@@ -69,7 +69,7 @@ const PrincipalProfileEdit = () => {
       }
 
       const response = await axios.put(
-        'http://69.62.83.14:9000/api/principal/profile',
+        'http://69.62.83.14:9000/api/admin/profile',
         {
           name,
           email
@@ -86,7 +86,7 @@ const PrincipalProfileEdit = () => {
       
       // Navigate back to profile page after 2 seconds
       setTimeout(() => {
-        navigate('/principal/principal-profile');
+        navigate('/admin/admin-profile');
       }, 2000);
     } catch (error) {
       console.error('Error updating profile:', error);
@@ -97,7 +97,7 @@ const PrincipalProfileEdit = () => {
   };
 
   const handleCancel = () => {
-    navigate('/principal/principal-profile');
+    navigate('/admin/admin-profile');
   };
 
   if (loading) {
@@ -121,7 +121,7 @@ const PrincipalProfileEdit = () => {
   return (
     <div className="min-h-screen bg-[#f3f4f6] text-white flex items-center justify-center p-6">
       <div className="bg-[#b22b2f] w-full max-w-2xl rounded-xl shadow-md p-8">
-        <h2 className="text-2xl font-bold mb-6 text-center text-[#d1a550]">Edit Principal Profile</h2>
+        <h2 className="text-2xl font-bold mb-6 text-center text-[#d1a550]">Edit Admin Profile</h2>
         <form onSubmit={handleSubmit} className="space-y-4">
           <InputField 
             label="Full Name" 
@@ -191,6 +191,6 @@ const InputField = ({ label, name, value, onChange, type = 'text', required = fa
   </div>
 );
 
-export default PrincipalProfileEdit;
+export default AdminProfileEdit;
 
 

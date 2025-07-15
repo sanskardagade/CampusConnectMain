@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
 
-const ClassroomDistribution = () => {
+const AdminClassroomDistribution = () => {
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -22,7 +22,7 @@ const ClassroomDistribution = () => {
   const fetchFacultyLogs = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/hod/faculty-log', {
+      const response = await fetch('/api/admin/classroom-distribution', {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
@@ -485,4 +485,4 @@ const ClassroomDistribution = () => {
   );
 };
 
-export default ClassroomDistribution; 
+export default AdminClassroomDistribution; 

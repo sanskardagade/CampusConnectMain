@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { FiFilter, FiDownload, FiSearch } from 'react-icons/fi';
 
-const AllStudentAttendance = () => {
+const AdminAllStudentAttendance = () => {
   const [attendanceData, setAttendanceData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -21,7 +21,7 @@ const AllStudentAttendance = () => {
   const fetchAttendanceData = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://69.62.83.14:9000/api/attendance/all?${new URLSearchParams(filters)}`, {
+      const response = await fetch(`http://69.62.83.14:9000/api/admin/all-student-attendance?${new URLSearchParams(filters)}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -212,4 +212,4 @@ const AllStudentAttendance = () => {
   );
 };
 
-export default AllStudentAttendance;
+export default AdminAllStudentAttendance;
