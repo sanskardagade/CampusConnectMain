@@ -35,11 +35,17 @@ const FacultyProfile = () => {
         console.log('Fetching faculty profile...')
         console.log('Token:', token) // Debug token
 
-        const response = await axios.get('http://69.62.83.14:9000/api/faculty/dashboard', {
-          headers: {
-            Authorization: `Bearer ${token}`
+        // Get today's date in YYYY-MM-DD format
+        const today = new Date().toISOString().slice(0, 10);
+
+        const response = await axios.get(
+          `http://69.62.83.14:9000/api/faculty/dashboard?date=${today}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`
+            }
           }
-        })
+        );
 
         console.log('Faculty profile response:', response.data)
         

@@ -5,7 +5,7 @@ import {
   FiUsers, FiUser, FiBook, FiBriefcase, 
   FiChevronDown, FiChevronRight, FiRefreshCw,
   FiMail, FiCalendar, FiActivity, FiBarChart2,
-  FiSearch, FiX, FiDownload
+  FiSearch, FiX, FiDownload, FiCopy, FiCheck
 } from 'react-icons/fi';
 import ProfileView from './ProfileView';
 import FacultyLogDisplay from '../components/faculty/FacultyLogDisplay';
@@ -68,6 +68,14 @@ const RegistrarDashboard = () => {
   const [staffListRefreshing, setStaffListRefreshing] = useState(false);
   const [branchPdfLoading, setBranchPdfLoading] = useState(null);
   const [staffBranchPdfLoading, setStaffBranchPdfLoading] = useState(null);
+  const [copied, setCopied] = useState(false);
+  const securityLink = `${window.location.origin}/security-dashboard`;
+
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(securityLink);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  };
 
   useEffect(() => {
     fetchDashboardData();
@@ -129,7 +137,7 @@ const RegistrarDashboard = () => {
   const fetchPendingLeaves = async () => {
     try {
       const token = localStorage.getItem('token');
-      const res = await axios.get('http://69.62.83.14:9000/api/registrar/leave-applications', {
+      const res = await axios.get('http://69.62.83.14:9000/api/registrar/faculty-leave-approval', {
         headers: { Authorization: `Bearer ${token}` }
       });
       const pending = (res.data || []).filter(l => l.PrincipalApproval === 'Pending').length;
@@ -372,7 +380,7 @@ const RegistrarDashboard = () => {
 
   // Handler for navigating to faculty leave approval
   const handleNavigateLeaveApproval = () => {
-    navigate('/registrar/leave-applications');
+    navigate('/registrar/faculty-leave-approval');
   };
 
   // Fetch faculty totals per department
@@ -1002,6 +1010,31 @@ const RegistrarDashboard = () => {
             </div>
           </div>
         </motion.div> */}
+      </div>
+
+      {/* Security Guard Link Section */}
+      <div className="flex-1 overflow-auto bg-gray-50 p-2 sm:p-4 lg:p-6 pt-16 sm:pt-2">
+        <div className="bg-white rounded-xl shadow-lg p-4 sm:p-6 mb-4 border border-gray-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div>
+            <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-1">Security Guard Link</h2>
+            <p className="text-gray-600 text-sm mb-2">Copy and share this link with the security guard for their portal access.</p>
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                value={securityLink}
+                readOnly
+                className="w-[260px] sm:w-[340px] px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-800 text-sm font-mono"
+              />
+              <button
+                onClick={handleCopyLink}
+                className={`px-3 py-2 rounded-lg font-semibold text-white transition-colors duration-200 ${copied ? 'bg-green-600' : 'bg-red-700 hover:bg-red-800'}`}
+                title="Copy link"
+              >
+                {copied ? <FiCheck className="inline-block mr-1" /> : <FiCopy className="inline-block mr-1" />} {copied ? 'Copied' : 'Copy'}
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Present Faculty Modal */}

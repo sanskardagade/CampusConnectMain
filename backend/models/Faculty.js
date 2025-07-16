@@ -104,9 +104,40 @@ class Faculty {
   }
 }
 
+// Find facultyLog by ERP Staff ID and date (single day), returns first and last log for that date
+const findByErpStaffIdAndDateRange = async (erpStaffId, date) => {
+  try {
+    const rows = await sql`
+      (
+        SELECT * 
+        FROM faculty_logs 
+        WHERE erp_id = ${erpStaffId} 
+          AND DATE(timestamp) = ${date} 
+        ORDER BY timestamp ASC 
+        LIMIT 1
+      )
+      UNION ALL
+      (
+        SELECT * 
+        FROM faculty_logs 
+        WHERE erp_id = ${erpStaffId} 
+          AND DATE(timestamp) = ${date} 
+        ORDER BY timestamp DESC 
+        LIMIT 1
+      );
+    `;
+    return rows;
+  } catch (error) {
+    console.error('Error in findByErpStaffIdAndDateRange:', error);
+    throw error;
+  }
+};
+
+
 module.exports = {
   findByErpStaffId,
   comparePassword,
   mapFaculty,
-  update
+  update,
+  findByErpStaffIdAndDateRange
 }; 

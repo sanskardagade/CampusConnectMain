@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { authenticateToken } = require('../middleware/auth');
 const Faculty = require('../models/Faculty');
-const FacultyLog = require('../models/FacultyLogs');
+// const FacultyLog = require('../models/FacultyLogs');
 const sql = require('../config/neonsetup');
 const bcrypt = require('bcrypt');
 const FacultyLeave = require('../models/FacultyLeave');
@@ -11,29 +11,25 @@ const FacultyLeave = require('../models/FacultyLeave');
 router.get('/dashboard', authenticateToken, async (req, res) => {
   try {
     const erpStaffId = req.user.erpStaffId;
-    // console.log('Looking up faculty with erpStaffId:', erpStaffId);
+    const { date } = req.query;
+
+    if (!date) {
+      return res.status(400).json({ message: 'date query parameter is required.' });
+    }
 
     const faculty = await Faculty.findByErpStaffId(erpStaffId);
-    // console.log('Found faculty:', faculty);
-
     if (!faculty) {
       return res.status(404).json({ message: 'Faculty not found' });
     }
 
-    const facultylog = await FacultyLog.findByErpStaffIdforLogs(erpStaffId);
-    // console.log(facultylog);
+    const facultylog = await Faculty.findByErpStaffIdAndDateRange(erpStaffId, date);
 
-    if(!facultylog) {
-      console.log('FacultyLog not found for erpStaffId:', erpStaffId);
-    }
-
-    // Return faculty info
     const response = {
       name: faculty.name,
       erpStaffId: faculty.erpStaffId,
       department: faculty.departmentId,
       email: faculty.email,
-      logs: facultylog || null
+      logs: facultylog || []
     };
     res.json(response);
   } catch (error) {

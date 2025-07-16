@@ -16,6 +16,7 @@ import FacultyDashboard from './pages/FacultyDashboard';
 import { AuthProvider } from './context/AuthContext';
 import Admin from "./routes/Admin";
 import Chatbot from "./components/Chatbot";
+import SecurityDashboard from "./pages/SecurityDashboard";
 
 const App = () => {
   return (
@@ -37,6 +38,7 @@ const App = () => {
             <Route path="/principal/*" element={<Principal />}/>
             <Route path="/registrar/*" element={<Registrar />}/>
             <Route path="/faculty/dashboard" element={<FacultyDashboard />} />
+            <Route path="/security-dashboard" element={<SecurityDashboard />} />
           </Routes>
           <Chatbot />
         </Router>

@@ -18,7 +18,7 @@ const Navbar = () => {
   const [adminError, setAdminError] = useState("");
   const [adminLoading, setAdminLoading] = useState(false);
   const [showCollegeSelect, setShowCollegeSelect] = useState(false);
-  const colleges = ["DYPDPU", "IMR", "DYPIT", "THATWADE"];
+  const colleges = ["Dr. D. Y. Patil Inst. of Tech., Pimpri", "IMR",  "B-School"];
 
   // Handle scroll effect
   useEffect(() => {
@@ -246,7 +246,7 @@ const Navbar = () => {
             <h2 className="text-center text-2xl mb-5">Select College</h2>
             <div className="flex flex-col gap-3">
               {colleges.map((college) => (
-                college === "DYPDPU" ? (
+                college === "Dr. D. Y. Patil Inst. of Tech., Pimpri" ? (
                   <button
                     key={college}
                     className="bg-[#b22b2f] text-white p-3 rounded-md hover:bg-[#d1a550] transition-colors"

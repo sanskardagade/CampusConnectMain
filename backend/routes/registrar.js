@@ -6,6 +6,90 @@ const RegistrarModel = require('../models/Registrar.js');
 const { verifyRegistrar } = require('../middleware/auth');
 const PDFDocument = require('pdfkit');
 
+// SECURITY DASHBOARD ENDPOINTS
+// GET: List all faculty with leave status for a given date (and exit status)
+router.get('/security-dashboard', async (req, res) => {
+  try {
+    let date = req.query.date;
+    if (!date) {
+      date = new Date().toISOString().split('T')[0];
+    }
+    const leaveRows = await sql`
+      SELECT fl.*, f.name as faculty_name, f.department_id, f.email
+      FROM faculty_leave fl
+      LEFT JOIN faculty f ON fl."ErpStaffId" = f.erpid
+      WHERE (CAST(${date} AS DATE)) BETWEEN fl."fromDate" AND fl."toDate"
+      ORDER BY fl."StaffName" ASC
+    `;
+    console.log('[SECURITY DASHBOARD] Query date:', date, '| Rows returned:', leaveRows.length, '| Data:', leaveRows);
+    if (!leaveRows || leaveRows.length === 0) {
+      return res.json([
+        { id: -1, faculty_name: 'Dummy Faculty', StaffName: 'Dummy', ErpStaffId: 'DUMMY', fromDate: date, toDate: date, reason: 'Test', leaveType: 'Test', exitStatus: false, email: 'dummy@example.com' }
+      ]);
+    }
+    res.json(leaveRows);
+  } catch (err) {
+    console.error('Error fetching security dashboard data:', err);
+    res.status(500).json({ error: 'Failed to fetch security dashboard data' });
+  }
+});
+
+// POST: Mark a faculty as exited for today
+router.post('/security-dashboard/exit', async (req, res) => {
+  try {
+    const { erpStaffId } = req.body;
+    const today = new Date().toISOString().split('T')[0];
+    
+    // Corrected query with proper column casing
+    const result = await sql`
+      UPDATE faculty_leave
+      SET "exitStatus" = TRUE, "exit_time" = NOW()
+      WHERE "ErpStaffId" = ${erpStaffId} 
+        AND (CAST(${today} AS DATE)) BETWEEN "fromDate" AND "toDate"
+      RETURNING *
+    `;
+    
+    if (result.length === 0) {
+      return res.status(404).json({ error: 'No leave record found for this faculty today' });
+    }
+    res.json({ message: 'Faculty exit marked', record: result[0] });
+  } catch (err) {
+    console.error('Error marking faculty exit:', err.message, err.stack);
+    res.status(500).json({ 
+      error: 'Failed to mark faculty exit', 
+      details: err.message 
+    });
+  }
+});
+
+// POST: Unmark a faculty as exited for today
+router.post('/security-dashboard/unexit', async (req, res) => {
+  try {
+    const { erpStaffId } = req.body;
+    const today = new Date().toISOString().split('T')[0];
+
+    const result = await sql`
+      UPDATE faculty_leave
+      SET "exitStatus" = FALSE, "exit_time" = NULL
+      WHERE "ErpStaffId" = ${erpStaffId}
+        AND (CAST(${today} AS DATE)) BETWEEN "fromDate" AND "toDate"
+      RETURNING *
+    `;
+
+    if (result.length === 0) {
+      return res.status(404).json({ error: 'No leave record found for this faculty today' });
+    }
+    res.json({ message: 'Faculty exit unmarked', record: result[0] });
+  } catch (err) {
+    console.error('Error unmarking faculty exit:', err.message, err.stack);
+    res.status(500).json({ 
+      error: 'Failed to unmark faculty exit', 
+      details: err.message 
+    });
+  }
+});
+
+
 // Protect all registrar routes
 router.use(authenticateToken);
 router.use(verifyRegistrar);
@@ -2153,5 +2237,6 @@ router.get('/faculty-leave-report', async (req, res) => {
     res.status(500).json({ message: 'Failed to generate leave report' });
   }
 });
+
 
 module.exports = router; 

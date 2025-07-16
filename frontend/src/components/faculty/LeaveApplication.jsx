@@ -455,7 +455,9 @@ export default function LeaveApplication() {
   useEffect(() => {
     const fetchUserData = async () => {
       try {
-        const response = await fetch('http://69.62.83.14:9000/api/faculty/dashboard', {
+        // Get today's date in YYYY-MM-DD format
+        const today = new Date().toISOString().slice(0, 10);
+        const response = await fetch(`http://69.62.83.14:9000/api/faculty/dashboard?date=${today}`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }

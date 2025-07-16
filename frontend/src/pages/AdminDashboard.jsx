@@ -73,12 +73,11 @@ const AdminDashboard = () => {
   useEffect(() => {
     fetchDashboardData();
     fetchPendingLeaves();
-    fetchTodayPresence();
+    fetchPresentFacultyList();
+    fetchPresentStaffList();
     fetchPresentFacultyStaffSummary();
     fetchFacultyDeptTotals();
     fetchStaffDeptTotals();
-    fetchPresentFacultyList(); // Added: fetch actual present faculty list on load
-    fetchPresentStaffList();   // Added: fetch actual present staff list on load
   }, []);
 
   useEffect(() => {
@@ -140,44 +139,6 @@ const AdminDashboard = () => {
       setPendingLeaves(pending);
     } catch (e) {
       setPendingLeaves(0);
-    }
-  };
-
-  const fetchTodayPresence = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      // Faculty logs
-      const facultyRes = await axios.get('http://69.62.83.14:9000/api/admin/faculty-logs', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      const today = dayjs().format('YYYY-MM-DD');
-      const facultyToday = new Set();
-      (facultyRes.data.logs || []).forEach(log => {
-        if (dayjs(log.timestamp).format('YYYY-MM-DD') === today) {
-          facultyToday.add(log.erp_id);
-        }
-      });
-      setPresentFaculty(facultyToday.size);
-      // Staff logs
-      const staffRes = await axios.get('http://69.62.83.14:9000/api/admin/staff-logs', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      const staffToday = new Set();
-      (staffRes.data.logs || []).forEach(log => {
-        if (dayjs(log.timestamp).format('YYYY-MM-DD') === today) {
-          staffToday.add(log.erp_id);
-        }
-      });
-      setPresentStaff(staffToday.size);
-      // Students: fetch from backend endpoint
-      const studentRes = await axios.get('http://69.62.83.14:9000/api/admin/student-attendance-today', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setPresentStudents(studentRes.data.count || 0);
-    } catch (e) {
-      setPresentFaculty(0);
-      setPresentStaff(0);
-      setPresentStudents(0);
     }
   };
 

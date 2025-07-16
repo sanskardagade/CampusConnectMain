@@ -1,84 +1,83 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { useAuth } from '../context/AuthContext';
-import FacultyLogDisplay from "../components/faculty/FacultyLogDisplay"
-import HeaderFaculty from '../components/common/HeaderFaculty';
-// import { FaBell, FaTasks, FaUserGraduate, FaChalkboardTeacher } from 'react-icons/fa';
-// import FacultyLogDisplay from "../components/faculty/FacultyLogDisplay"
+import FacultyLogForFaculty from '../components/faculty/FacultyLogForFaculty';
+
+const getInitials = (name) => {
+  if (!name) return '';
+  const names = name.split(' ');
+  return names.map(n => n[0]).join('').toUpperCase();
+};
+
+// Helper to get yesterday's date in yyyy-mm-dd format
+const getYesterday = () => {
+  const d = new Date();
+  d.setDate(d.getDate() - 1);
+  return d.toISOString().split('T')[0];
+};
 
 const FacultyDashboard = () => {
-  const navigate = useNavigate();
-  const { user } = useAuth();
-  const [dashboardData, setDashboardData] = useState({
-    name: '',
-    erpStaffId: '',
-    logs: null
-  });
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [profile, setProfile] = useState({ name: '', erpStaffId: '', logs: [] });
+  const [selectedDate, setSelectedDate] = useState(getYesterday);
 
   useEffect(() => {
-    const fetchDashboardData = async () => {
+    const fetchDashboard = async () => {
       try {
         const response = await axios.get('http://69.62.83.14:9000/api/faculty/dashboard', {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`
-          }
+          params: { date: selectedDate },
+          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
         });
-        console.log('Dashboard response:', response.data); // Debug log
-        setDashboardData(response.data);
-        setLoading(false);
+        setProfile({
+          name: response.data.name,
+          erpStaffId: response.data.erpStaffId,
+          logs: response.data.logs || []
+        });
       } catch (err) {
-        console.error('Error fetching dashboard data:', err);
-        setError('Failed to load dashboard data');
-        setLoading(false);
+        setProfile({ name: 'Unknown', erpStaffId: 'Unknown', logs: [] });
       }
     };
-
-    fetchDashboardData();
-  }, []);
-
-  if (loading) {
-    return (
-      <div className="p-8">
-        <div className="animate-pulse">
-          <div className="h-8 bg-gray-200 rounded w-1/4 mb-4"></div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {[...Array(4)].map((_, i) => (
-              <div key={i} className="bg-white p-6 rounded-lg shadow-md">
-                <div className="h-4 bg-gray-200 rounded w-3/4 mb-4"></div>
-                <div className="h-8 bg-gray-200 rounded w-1/2"></div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="p-8">
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
-          {error}
-        </div>
-      </div>
-    );
-  }
+    fetchDashboard();
+  }, [selectedDate]);
 
   return (
-    <>
-      <HeaderFaculty />
-      
-      <div className="px-2 sm:px-4 md:px-8 lg:px-16 mt-16 sm:mt-8 w-full max-w-4xl mx-auto">
-        <h1 className="text-xl sm:text-2xl md:text-3xl font-bold mb-2 sm:mb-4">Welcome, {dashboardData.name}!</h1>
-        <p className="text-gray-600 mb-4 sm:mb-6 text-sm sm:text-base">Your Erp id is : {dashboardData.erpStaffId}</p>
-        <div className="bg-white rounded-lg shadow p-2 sm:p-4 mb-4">
-          <FacultyLogDisplay logs={dashboardData.logs || null} facultyName={dashboardData.name} />
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-5 px-2 sm:px-4 md:px-8 lg:px-16 flex flex-col items-center">
+      {/* Header Section */}
+      <div className="w-full max-w-3xl mx-auto rounded-2xl shadow-lg bg-gradient-to-r from-blue-600 to-indigo-500 p-5 flex flex-col sm:flex-row items-center gap-4 mb-6 relative overflow-hidden">
+        <div className="flex-shrink-0 flex items-center justify-center w-16 h-16 rounded-full bg-white shadow-lg border-4 border-indigo-200">
+          <span className="text-2xl font-bold text-indigo-600">{getInitials(profile.name)}</span>
+        </div>
+        <div className="flex-1 text-center sm:text-left">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-white mb-1 drop-shadow">Welcome, {profile.name || 'Faculty'}!</h1>
+          <p className="text-indigo-100 text-base sm:text-lg font-medium leading-tight">Empowering your daily teaching journey</p>
+        </div>
+        {/* Decorative circle */}
+        <div className="absolute -top-8 -right-8 w-28 h-28 bg-white opacity-10 rounded-full z-0"></div>
+      </div>
+
+      {/* ERP ID Card */}
+      <div className="w-full max-w-3xl mx-auto mb-4">
+        <div className="bg-white rounded-xl shadow-md p-3 flex items-center justify-between">
+          <span className="text-gray-700 font-semibold text-lg">ERP ID:</span>
+          <span className="text-indigo-600 font-bold text-xl tracking-wider">{profile.erpStaffId}</span>
         </div>
       </div>
-    </>
+
+      {/* Divider */}
+      <div className="w-full max-w-3xl mx-auto flex items-center mb-6">
+        <div className="flex-grow border-t border-indigo-200"></div>
+        <span className="mx-3 text-indigo-400 font-semibold text-sm uppercase tracking-widest">Activity</span>
+        <div className="flex-grow border-t border-indigo-200"></div>
+      </div>
+
+      {/* Logs Card */}
+      <div className="w-full max-w-3xl mx-auto">
+        <FacultyLogForFaculty
+          logs={profile.logs}
+          facultyName={profile.name}
+          selectedDate={selectedDate}
+          setSelectedDate={setSelectedDate}
+        />
+      </div>
+    </div>
   );
 };
 

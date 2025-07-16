@@ -1,7 +1,7 @@
 import { NavLink, useNavigate, useLocation } from "react-router-dom";
 import { FaBars, FaHome, FaUser } from "react-icons/fa";
 import { BiAnalyse, BiSearch } from "react-icons/bi";
-import { SlCalender } from "react-icons/sl";
+import { TbReport } from "react-icons/tb";
 import {
   AiOutlineSetting,
   AiFillDatabase,
@@ -49,6 +49,11 @@ import { useIsMobile } from "../hooks/use-mobile";
       path: "/faculty/leave-apply",
       name: "Leave Application",
       icon: <AiFillContainer />,
+    },
+    {
+      path: "/faculty/attendance-report",
+      name: "Attendance Report",
+      icon: <TbReport />,
     },
     // {
     //   path: "/faculty/location",
@@ -119,6 +124,11 @@ const FacultySideBar = ({ children }) => {
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const navigate = useNavigate();
 
+  // Move handleLogout above its first use
+  const handleLogout = () => {
+    setShowLogoutModal(true);
+  };
+
   if (isMobile) {
     return (
       <div className="relative min-h-screen bg-gray-100 pb-14">
@@ -146,10 +156,6 @@ const FacultySideBar = ({ children }) => {
       width: "auto",
       transition: { duration: 0.3 },
     },
-  };
-
-  const handleLogout = () => {
-    setShowLogoutModal(true);
   };
 
   const confirmLogout = () => {

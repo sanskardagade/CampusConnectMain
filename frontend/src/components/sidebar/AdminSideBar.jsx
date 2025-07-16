@@ -103,7 +103,7 @@ function MobileBottomTabs({ onLogout }) {
   const location = useLocation();
   const tabs = [
     { path: "/admin", label: "Dashboard", icon: <FaHome /> },
-    { path: "/admin/faculty-leave-approval", label: "Leaves", icon: <AiFillBell /> },
+    // { path: "/admin/faculty-leave-approval", label: "Leaves", icon: <AiFillBell /> },
     { path: "/admin/faculty-report", label: "Report", icon: <AiOutlineFilePdf /> },
     { path: "/admin/view-stress-level", label: "Stress", icon: <FiActivity /> },
     { path: "/admin/admin-settings", label: "Settings", icon: <AiOutlineSetting /> },

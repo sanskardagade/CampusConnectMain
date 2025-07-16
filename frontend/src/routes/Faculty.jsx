@@ -5,13 +5,15 @@ import FacultyDashboard from "../pages/FacultyDashboard";
 import TakeAttendance from "../components/faculty/TakeAttendance";
 import AddNotes from "../components/faculty/AddNotes";
 import Divisions from "../components/faculty/Divisions";
-import StudentStressLevel from "../components/faculty/StudentStressLevel";
+// import StudentStressLevel from "../components/faculty/StudentStressLevel";
 import StudentLocation from "../components/faculty/StudentLocation";
 import FacultyProfile from "../components/faculty/FacultyProfile";
 import FacultySettings from "../components/faculty/FacultySettings";
 import FacultyProfileEdit from "../components/faculty/FacultyProfileEdit";
 import FacultyChangePassword from "../components/faculty/FacultyChangePassword";
 import LeaveApplication from "../components/faculty/LeaveApplication";
+import DummyFacultyStress from "../components/faculty/DummyFacultyStress";
+import AttendanceReport from "../components/faculty/AttendanceReport";
 
 const Faculty = () => {
   return (
@@ -22,12 +24,13 @@ const Faculty = () => {
         <Route path="add-notes" element={<AddNotes />} />
         <Route path="divisions" element={<Divisions />} />
         <Route path="leave-apply" element={<LeaveApplication />} />
-        <Route path="student-stress-level" element={<StudentStressLevel />} />
+        <Route path="student-stress-level" element={<DummyFacultyStress />} />
         <Route path="location" element={<StudentLocation />} />
         <Route path="faculty-profile" element={<FacultyProfile />} />
         <Route path="faculty-settings" element={<FacultySettings />} />
         <Route path="faculty-settings/edit-profile" element={<FacultyProfileEdit />} />
         <Route path="faculty-settings/change-password" element={<FacultyChangePassword />} />
+        <Route path="attendance-report" element={<AttendanceReport />} />
       </Routes>
     </FacultySideBar>
   );
