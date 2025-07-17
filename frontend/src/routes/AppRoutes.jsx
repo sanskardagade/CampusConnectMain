@@ -10,6 +10,7 @@ import PrincipalDashboard from '../pages/PrincipalDashboard';
 import RegistrarDashboard from '../pages/RegistrarDashboard';
 import LandingPage from '../pages/LandingPage';
 import UnauthorizedPage from '../pages/UnauthorizedPage';
+import AdminSignInPage from '../pages/AdminSignInPage';
 
 const AppRoutes = () => {
   return (
@@ -17,6 +18,7 @@ const AppRoutes = () => {
       <Route path="/" element={<LandingPage />} />
       <Route path="/signin" element={<SignInPage />} />
       <Route path="/signup" element={<SignUpPage />} />
+      <Route path="/admin-login" element={<AdminSignInPage />} />
       <Route path="/unauthorized" element={<UnauthorizedPage />} />
 
       {/* Protected Routes */}

@@ -17,6 +17,7 @@ import { AuthProvider } from './context/AuthContext';
 import Admin from "./routes/Admin";
 import Chatbot from "./components/Chatbot";
 import SecurityDashboard from "./pages/SecurityDashboard";
+import AdminSignInPage from "./pages/AdminSignInPage";
 
 const App = () => {
   return (
@@ -29,6 +30,7 @@ const App = () => {
             <Route path="/signin" element={<SignInPage/>} />
             <Route path="/about" element={<About />} />
             <Route path="/admin/*" element={<Admin/>}/>
+            <Route path="/admin-login" element={<AdminSignInPage/>} />
             
             <Route path="/contact" element={<Contact />} />
             <Route path="/features" element={<Features/>} />

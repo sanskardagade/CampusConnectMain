@@ -13,10 +13,6 @@ const Navbar = () => {
   const [activeLink, setActiveLink] = useState("");
   const navigate = useNavigate();
   const { updateUser } = useUser();
-  const [showAdminLogin, setShowAdminLogin] = useState(false);
-  const [adminForm, setAdminForm] = useState({ username: "", password: "" });
-  const [adminError, setAdminError] = useState("");
-  const [adminLoading, setAdminLoading] = useState(false);
   const [showCollegeSelect, setShowCollegeSelect] = useState(false);
   const colleges = ["Dr. D. Y. Patil Inst. of Tech., Pimpri", "IMR",  "B-School"];
 
@@ -52,43 +48,6 @@ const Navbar = () => {
     { label: "Settings", to: "/settings" },
     { label: "Logout", to: "/logout" }
   ];
-
-  const handleAdminChange = (e) => {
-    setAdminForm({ ...adminForm, [e.target.name]: e.target.value });
-  };
-
-  const handleAdminLogin = async (e) => {
-    e.preventDefault();
-    setAdminError("");
-    setAdminLoading(true);
-    try {
-      const endpoint = "http://69.62.83.14:9000/api/admin/login"; // Updated admin login endpoint
-      const response = await fetch(endpoint, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          adminname: adminForm.username,
-          password: adminForm.password,
-          role: "admin" // Set role to admin
-        })
-      });
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.details || data.message || "Login failed");
-      }
-      localStorage.setItem("token", data.token);
-      localStorage.setItem("user", JSON.stringify(data.user));
-      localStorage.setItem("role", data.user.role);
-      updateUser(data.user);
-      setShowAdminLogin(false);
-      setShowCollegeSelect(true); // Show college selection modal
-      // navigate("/admin"); // Remove direct navigation
-    } catch (err) {
-      setAdminError(err.message || "An error occurred during login");
-    } finally {
-      setAdminLoading(false);
-    }
-  };
 
   return (
     <nav className={`fixed w-full z-50 transition-all duration-300 ${scrolled ? "top-0 bg-[#b22b2f] shadow-xl" : "top-24 bg-[#b22b2f]"}`}>
@@ -154,7 +113,7 @@ const Navbar = () => {
             {/* Admin Quick Login Button */}
             <button
               className="ml-4 text-sm text-white bg-[#d1a550] px-4 py-2 rounded-lg hover:bg-[#c19a45] transition flex items-center gap-2"
-              onClick={() => setShowAdminLogin(true)}
+              onClick={() => navigate('/admin-login')}
               type="button"
             >
               <FiLogIn /> Admin Quick Login
@@ -179,61 +138,7 @@ const Navbar = () => {
         </div>
       </div>
 
-      {/* Admin Quick Login Modal */}
-      {showAdminLogin && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-          <div className="bg-white rounded-lg shadow-lg p-8 w-full max-w-sm relative">
-            <button
-              className="absolute top-2 right-2 text-[#6b6d71] hover:text-[#6b6d71]"
-              onClick={() => setShowAdminLogin(false)}
-            >
-              <FaTimes className="h-5 w-5" />
-            </button>
-            <h2 className="text-center text-2xl mb-5">Admin Quick Login</h2>
-            <form onSubmit={handleAdminLogin} className="flex flex-col gap-3">
-              <input
-                type="text"
-                name="username"
-                placeholder="Admin Username"
-                value={adminForm.username}
-                onChange={handleAdminChange}
-                required
-                className="p-3 text-sm border rounded-md"
-              />
-              <input
-                type="password"
-                name="password"
-                placeholder="Password"
-                value={adminForm.password}
-                onChange={handleAdminChange}
-                required
-                className="p-3 text-sm border rounded-md"
-              />
-              <button
-                type="submit"
-                disabled={adminLoading}
-                className="bg-[#b22b2f] text-white p-3 rounded-md hover:bg-[#d1a550] transition-colors flex items-center justify-center gap-2"
-              >
-                {adminLoading ? (
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                ) : (
-                  <>
-                    <FiLogIn />
-                    Admin Login
-                  </>
-                )}
-              </button>
-              {adminError && (
-                <div className="bg-red-100 border border-red-400 text-[#b22b2f] px-4 py-2 rounded flex items-center mt-2">
-                  <FiAlertCircle className="mr-2" />
-                  {adminError}
-                </div>
-              )}
-            </form>
-          </div>
-        </div>
-      )}
-
+      {/* College Selection Modal */}
       {showCollegeSelect && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
           <div className="bg-white rounded-lg shadow-lg p-8 w-full max-w-sm relative">
@@ -314,7 +219,7 @@ const Navbar = () => {
               {/* Admin Quick Login Button for Mobile */}
               <button
                 className="w-full mt-2 text-sm text-white bg-[#d1a550] px-4 py-2 rounded-lg hover:bg-[#c19a45] transition flex items-center gap-2 justify-center"
-                onClick={() => { setShowAdminLogin(true); setMobileOpen(false); }}
+                onClick={() => { navigate('/admin-login'); setMobileOpen(false); }}
                 type="button"
               >
                 <FiLogIn /> Admin Quick Login

@@ -106,8 +106,11 @@ function MobileBottomTabs({ onLogout }) {
     // { path: "/admin/faculty-leave-approval", label: "Leaves", icon: <AiFillBell /> },
     { path: "/admin/faculty-report", label: "Report", icon: <AiOutlineFilePdf /> },
     { path: "/admin/view-stress-level", label: "Stress", icon: <FiActivity /> },
-    { path: "/admin/admin-settings", label: "Settings", icon: <AiOutlineSetting /> },
+    { path: "/admin/admin-profile", label: "Profile", icon: <AiOutlineSetting /> },
+    { path: "/admin/admin-settings/edit-profile", label: "Edit Profile", icon: <AiOutlineSetting /> },
+    { path: "/admin/admin-settings/change-password", label: "Change Password", icon: <AiOutlineSetting /> },
     { path: "/", label: "Logout", icon: <AiOutlineLogout />, isLogout: true },
+
   ];
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-20 bg-[#b22b2f] text-white flex justify-between items-center px-1 py-1 shadow-t border-t border-[#a02529]">
