@@ -428,3 +428,4 @@ const FacultyReport = () => {
 };
 
 export default FacultyReport;
+ 

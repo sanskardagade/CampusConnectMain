@@ -39,6 +39,7 @@ const AdminFacultyReport = () => {
   const [rangeType, setRangeType] = useState('daily');
   const [attendanceType, setAttendanceType] = useState('faculty');
   const [stressType, setStressType] = useState('faculty');
+  const [attendanceStatus, setAttendanceStatus] = useState('present'); // present or absent
 
   useEffect(() => {
     // Fetch departments for dropdown
@@ -107,11 +108,17 @@ const AdminFacultyReport = () => {
         toDate,
         format,
       };
-      let endpoint;
+      let endpoint = '';
       if (reportType === 'attendance') {
-        endpoint = attendanceType === 'faculty'
-          ? 'http://69.62.83.14:9000/api/admin/faculty-attendance-report'
-          : 'http://69.62.83.14:9000/api/admin/staff-attendance-report';
+        if (attendanceStatus === 'present') {
+          endpoint = attendanceType === 'faculty'
+            ? 'http://69.62.83.14:9000/api/admin/faculty-attendance-report'
+            : 'http://69.62.83.14:9000/api/admin/staff-attendance-report';
+        } else {
+          endpoint = attendanceType === 'faculty'
+            ? 'http://69.62.83.14:9000/api/admin/absent-faculty-today'
+            : 'http://69.62.83.14:9000/api/admin/absent-staff-today';
+        }
       } else if (reportType === 'stress') {
         endpoint = stressType === 'faculty'
           ? 'http://69.62.83.14:9000/api/admin/faculty-stress-report'
@@ -126,11 +133,17 @@ const AdminFacultyReport = () => {
       });
       // Get filename from content-disposition or fallback
       const disposition = response.headers['content-disposition'];
-      let filename;
+      let filename = '';
       if (reportType === 'attendance') {
-        filename = attendanceType === 'faculty'
-          ? `faculty_attendance_report.${format}`
-          : `staff_attendance_report.${format}`;
+        if (attendanceStatus === 'present') {
+          filename = attendanceType === 'faculty'
+            ? `faculty_attendance_report.${format}`
+            : `staff_attendance_report.${format}`;
+        } else {
+          filename = attendanceType === 'faculty'
+            ? `absent_faculty_report.${format}`
+            : `absent_staff_report.${format}`;
+        }
       } else if (reportType === 'stress') {
         filename = stressType === 'faculty'
           ? `faculty_stress_report.${format}`
@@ -184,23 +197,41 @@ const AdminFacultyReport = () => {
                 </button>
               ))}
             </div>
-            {/* Attendance type toggle for attendance report */}
             {reportType === 'attendance' && (
-              <div className="flex gap-2 mb-6 justify-center">
-                {attendanceTypes.map(at => (
-                  <button
-                    key={at.value}
-                    className={`px-4 py-2 rounded-xl font-semibold border-2 transition-all duration-200 ${
-                      attendanceType === at.value
-                        ? 'bg-gradient-to-r from-red-800 to-red-600 text-white border-red-700 shadow-lg'
-                        : 'bg-white text-red-800 border-red-300 hover:border-red-600'
-                    }`}
-                    onClick={() => setAttendanceType(at.value)}
-                  >
-                    {at.label}
-                  </button>
-                ))}
-              </div>
+              <>
+                {/* Present/Absent Toggle */}
+                <div className="flex gap-2 mb-6 justify-center">
+                  {['present', 'absent'].map(status => (
+                    <button
+                      key={status}
+                      className={`px-4 py-2 rounded-xl font-semibold border-2 transition-all duration-200 ${
+                        attendanceStatus === status
+                          ? 'bg-gradient-to-r from-red-800 to-red-600 text-white border-red-700 shadow-lg'
+                          : 'bg-white text-red-800 border-red-300 hover:border-red-600'
+                      }`}
+                      onClick={() => setAttendanceStatus(status)}
+                    >
+                      {status.charAt(0).toUpperCase() + status.slice(1)}
+                    </button>
+                  ))}
+                </div>
+                {/* Faculty/Staff Toggle */}
+                <div className="flex gap-2 mb-6 justify-center">
+                  {attendanceTypes.map(at => (
+                    <button
+                      key={at.value}
+                      className={`px-4 py-2 rounded-xl font-semibold border-2 transition-all duration-200 ${
+                        attendanceType === at.value
+                          ? 'bg-gradient-to-r from-red-800 to-red-600 text-white border-red-700 shadow-lg'
+                          : 'bg-white text-red-800 border-red-300 hover:border-red-600'
+                      }`}
+                      onClick={() => setAttendanceType(at.value)}
+                    >
+                      {at.label}
+                    </button>
+                  ))}
+                </div>
+              </>
             )}
             {/* Stress type toggle for stress report */}
             {reportType === 'stress' && (

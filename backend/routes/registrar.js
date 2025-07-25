@@ -2275,6 +2275,278 @@ router.get('/energy-data/summary', async (req, res) => {
     res.status(500).json({ error: 'Internal server error' });
   }
 });
-// ... existing code ...
+
+router.get('/absent-faculty-today', async (req, res) => {
+  try {
+    const { format = 'pdf', fromDate, toDate, departmentId = 'all' } = req.query;
+
+    const from = fromDate || new Date().toISOString().split('T')[0];
+    const to = toDate || from;
+
+    // Query active faculty filtered by department (if provided)
+    let facultyQuery = `
+      SELECT f.erpid, f.name, d.name AS department_name
+      FROM faculty f
+      JOIN departments d ON f.department_id = d.id
+      WHERE f.is_active = true
+    `;
+    const queryParams = [];
+    if (departmentId !== 'all') {
+      const depts = departmentId.split(',').map(id => Number(id));
+      facultyQuery += ` AND f.department_id = ANY($1::int[])`;
+      queryParams.push(depts);
+    }
+
+    const facultyResult = queryParams.length ?
+      await sql.query(facultyQuery, queryParams) :
+      await sql.query(facultyQuery);
+    const allFaculty = facultyResult.rows || facultyResult;
+
+    // Logs for present faculty in date range
+    const presentRows = await sql`
+      SELECT DISTINCT erp_id FROM faculty_logs
+      WHERE DATE(timestamp AT TIME ZONE 'Asia/Kolkata') BETWEEN ${from}::date AND ${to}::date
+    `;
+    const presentSet = new Set(presentRows.map(r => r.erp_id));
+
+    // Find absent faculty
+    const absentFaculty = allFaculty.filter(fac => !presentSet.has(fac.erpid));
+
+    if (!absentFaculty.length) {
+      return res.status(404).send('No absent faculty matching criteria.');
+    }
+
+    if (format === 'pdf') {
+      const doc = new PDFDocument({ margin: 30, size: 'A4' });
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', 'attachment; filename=absent_faculty_report.pdf');
+      doc.pipe(res);
+
+      doc.fontSize(18).text('Absent Faculty Report', { align: 'center' });
+      doc.moveDown();
+      doc.fontSize(12).text(`From: ${from} To: ${to}`, { align: 'center' });
+      doc.moveDown();
+
+      // Table header
+      const headers = ['S.No', 'ERP ID', 'Name', 'Department'];
+      const colWidths = [40, 70, 200, 210];
+      const startX = 50;
+      let y = doc.y + 10;
+
+      // Draw header row
+      let x = startX;
+      doc.font('Helvetica-Bold').fontSize(11);
+      headers.forEach((header, i) => {
+        doc.rect(x, y, colWidths[i], 20).stroke();
+        doc.text(header, x + 5, y + 5, { width: colWidths[i] - 10, align: 'center' });
+        x += colWidths[i];
+      });
+      y += 20;
+
+      // Sort absent faculty by department name (branch)
+      absentFaculty.sort((a, b) => a.department_name.localeCompare(b.department_name));
+
+      // Draw data rows
+      doc.font('Helvetica').fontSize(10);
+      absentFaculty.forEach((f, i) => {
+        x = startX;
+        const row = [
+          (i + 1).toString(),
+          f.erpid,
+          f.name,
+          f.department_name
+        ];
+        row.forEach((cell, j) => {
+          doc.rect(x, y, colWidths[j], 18).stroke();
+          doc.text(cell, x + 5, y + 4, { width: colWidths[j] - 10, align: 'left' });
+          x += colWidths[j];
+        });
+        y += 18;
+        // Add new page if needed
+        if (y > doc.page.height - 50) {
+          doc.addPage();
+          y = 50;
+        }
+      });
+
+      doc.end();
+      return;
+    } else if (format === 'xlsx') {
+      const workbook = new ExcelJS.Workbook();
+      const sheet = workbook.addWorksheet('Absent Faculty');
+
+      sheet.columns = [
+        { header: 'S.No', key: 'sno', width: 10 },
+        { header: 'ERP ID', key: 'erpid', width: 15 },
+        { header: 'Name', key: 'name', width: 30 },
+        { header: 'Department', key: 'department', width: 30 },
+      ];
+
+      absentFaculty.forEach((f, index) => {
+        sheet.addRow({
+          sno: index + 1,
+          erpid: f.erpid,
+          name: f.name,
+          department: f.department_name,
+        });
+      });
+
+      res.setHeader('Content-Disposition', 'attachment; filename=absent_faculty_report.xlsx');
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+
+      await workbook.xlsx.write(res);
+      res.end();
+      return;
+    } else if (format === 'csv') {
+      let csv = 'S.No,ERP ID,Name,Department\n';
+      csv += absentFaculty.map((f, i) =>
+        `${i + 1},"${f.erpid}","${f.name}","${f.department_name}"`
+      ).join('\n');
+
+      res.setHeader('Content-Disposition', 'attachment; filename=absent_faculty_report.csv');
+      res.setHeader('Content-Type', 'text/csv');
+      return res.send(csv);
+    } else {
+      return res.status(400).json({ message: 'Unsupported format' });
+    }
+  } catch (err) {
+    console.error('Absent faculty report error:', err);
+    return res.status(500).json({ message: 'Error generating absent faculty report' });
+  }
+});
+
+router.get('/absent-staff-today', async (req, res) => {
+  try {
+    const { format = 'pdf', fromDate, toDate, departmentId = 'all' } = req.query;
+    const from = fromDate || new Date().toISOString().split('T')[0];
+    const to = toDate || from;
+
+    // Query all non-teaching staff filtered by department (if provided)
+    let staffQuery = `
+      SELECT s.erpid, s.name, d.name AS department_name
+      FROM non_teaching_staff s
+      JOIN departments d ON s.department_id = d.id
+    `;
+    const queryParams = [];
+    if (departmentId !== 'all') {
+      const depts = departmentId.split(',').map(id => Number(id));
+      staffQuery += ` WHERE s.department_id = ANY($1::int[])`;
+      queryParams.push(depts);
+    }
+    const staffResult = queryParams.length ?
+      await sql.query(staffQuery, queryParams) :
+      await sql.query(staffQuery);
+    const allStaff = staffResult.rows || staffResult;
+
+    // Logs for present staff in date range
+    const presentRows = await sql`
+      SELECT DISTINCT erp_id FROM faculty_logs
+      WHERE DATE(timestamp AT TIME ZONE 'Asia/Kolkata') BETWEEN ${from}::date AND ${to}::date
+        AND erp_id IN (SELECT erpid FROM non_teaching_staff)
+        AND erp_id <> 'No id'
+    `;
+    const presentSet = new Set(presentRows.map(r => r.erp_id));
+
+    // Find absent staff
+    const absentStaff = allStaff.filter(staff => !presentSet.has(staff.erpid));
+
+    if (!absentStaff.length) {
+      return res.status(404).send('No absent staff matching criteria.');
+    }
+
+    if (format === 'pdf') {
+      const PDFDocument = require('pdfkit');
+      const doc = new PDFDocument({ margin: 30, size: 'A4' });
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', 'attachment; filename=absent_staff_report.pdf');
+      doc.pipe(res);
+
+      doc.fontSize(18).text('Absent Non-Teaching Staff Report', { align: 'center' });
+      doc.moveDown();
+      doc.fontSize(12).text(`From: ${from} To: ${to}`, { align: 'center' });
+      doc.moveDown();
+
+      // Table header
+      const headers = ['S.No', 'ERP ID', 'Name', 'Department'];
+      const colWidths = [40, 70, 200, 210];
+      const startX = 50;
+      let y = doc.y + 10;
+
+      // Draw header row
+      let x = startX;
+      doc.font('Helvetica-Bold').fontSize(11);
+      headers.forEach((header, i) => {
+        doc.rect(x, y, colWidths[i], 20).stroke();
+        doc.text(header, x + 5, y + 5, { width: colWidths[i] - 10, align: 'center' });
+        x += colWidths[i];
+      });
+      y += 20;
+
+      // Sort absent staff by department name
+      absentStaff.sort((a, b) => a.department_name.localeCompare(b.department_name));
+
+      // Draw data rows
+      doc.font('Helvetica').fontSize(10);
+      absentStaff.forEach((s, i) => {
+        x = startX;
+        const row = [
+          (i + 1).toString(),
+          s.erpid,
+          s.name,
+          s.department_name
+        ];
+        row.forEach((cell, j) => {
+          doc.rect(x, y, colWidths[j], 18).stroke();
+          doc.text(cell, x + 5, y + 4, { width: colWidths[j] - 10, align: 'left' });
+          x += colWidths[j];
+        });
+        y += 18;
+        if (y > doc.page.height - 50) {
+          doc.addPage();
+          y = 50;
+        }
+      });
+      doc.end();
+      return;
+    } else if (format === 'xlsx') {
+      const ExcelJS = require('exceljs');
+      const workbook = new ExcelJS.Workbook();
+      const sheet = workbook.addWorksheet('Absent Staff');
+      sheet.columns = [
+        { header: 'S.No', key: 'sno', width: 10 },
+        { header: 'ERP ID', key: 'erpid', width: 15 },
+        { header: 'Name', key: 'name', width: 30 },
+        { header: 'Department', key: 'department', width: 30 },
+      ];
+      absentStaff.forEach((s, index) => {
+        sheet.addRow({
+          sno: index + 1,
+          erpid: s.erpid,
+          name: s.name,
+          department: s.department_name,
+        });
+      });
+      res.setHeader('Content-Disposition', 'attachment; filename=absent_staff_report.xlsx');
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      await workbook.xlsx.write(res);
+      res.end();
+      return;
+    } else if (format === 'csv') {
+      let csv = 'S.No,ERP ID,Name,Department\n';
+      csv += absentStaff.map((s, i) =>
+        `${i + 1},"${s.erpid}","${s.name}","${s.department_name}"`
+      ).join('\n');
+      res.setHeader('Content-Disposition', 'attachment; filename=absent_staff_report.csv');
+      res.setHeader('Content-Type', 'text/csv');
+      return res.send(csv);
+    } else {
+      return res.status(400).json({ message: 'Unsupported format' });
+    }
+  } catch (error) {
+    console.error('Absent staff report error:', error);
+    return res.status(500).json({ message: 'Error generating absent staff report' });
+  }
+});
+
 
 module.exports = router; 
