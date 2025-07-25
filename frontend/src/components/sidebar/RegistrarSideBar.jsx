@@ -44,6 +44,11 @@ const routes = [
     name: "Faculty Reports",
     icon: <AiOutlineFilePdf />,
   },
+  {
+    path: "/registrar/energy-dashboard",
+    name: "Energy Dashboard",
+    icon: <BiAnalyse />,
+  },
   
   
   {

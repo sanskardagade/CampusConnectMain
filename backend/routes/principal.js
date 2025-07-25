@@ -692,6 +692,247 @@ router.get('/faculty-attendance-report', async (req, res) => {
   }
 });
 
+
+router.get('/staff-attendance-report', async (req, res) => {
+  try {
+    const { departmentId, fromDate, toDate, format } = req.query;
+    const from = fromDate || '1900-01-01';
+    const to = toDate || '2100-12-31';
+    let records;
+    if (departmentId && departmentId !== 'all') {
+      let deptIds = departmentId.includes(',') ? departmentId.split(',').map(Number) : [Number(departmentId)];
+      records = await sql`
+        SELECT
+          log_summary.person_name AS staff_name,
+          log_summary.erp_id,
+          COALESCE(d.name, 'Unknown') AS department_name,
+          log_summary.attendance_date,
+          log_summary.first_log,
+          log_summary.last_log
+        FROM
+          (
+            SELECT
+              erp_id,
+              COALESCE(NULLIF(person_name, ''), 'Unknown') AS person_name,
+              DATE(timestamp AT TIME ZONE 'Asia/Kolkata') AS attendance_date,
+              MIN(timestamp) AS first_log,
+              MAX(timestamp) AS last_log
+            FROM
+              faculty_logs
+            WHERE
+              DATE(timestamp AT TIME ZONE 'Asia/Kolkata') >= ${from}::date AND
+              DATE(timestamp AT TIME ZONE 'Asia/Kolkata') <= ${to}::date
+              AND erp_id <> 'No id'
+              AND erp_id IN (SELECT erpid FROM non_teaching_staff)
+            GROUP BY
+              erp_id,
+              person_name,
+              attendance_date
+          ) AS log_summary
+        LEFT JOIN
+          non_teaching_staff s ON log_summary.erp_id = s.erpid
+        LEFT JOIN
+          departments d ON s.department_id = d.id
+        WHERE (s.department_id = ANY(${deptIds}) OR s.department_id IS NULL)
+        ORDER BY department_name, log_summary.first_log, staff_name, log_summary.attendance_date
+      `;
+    } else {
+      records = await sql`
+        SELECT
+          log_summary.person_name AS staff_name,
+          log_summary.erp_id,
+          COALESCE(d.name, 'Unknown') AS department_name,
+          log_summary.attendance_date,
+          log_summary.first_log,
+          log_summary.last_log
+        FROM
+          (
+            SELECT
+              erp_id,
+              COALESCE(NULLIF(person_name, ''), 'Unknown') AS person_name,
+              DATE(timestamp AT TIME ZONE 'Asia/Kolkata') AS attendance_date,
+              MIN(timestamp) AS first_log,
+              MAX(timestamp) AS last_log
+            FROM
+              faculty_logs
+            WHERE
+              DATE(timestamp AT TIME ZONE 'Asia/Kolkata') >= ${from}::date AND
+              DATE(timestamp AT TIME ZONE 'Asia/Kolkata') <= ${to}::date
+              AND erp_id <> 'No id'
+              AND erp_id IN (SELECT erpid FROM non_teaching_staff)
+            GROUP BY
+              erp_id,
+              person_name,
+              attendance_date
+          ) AS log_summary
+        LEFT JOIN
+          non_teaching_staff s ON log_summary.erp_id = s.erpid
+        LEFT JOIN
+          departments d ON s.department_id = d.id
+        ORDER BY department_name, log_summary.first_log, staff_name, log_summary.attendance_date
+      `;
+    }
+    const rows = Array.isArray(records) ? records : (records.rows || []);
+    if (!rows || rows.length === 0) {
+      return res.status(404).send('No attendance data found for the selected criteria.');
+    }
+    // Helper functions for IST conversion
+    function toISTDateString(utcDateString) {
+      const date = new Date(utcDateString);
+      const utc = date.getTime() + (date.getTimezoneOffset() * 60000);
+      const istOffset = 5.5 * 60 * 60 * 1000;
+      const istDate = new Date(utc + istOffset);
+      return istDate.toISOString().split('T')[0];
+    }
+    if (format === 'pdf') {
+      const PDFDocument = require('pdfkit');
+      const doc = new PDFDocument({ margin: 30, size: 'A4', layout: 'landscape' });
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', 'attachment; filename=staff_attendance_report.pdf');
+      doc.pipe(res);
+      doc.fontSize(16).text('Non-Teaching Staff Attendance Report', { align: 'center' });
+      doc.moveDown();
+      // Table columns
+      const headers = ['S.No', 'Date', 'Staff Name', 'ERP ID', 'Department', 'First Log', 'Last Log', 'Duration (HH:MM:SS)'];
+      const colWidths = [30, 70, 140, 65, 160, 70, 70, 110];
+      const startX = doc.x;
+      let y = doc.y;
+      function drawHeader() {
+        let x = startX;
+        doc.font('Helvetica-Bold').fontSize(10);
+        headers.forEach((header, i) => {
+          doc.rect(x, y, colWidths[i], 20).stroke();
+          doc.text(header, x + 2, y + 6, { width: colWidths[i] - 4, align: 'center' });
+          x += colWidths[i];
+        });
+        y += 20;
+        doc.font('Helvetica').fontSize(9);
+        doc.y = y;
+      }
+      drawHeader();
+      let rowCount = 0;
+      let serialNumber = 1;
+      rows.forEach(r => {
+        const firstLog = new Date(r.first_log);
+        const lastLog = new Date(r.last_log);
+        let duration = '00:00:00';
+        const durationMs = lastLog - firstLog;
+        if (!isNaN(durationMs) && durationMs >= 0) {
+          const hours = Math.floor(durationMs / (1000 * 60 * 60));
+          const minutes = Math.floor((durationMs / (1000 * 60)) % 60);
+          const seconds = Math.floor((durationMs / 1000) % 60);
+          duration = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        }
+        const row = [
+          serialNumber.toString(),
+          toISTDateString(r.first_log),
+          r.staff_name,
+          r.erp_id,
+          r.department_name,
+          firstLog.toTimeString().split(' ')[0],
+          lastLog.toTimeString().split(' ')[0],
+          duration
+        ];
+        let x = startX;
+        row.forEach((cell, i) => {
+          doc.rect(x, y, colWidths[i], 18).stroke();
+          doc.text(String(cell), x + 2, y + 5, { width: colWidths[i] - 4, align: 'center', ellipsis: true });
+          x += colWidths[i];
+        });
+        y += 18;
+        rowCount++;
+        serialNumber++;
+        if (rowCount % 20 === 0) {
+          doc.addPage();
+          y = doc.y;
+          drawHeader();
+          y = doc.y;
+        }
+      });
+      doc.end();
+      return;
+    }
+    if (format === 'xlsx') {
+      const ExcelJS = require('exceljs');
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet('Staff Attendance');
+      worksheet.columns = [
+        { header: 'S.No', key: 'serial_no', width: 10 },
+        { header: 'Date', key: 'date', width: 15 },
+        { header: 'Staff Name', key: 'staff_name', width: 25 },
+        { header: 'ERP ID', key: 'erp_id', width: 15 },
+        { header: 'Department', key: 'department_name', width: 25 },
+        { header: 'First Log', key: 'first_log', width: 15 },
+        { header: 'Last Log', key: 'last_log', width: 15 },
+        { header: 'Duration (HH:MM:SS)', key: 'duration', width: 18 },
+      ];
+      let serialNumber = 1;
+      rows.forEach(r => {
+        const firstLog = new Date(r.first_log);
+        const lastLog = new Date(r.last_log);
+        let duration = '00:00:00';
+        const durationMs = lastLog - firstLog;
+        if (!isNaN(durationMs) && durationMs >= 0) {
+          const hours = Math.floor(durationMs / (1000 * 60 * 60));
+          const minutes = Math.floor((durationMs / (1000 * 60)) % 60);
+          const seconds = Math.floor((durationMs / 1000) % 60);
+          duration = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        }
+        worksheet.addRow({
+          serial_no: serialNumber,
+          date: toISTDateString(r.first_log),
+          staff_name: r.staff_name,
+          erp_id: r.erp_id,
+          department_name: r.department_name,
+          first_log: firstLog.toTimeString().split(' ')[0],
+          last_log: lastLog.toTimeString().split(' ')[0],
+          duration,
+        });
+        serialNumber++;
+      });
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Content-Disposition', 'attachment; filename=staff_attendance_report.xlsx');
+      await workbook.xlsx.write(res);
+      res.end();
+      return;
+    }
+    // CSV generation
+    const csvHeader = 'S.No,Date,Staff Name,ERP ID,Department,First Log,Last Log,Duration (HH:MM:SS)\n';
+    let serialNumber = 1;
+    const csvRows = rows.map(r => {
+      const firstLog = new Date(r.first_log);
+      const lastLog = new Date(r.last_log);
+      let duration = '00:00:00';
+      const durationMs = lastLog - firstLog;
+      if (!isNaN(durationMs) && durationMs >= 0) {
+        const hours = Math.floor(durationMs / (1000 * 60 * 60));
+        const minutes = Math.floor((durationMs / (1000 * 60)) % 60);
+        const seconds = Math.floor((durationMs / 1000) % 60);
+        duration = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+      }
+      const row = [
+        serialNumber,
+        toISTDateString(r.first_log),
+        `"${r.staff_name}"`,
+        r.erp_id,
+        `"${r.department_name}"`,
+        firstLog.toTimeString().split(' ')[0],
+        lastLog.toTimeString().split(' ')[0],
+        duration
+      ];
+      serialNumber++;
+      return row.join(',');
+    });
+    const csvData = csvHeader + csvRows.join('\n');
+    res.header('Content-Type', 'text/csv');
+    res.attachment('staff_attendance_report.csv');
+    return res.send(csvData);
+  } catch (error) {
+    console.error('Error generating staff attendance report:', error);
+    res.status(500).json({ message: 'Failed to generate staff attendance report' });
+  }
+});
+
 // REPLACE the /student-attendance-today endpoint with this:
 router.get('/student-attendance-today', async (req, res) => {
   try {
@@ -826,7 +1067,6 @@ router.get('/faculty-stress-report', async (req, res) => {
     }));
 
     if (format === 'pdf') {
-      const PDFDocument = require('pdfkit');
       const doc = new PDFDocument({ margin: 30, size: 'A4', layout: 'landscape' });
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader('Content-Disposition', 'attachment; filename=faculty_stress_report.pdf');
@@ -1266,86 +1506,80 @@ router.get('/staff-attendance-report', async (req, res) => {
     const { departmentId, fromDate, toDate, format } = req.query;
     const from = fromDate || '1900-01-01';
     const to = toDate || '2100-12-31';
-    let records;
+    // Get all non-teaching staff
+    let staffQuery = 'SELECT s.erpid, s.name AS staff_name, COALESCE(d.name, "Unknown") AS department_name, s.department_id FROM non_teaching_staff s LEFT JOIN departments d ON s.department_id = d.id';
     if (departmentId && departmentId !== 'all') {
       let deptIds = departmentId.includes(',') ? departmentId.split(',').map(Number) : [Number(departmentId)];
-      records = await sql`
-        SELECT
-          log_summary.person_name AS staff_name,
-          log_summary.erp_id,
-          COALESCE(d.name, 'Unknown') AS department_name,
-          log_summary.attendance_date,
-          log_summary.first_log,
-          log_summary.last_log
-        FROM
-          (
-            SELECT
-              erp_id,
-              COALESCE(NULLIF(person_name, ''), 'Unknown') AS person_name,
-              DATE(timestamp AT TIME ZONE 'Asia/Kolkata') AS attendance_date,
-              MIN(timestamp) AS first_log,
-              MAX(timestamp) AS last_log
-            FROM
-              faculty_logs
-            WHERE
-              DATE(timestamp AT TIME ZONE 'Asia/Kolkata') >= ${from}::date AND
-              DATE(timestamp AT TIME ZONE 'Asia/Kolkata') <= ${to}::date
-              AND erp_id <> 'No id'
-              AND erp_id IN (SELECT erpid FROM non_teaching_staff)
-            GROUP BY
-              erp_id,
-              person_name,
-              attendance_date
-          ) AS log_summary
-        LEFT JOIN
-          non_teaching_staff s ON log_summary.erp_id = s.erpid
-        LEFT JOIN
-          departments d ON s.department_id = d.id
-        WHERE (s.department_id = ANY(${deptIds}) OR s.department_id IS NULL)
-        ORDER BY department_name, log_summary.first_log, staff_name, log_summary.attendance_date
-      `;
-    } else {
-      records = await sql`
-        SELECT
-          log_summary.person_name AS staff_name,
-          log_summary.erp_id,
-          COALESCE(d.name, 'Unknown') AS department_name,
-          log_summary.attendance_date,
-          log_summary.first_log,
-          log_summary.last_log
-        FROM
-          (
-            SELECT
-              erp_id,
-              COALESCE(NULLIF(person_name, ''), 'Unknown') AS person_name,
-              DATE(timestamp AT TIME ZONE 'Asia/Kolkata') AS attendance_date,
-              MIN(timestamp) AS first_log,
-              MAX(timestamp) AS last_log
-            FROM
-              faculty_logs
-            WHERE
-              DATE(timestamp AT TIME ZONE 'Asia/Kolkata') >= ${from}::date AND
-              DATE(timestamp AT TIME ZONE 'Asia/Kolkata') <= ${to}::date
-              AND erp_id <> 'No id'
-              AND erp_id IN (SELECT erpid FROM non_teaching_staff)
-            GROUP BY
-              erp_id,
-              person_name,
-              attendance_date
-          ) AS log_summary
-        LEFT JOIN
-          non_teaching_staff s ON log_summary.erp_id = s.erpid
-        LEFT JOIN
-          departments d ON s.department_id = d.id
-        ORDER BY department_name, log_summary.first_log, staff_name, log_summary.attendance_date
-      `;
+      staffQuery += ` WHERE s.department_id = ANY('{${deptIds.join(',')}}')`;
     }
-    const rows = Array.isArray(records) ? records : (records.rows || []);
+    const allStaff = await sql.unsafe(staffQuery);
+    // Get logs for staff in date range
+    const logs = await sql`
+      SELECT
+        erp_id,
+        person_name,
+        DATE(timestamp AT TIME ZONE 'Asia/Kolkata') AS attendance_date,
+        MIN(timestamp) AS first_log,
+        MAX(timestamp) AS last_log
+      FROM
+        faculty_logs
+      WHERE
+        DATE(timestamp AT TIME ZONE 'Asia/Kolkata') >= ${from}::date AND
+        DATE(timestamp AT TIME ZONE 'Asia/Kolkata') <= ${to}::date
+        AND erp_id <> 'No id'
+        AND erp_id IN (${allStaff.map(s => s.erpid)})
+      GROUP BY
+        erp_id,
+        person_name,
+        DATE(timestamp AT TIME ZONE 'Asia/Kolkata')
+    `;
+    // Map logs by erp_id + date
+    const logMap = {};
+    logs.forEach(l => {
+      const key = `${l.erp_id}_${l.attendance_date}`;
+      logMap[key] = l;
+    });
+    // Build report rows for each staff for each date in range
+    const dateList = [];
+    let currentDate = new Date(from);
+    const endDate = new Date(to);
+    while (currentDate <= endDate) {
+      dateList.push(currentDate.toISOString().split('T')[0]);
+      currentDate.setDate(currentDate.getDate() + 1);
+    }
+    const rows = [];
+    allStaff.forEach(staff => {
+      dateList.forEach(date => {
+        const key = `${staff.erpid}_${date}`;
+        if (logMap[key]) {
+          rows.push({
+            staff_name: staff.staff_name,
+            erp_id: staff.erpid,
+            department_name: staff.department_name,
+            attendance_date: date,
+            first_log: logMap[key].first_log,
+            last_log: logMap[key].last_log,
+            status: 'Present'
+          });
+        } else {
+          rows.push({
+            staff_name: staff.staff_name,
+            erp_id: staff.erpid,
+            department_name: staff.department_name,
+            attendance_date: date,
+            first_log: '',
+            last_log: '',
+            status: 'Absent'
+          });
+        }
+      });
+    });
     if (!rows || rows.length === 0) {
       return res.status(404).send('No attendance data found for the selected criteria.');
     }
     // Helper functions for IST conversion
     function toISTDateString(utcDateString) {
+      if (!utcDateString) return '';
       const date = new Date(utcDateString);
       const utc = date.getTime() + (date.getTimezoneOffset() * 60000);
       const istOffset = 5.5 * 60 * 60 * 1000;
@@ -1354,36 +1588,128 @@ router.get('/staff-attendance-report', async (req, res) => {
     }
     if (format === 'pdf') {
       const PDFDocument = require('pdfkit');
-      const doc = new PDFDocument({ margin: 30, size: 'A4', layout: 'landscape' });
-      res.setHeader('Content-Type', 'application/pdf');
-      res.setHeader('Content-Disposition', 'attachment; filename=staff_attendance_report.pdf');
-      doc.pipe(res);
-      doc.fontSize(16).text('Non-Teaching Staff Attendance Report', { align: 'center' });
-      doc.moveDown();
-      // Table columns
-      const headers = ['S.No', 'Date', 'Staff Name', 'ERP ID', 'Department', 'First Log', 'Last Log', 'Duration (HH:MM:SS)'];
-      const colWidths = [30, 70, 140, 65, 160, 70, 70, 110];
-      const startX = doc.x;
-      let y = doc.y;
-      function drawHeader() {
-        let x = startX;
-        doc.font('Helvetica-Bold').fontSize(10);
-        headers.forEach((header, i) => {
-          doc.rect(x, y, colWidths[i], 20).stroke();
-          doc.text(header, x + 2, y + 6, { width: colWidths[i] - 4, align: 'center' });
-          x += colWidths[i];
+      try {
+        const doc = new PDFDocument({ 
+          margin: 30, 
+          size: 'A4', 
+          layout: 'landscape',
+          autoFirstPage: true 
         });
-        y += 20;
-        doc.font('Helvetica').fontSize(9);
-        doc.y = y;
+
+        // Set up error handlers before piping
+        doc.on('error', (err) => {
+          console.error('PDFKit error:', err);
+          if (!res.headersSent) {
+            res.status(500).json({ message: 'PDF generation error: ' + err.message });
+          }
+        });
+
+        // Set response headers
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', 'attachment; filename=staff_attendance_report.pdf');
+
+        // Handle response errors
+        res.on('error', (err) => {
+          console.error('Response error:', err);
+          doc.end();
+        });
+
+        // Pipe the PDF to the response
+        doc.pipe(res);
+
+        // Start generating PDF content
+        doc.fontSize(16).text('Non-Teaching Staff Attendance Report', { align: 'center' });
+        doc.moveDown();
+        // Table columns
+        const headers = ['S.No', 'Date', 'Staff Name', 'ERP ID', 'Department', 'First Log', 'Last Log', 'Duration (HH:MM:SS)', 'Status'];
+        const colWidths = [30, 70, 140, 65, 160, 70, 70, 110, 70];
+        const startX = doc.x;
+        let y = doc.y;
+        function drawHeader() {
+          let x = startX;
+          doc.font('Helvetica-Bold').fontSize(10);
+          headers.forEach((header, i) => {
+            doc.rect(x, y, colWidths[i], 20).stroke();
+            doc.text(header, x + 2, y + 6, { width: colWidths[i] - 4, align: 'center' });
+            x += colWidths[i];
+          });
+          y += 20;
+          doc.font('Helvetica').fontSize(9);
+          doc.y = y;
+        }
+        drawHeader();
+        let rowCount = 0;
+        let serialNumber = 1;
+        if (rows.length === 0) {
+          doc.text('No absent or present staff found for the selected date range.', { align: 'center' });
+        } else {
+          rows.forEach(r => {
+            let duration = '00:00:00';
+            if (r.first_log && r.last_log) {
+              const firstLog = new Date(r.first_log);
+              const lastLog = new Date(r.last_log);
+              const durationMs = lastLog - firstLog;
+              if (!isNaN(durationMs) && durationMs >= 0) {
+                const hours = Math.floor(durationMs / (1000 * 60 * 60));
+                const minutes = Math.floor((durationMs / (1000 * 60)) % 60);
+                const seconds = Math.floor((durationMs / 1000) % 60);
+                duration = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+              }
+            }
+            const row = [
+              serialNumber.toString(),
+              r.attendance_date,
+              r.staff_name,
+              r.erp_id,
+              r.department_name,
+              r.first_log ? new Date(r.first_log).toTimeString().split(' ')[0] : '',
+              r.last_log ? new Date(r.last_log).toTimeString().split(' ')[0] : '',
+              duration,
+              r.status
+            ];
+            let x = startX;
+            row.forEach((cell, i) => {
+              doc.rect(x, y, colWidths[i], 18).stroke();
+              doc.text(String(cell), x + 2, y + 5, { width: colWidths[i] - 4, align: 'center', ellipsis: true });
+              x += colWidths[i];
+            });
+            y += 18;
+            rowCount++;
+            serialNumber++;
+            if (rowCount % 20 === 0) {
+              doc.addPage();
+              y = doc.y;
+              drawHeader();
+              y = doc.y;
+            }
+          });
+        }
+        doc.end();
+      } catch (pdfError) {
+        console.error('PDF generation failed:', pdfError);
+        console.error('PDF generation stack:', pdfError.stack);
+        try {
+          if (!res.headersSent) {
+            res.status(500).json({ 
+              message: 'PDF generation failed',
+              error: pdfError.message,
+              stack: pdfError.stack
+            });
+          }
+        } catch (e) {
+          console.error('Error sending error response:', e);
+        }
       }
-      drawHeader();
-      let rowCount = 0;
-      let serialNumber = 1;
-      rows.forEach(r => {
+      return;
+    }
+    // CSV
+    const csvHeader = 'S.No,Date,Staff Name,ERP ID,Department,First Log,Last Log,Duration (HH:MM:SS),Status\n';
+    let serialNumber = 1;
+    const csvRows = rows.map(r => {
+      let duration = '00:00:00';
+      if (r.first_log && r.last_log) {
         const firstLog = new Date(r.first_log);
         const lastLog = new Date(r.last_log);
-        let duration = '00:00:00';
         const durationMs = lastLog - firstLog;
         if (!isNaN(durationMs) && durationMs >= 0) {
           const hours = Math.floor(durationMs / (1000 * 60 * 60));
@@ -1391,67 +1717,20 @@ router.get('/staff-attendance-report', async (req, res) => {
           const seconds = Math.floor((durationMs / 1000) % 60);
           duration = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
         }
-        const row = [
-          serialNumber.toString(),
-          toISTDateString(r.first_log),
-          r.staff_name,
-          r.erp_id,
-          r.department_name,
-          firstLog.toTimeString().split(' ')[0],
-          lastLog.toTimeString().split(' ')[0],
-          duration
-        ];
-        let x = startX;
-        row.forEach((cell, i) => {
-          doc.rect(x, y, colWidths[i], 18).stroke();
-          doc.text(String(cell), x + 2, y + 5, { width: colWidths[i] - 4, align: 'center', ellipsis: true });
-          x += colWidths[i];
-        });
-        y += 18;
-        rowCount++;
-        serialNumber++;
-        if (rowCount % 20 === 0) {
-          doc.addPage();
-          y = doc.y;
-          drawHeader();
-          y = doc.y;
-        }
-      });
-      doc.end();
-      return;
-    }
-    // CSV
-    const csvHeader = 'S.No,Date,Faculty Name,ERP ID,Department,First Log,Last Log,Duration (HH:MM:SS),Half/Full Day\n';
-    let serialNumber = 1;
-    const csvRows = rows.map(r => {
-        const firstLog = new Date(r.first_log);
-        const lastLog = new Date(r.last_log);
-        let duration = '00:00:00';
-        let durationHours = 0;
-        const durationMs = lastLog - firstLog;
-        if (!isNaN(durationMs) && durationMs >= 0) {
-          const hours = Math.floor(durationMs / (1000 * 60 * 60));
-          const minutes = Math.floor((durationMs / (1000 * 60)) % 60);
-          const seconds = Math.floor((durationMs / 1000) % 60);
-          duration = `${hours.toString().padStart(2, '0')}:${minutes
-            .toString()
-            .padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-          durationHours = durationMs / (1000 * 60 * 60);
-        }
-        const halfFull = durationHours < 4 ? 'Half Day' : 'Full Day';
-        const row = [
-            serialNumber,
-            toISTDateString(r.first_log),
-            `"${r.faculty_name}"`,
-            r.erp_id,
-            `"${r.department_name}"`,
-            firstLog.toTimeString().split(' ')[0],
-            lastLog.toTimeString().split(' ')[0],
-            duration,
-            halfFull
-        ];
-        serialNumber++;
-        return row.join(',');
+      }
+      const row = [
+        serialNumber,
+        r.attendance_date,
+        `"${r.staff_name}"`,
+        r.erp_id,
+        `"${r.department_name}"`,
+        r.first_log ? new Date(r.first_log).toTimeString().split(' ')[0] : '',
+        r.last_log ? new Date(r.last_log).toTimeString().split(' ')[0] : '',
+        duration,
+        r.status
+      ];
+      serialNumber++;
+      return row.join(',');
     });
     const csvData = csvHeader + csvRows.join('\n');
     res.header('Content-Type', 'text/csv');
@@ -1485,6 +1764,410 @@ router.get('/staff-department-counts', async (req, res) => {
   } catch (error) {
     console.error('Principal: Error fetching staff department counts:', error);
     res.status(500).json({ message: 'Failed to fetch staff department counts' });
+  }
+});
+
+
+// Helper function to parse dates/formatting omitted for brevity
+
+router.get('/absent-faculty-today', async (req, res) => {
+  try {
+    const { format = 'pdf', fromDate, toDate, departmentId = 'all' } = req.query;
+
+    const from = fromDate || new Date().toISOString().split('T')[0];
+    const to = toDate || from;
+
+    // Query active faculty filtered by department (if provided)
+    let facultyQuery = `
+      SELECT f.erpid, f.name, d.name AS department_name
+      FROM faculty f
+      JOIN departments d ON f.department_id = d.id
+      WHERE f.is_active = true
+    `;
+    const queryParams = [];
+    if (departmentId !== 'all') {
+      const depts = departmentId.split(',').map(id => Number(id));
+      facultyQuery += ` AND f.department_id = ANY($1::int[])`;
+      queryParams.push(depts);
+    }
+
+    const facultyResult = queryParams.length ?
+      await sql.query(facultyQuery, queryParams) :
+      await sql.query(facultyQuery);
+    const allFaculty = facultyResult.rows || facultyResult;
+
+    // Logs for present faculty in date range
+    const presentRows = await sql`
+      SELECT DISTINCT erp_id FROM faculty_logs
+      WHERE DATE(timestamp AT TIME ZONE 'Asia/Kolkata') BETWEEN ${from}::date AND ${to}::date
+    `;
+    const presentSet = new Set(presentRows.map(r => r.erp_id));
+
+    // Find absent faculty
+    const absentFaculty = allFaculty.filter(fac => !presentSet.has(fac.erpid));
+
+    if (!absentFaculty.length) {
+      return res.status(404).send('No absent faculty matching criteria.');
+    }
+
+    if (format === 'pdf') {
+      const doc = new PDFDocument({ margin: 30, size: 'A4' });
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', 'attachment; filename=absent_faculty_report.pdf');
+      doc.pipe(res);
+
+      doc.fontSize(18).text('Absent Faculty Report', { align: 'center' });
+      doc.moveDown();
+      doc.fontSize(12).text(`From: ${from} To: ${to}`, { align: 'center' });
+      doc.moveDown();
+
+      // Table header
+      const headers = ['S.No', 'ERP ID', 'Name', 'Department'];
+      const colWidths = [40, 70, 200, 210];
+      const startX = 50;
+      let y = doc.y + 10;
+
+      // Draw header row
+      let x = startX;
+      doc.font('Helvetica-Bold').fontSize(11);
+      headers.forEach((header, i) => {
+        doc.rect(x, y, colWidths[i], 20).stroke();
+        doc.text(header, x + 5, y + 5, { width: colWidths[i] - 10, align: 'center' });
+        x += colWidths[i];
+      });
+      y += 20;
+
+      // Sort absent faculty by department name (branch)
+      absentFaculty.sort((a, b) => a.department_name.localeCompare(b.department_name));
+
+      // Draw data rows
+      doc.font('Helvetica').fontSize(10);
+      absentFaculty.forEach((f, i) => {
+        x = startX;
+        const row = [
+          (i + 1).toString(),
+          f.erpid,
+          f.name,
+          f.department_name
+        ];
+        row.forEach((cell, j) => {
+          doc.rect(x, y, colWidths[j], 18).stroke();
+          doc.text(cell, x + 5, y + 4, { width: colWidths[j] - 10, align: 'left' });
+          x += colWidths[j];
+        });
+        y += 18;
+        // Add new page if needed
+        if (y > doc.page.height - 50) {
+          doc.addPage();
+          y = 50;
+        }
+      });
+
+      doc.end();
+      return;
+    } else if (format === 'xlsx') {
+      const workbook = new ExcelJS.Workbook();
+      const sheet = workbook.addWorksheet('Absent Faculty');
+
+      sheet.columns = [
+        { header: 'S.No', key: 'sno', width: 10 },
+        { header: 'ERP ID', key: 'erpid', width: 15 },
+        { header: 'Name', key: 'name', width: 30 },
+        { header: 'Department', key: 'department', width: 30 },
+      ];
+
+      absentFaculty.forEach((f, index) => {
+        sheet.addRow({
+          sno: index + 1,
+          erpid: f.erpid,
+          name: f.name,
+          department: f.department_name,
+        });
+      });
+
+      res.setHeader('Content-Disposition', 'attachment; filename=absent_faculty_report.xlsx');
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+
+      await workbook.xlsx.write(res);
+      res.end();
+      return;
+    } else if (format === 'csv') {
+      let csv = 'S.No,ERP ID,Name,Department\n';
+      csv += absentFaculty.map((f, i) =>
+        `${i + 1},"${f.erpid}","${f.name}","${f.department_name}"`
+      ).join('\n');
+
+      res.setHeader('Content-Disposition', 'attachment; filename=absent_faculty_report.csv');
+      res.setHeader('Content-Type', 'text/csv');
+      return res.send(csv);
+    } else {
+      return res.status(400).json({ message: 'Unsupported format' });
+    }
+  } catch (err) {
+    console.error('Absent faculty report error:', err);
+    return res.status(500).json({ message: 'Error generating absent faculty report' });
+  }
+});
+
+// Staff Stress Report (Non-Teaching Staff)
+router.get('/staff-stress-report', async (req, res) => {
+  try {
+    const { departmentId, fromDate, toDate, format } = req.query;
+    const from = fromDate || '1900-01-01';
+    const to = toDate || '2100-12-31';
+    let records;
+    if (departmentId && departmentId !== 'all') {
+      let deptIds = departmentId.includes(',') ? departmentId.split(',').map(Number) : [Number(departmentId)];
+      records = await sql`
+        SELECT
+          s.name AS staff_name,
+          s.erpid,
+          d.name AS department_name,
+          DATE(sl.timestamp AT TIME ZONE 'Asia/Kolkata') AS stress_date,
+          sl.stress_level
+        FROM stress_logs sl
+        JOIN non_teaching_staff s ON sl.erpid = s.erpid
+        JOIN departments d ON s.department_id = d.id
+        WHERE s.department_id = ANY(${deptIds})
+          AND DATE(sl.timestamp AT TIME ZONE 'Asia/Kolkata') >= ${from}::date
+          AND DATE(sl.timestamp AT TIME ZONE 'Asia/Kolkata') <= ${to}::date
+        ORDER BY d.name, s.name, stress_date
+      `;
+    } else {
+      records = await sql`
+        SELECT
+          s.name AS staff_name,
+          s.erpid,
+          d.name AS department_name,
+          DATE(sl.timestamp AT TIME ZONE 'Asia/Kolkata') AS stress_date,
+          sl.stress_level
+        FROM stress_logs sl
+        JOIN non_teaching_staff s ON sl.erpid = s.erpid
+        JOIN departments d ON s.department_id = d.id
+        WHERE DATE(sl.timestamp AT TIME ZONE 'Asia/Kolkata') >= ${from}::date
+          AND DATE(sl.timestamp AT TIME ZONE 'Asia/Kolkata') <= ${to}::date
+        ORDER BY d.name, s.name, stress_date
+      `;
+    }
+    const rows = Array.isArray(records) ? records : (records.rows || []);
+    if (!rows || rows.length === 0) {
+      return res.status(404).send('No stress data found for the selected criteria.');
+    }
+    // Aggregate data by staff only (not by date)
+    const aggregatedData = {};
+    rows.forEach(row => {
+      const key = `${row.staff_name}_${row.erpid}_${row.department_name}`;
+      if (!aggregatedData[key]) {
+        aggregatedData[key] = {
+          staff_name: row.staff_name,
+          erpid: row.erpid,
+          department_name: row.department_name,
+          stressed_count: 0,
+          unstressed_count: 0
+        };
+      }
+      // Count stressed levels (L1, L2, L3)
+      if (["L1", "L2", "L3"].includes(row.stress_level)) {
+        aggregatedData[key].stressed_count++;
+      }
+      // Count unstressed levels (A1, A2, A3)
+      else if (["A1", "A2", "A3"].includes(row.stress_level)) {
+        aggregatedData[key].unstressed_count++;
+      }
+    });
+    // Convert to array and add verdict
+    const finalData = Object.values(aggregatedData).map(item => ({
+      ...item,
+      verdict: item.stressed_count > item.unstressed_count ? 'Stressed' : 'Unstressed'
+    }));
+    if (format === 'pdf') {
+      const doc = new PDFDocument({ margin: 30, size: 'A4', layout: 'landscape' });
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', 'attachment; filename=staff_stress_report.pdf');
+      doc.pipe(res);
+      doc.on('error', (err) => {
+        console.error('PDFKit stream error:', err);
+        if (!res.headersSent) {
+          res.status(500).end('PDF generation error');
+        }
+      });
+      doc.fontSize(16).text('Non-Teaching Staff Stress Report', { align: 'center' });
+      doc.moveDown();
+      doc.fontSize(12).text(`From: ${from} To: ${to}`, { align: 'center' });
+      doc.moveDown();
+      // Add stress level indicators
+      doc.fontSize(10).text('Stress Level Indicators:', { align: 'left' });
+      doc.moveDown(0.2);
+      doc.fontSize(8).text('STRESS: L1 - 70-80  | L2 - 80-90  | L3 - 90-100', { align: 'left' });
+      doc.moveDown(0.1);
+      doc.fontSize(8).text('UNSTRESS: A1 - 90-100  | A2 - 80-90  | A3 - 70-80', { align: 'left' });
+      doc.moveDown();
+      const headers = ['S.No', 'Staff Name', 'ERP ID', 'Department', 'Stressed Count', 'Unstressed Count', 'Verdict'];
+      const colWidths = [40, 200, 70, 200, 100, 100, 80];
+      const startX = doc.x;
+      let y = doc.y;
+      function drawHeader() {
+        let x = startX;
+        doc.font('Helvetica-Bold').fontSize(10);
+        headers.forEach((header, i) => {
+          doc.text(header, x + 2, y + 5, { width: colWidths[i] - 4, align: 'center' });
+          x += colWidths[i];
+        });
+        y += 18;
+      }
+      drawHeader();
+      doc.font('Helvetica').fontSize(10);
+      let serialNumber = 1;
+      finalData.forEach(item => {
+        let x = startX;
+        const row = [serialNumber++, item.staff_name, item.erpid, item.department_name, item.stressed_count, item.unstressed_count, item.verdict];
+        row.forEach((cell, i) => {
+          doc.text(String(cell), x + 2, y + 5, { width: colWidths[i] - 4, align: 'center' });
+          x += colWidths[i];
+        });
+        y += 18;
+      });
+      doc.end();
+      return;
+    }
+    res.json(finalData);
+  } catch (error) {
+    console.error('Error generating staff stress report:', error);
+    res.status(500).json({ message: 'Failed to generate staff stress report' });
+  }
+});
+
+// Absent Non-Teaching Staff Today
+router.get('/absent-staff-today', async (req, res) => {
+  try {
+    const { format = 'pdf', fromDate, toDate, departmentId = 'all' } = req.query;
+    const from = fromDate || new Date().toISOString().split('T')[0];
+    const to = toDate || from;
+
+    // Query all non-teaching staff filtered by department (if provided)
+    let staffQuery = `
+      SELECT s.erpid, s.name, d.name AS department_name
+      FROM non_teaching_staff s
+      JOIN departments d ON s.department_id = d.id
+    `;
+    const queryParams = [];
+    if (departmentId !== 'all') {
+      const depts = departmentId.split(',').map(id => Number(id));
+      staffQuery += ` WHERE s.department_id = ANY($1::int[])`;
+      queryParams.push(depts);
+    }
+    const staffResult = queryParams.length ?
+      await sql.query(staffQuery, queryParams) :
+      await sql.query(staffQuery);
+    const allStaff = staffResult.rows || staffResult;
+
+    // Logs for present staff in date range
+    const presentRows = await sql`
+      SELECT DISTINCT erp_id FROM faculty_logs
+      WHERE DATE(timestamp AT TIME ZONE 'Asia/Kolkata') BETWEEN ${from}::date AND ${to}::date
+        AND erp_id IN (SELECT erpid FROM non_teaching_staff)
+        AND erp_id <> 'No id'
+    `;
+    const presentSet = new Set(presentRows.map(r => r.erp_id));
+
+    // Find absent staff
+    const absentStaff = allStaff.filter(staff => !presentSet.has(staff.erpid));
+
+    if (!absentStaff.length) {
+      return res.status(404).send('No absent staff matching criteria.');
+    }
+
+    if (format === 'pdf') {
+      const PDFDocument = require('pdfkit');
+      const doc = new PDFDocument({ margin: 30, size: 'A4' });
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', 'attachment; filename=absent_staff_report.pdf');
+      doc.pipe(res);
+
+      doc.fontSize(18).text('Absent Non-Teaching Staff Report', { align: 'center' });
+      doc.moveDown();
+      doc.fontSize(12).text(`From: ${from} To: ${to}`, { align: 'center' });
+      doc.moveDown();
+
+      // Table header
+      const headers = ['S.No', 'ERP ID', 'Name', 'Department'];
+      const colWidths = [40, 70, 200, 210];
+      const startX = 50;
+      let y = doc.y + 10;
+
+      // Draw header row
+      let x = startX;
+      doc.font('Helvetica-Bold').fontSize(11);
+      headers.forEach((header, i) => {
+        doc.rect(x, y, colWidths[i], 20).stroke();
+        doc.text(header, x + 5, y + 5, { width: colWidths[i] - 10, align: 'center' });
+        x += colWidths[i];
+      });
+      y += 20;
+
+      // Sort absent staff by department name
+      absentStaff.sort((a, b) => a.department_name.localeCompare(b.department_name));
+
+      // Draw data rows
+      doc.font('Helvetica').fontSize(10);
+      absentStaff.forEach((s, i) => {
+        x = startX;
+        const row = [
+          (i + 1).toString(),
+          s.erpid,
+          s.name,
+          s.department_name
+        ];
+        row.forEach((cell, j) => {
+          doc.rect(x, y, colWidths[j], 18).stroke();
+          doc.text(cell, x + 5, y + 4, { width: colWidths[j] - 10, align: 'left' });
+          x += colWidths[j];
+        });
+        y += 18;
+        if (y > doc.page.height - 50) {
+          doc.addPage();
+          y = 50;
+        }
+      });
+      doc.end();
+      return;
+    } else if (format === 'xlsx') {
+      const ExcelJS = require('exceljs');
+      const workbook = new ExcelJS.Workbook();
+      const sheet = workbook.addWorksheet('Absent Staff');
+      sheet.columns = [
+        { header: 'S.No', key: 'sno', width: 10 },
+        { header: 'ERP ID', key: 'erpid', width: 15 },
+        { header: 'Name', key: 'name', width: 30 },
+        { header: 'Department', key: 'department', width: 30 },
+      ];
+      absentStaff.forEach((s, index) => {
+        sheet.addRow({
+          sno: index + 1,
+          erpid: s.erpid,
+          name: s.name,
+          department: s.department_name,
+        });
+      });
+      res.setHeader('Content-Disposition', 'attachment; filename=absent_staff_report.xlsx');
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      await workbook.xlsx.write(res);
+      res.end();
+      return;
+    } else if (format === 'csv') {
+      let csv = 'S.No,ERP ID,Name,Department\n';
+      csv += absentStaff.map((s, i) =>
+        `${i + 1},"${s.erpid}","${s.name}","${s.department_name}"`
+      ).join('\n');
+      res.setHeader('Content-Disposition', 'attachment; filename=absent_staff_report.csv');
+      res.setHeader('Content-Type', 'text/csv');
+      return res.send(csv);
+    } else {
+      return res.status(400).json({ message: 'Unsupported format' });
+    }
+  } catch (error) {
+    console.error('Absent staff report error:', error);
+    return res.status(500).json({ message: 'Error generating absent staff report' });
   }
 });
 

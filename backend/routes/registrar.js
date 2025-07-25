@@ -29,7 +29,7 @@ router.get('/security-dashboard', async (req, res) => {
     }
     res.json(leaveRows);
   } catch (err) {
-    console.error('Error fetching security dashboard data:', err);
+    console.error('Error fetching security dashboard data:', err);    
     res.status(500).json({ error: 'Failed to fetch security dashboard data' });
   }
 });
@@ -2238,5 +2238,43 @@ router.get('/faculty-leave-report', async (req, res) => {
   }
 });
 
+// ... existing code ...
+// API Routes
+router.get('/energy-data', async (req, res) => {
+  try {
+    const rows = await sql`
+      SELECT * FROM energy_data 
+      ORDER BY recorded_at DESC
+      LIMIT 100
+    `;
+    res.json(Array.isArray(rows) ? rows : (rows.rows || []));
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+router.get('/energy-data/summary', async (req, res) => {
+  try {
+    const rows = await sql`
+      SELECT 
+        COUNT(*) as record_count,
+        SUM(watt) as total_watt,
+        SUM(kilo_watt) as total_kilo_watt,
+        AVG(volt) as avg_volt,
+        AVG(frequency) as avg_frequency,
+        AVG(current) as avg_current,
+        AVG(power_factor) as avg_power_factor,
+        MAX(recorded_at) as latest_record,
+        MIN(recorded_at) as oldest_record
+      FROM energy_data
+    `;
+    res.json(Array.isArray(rows) ? rows[0] : (rows.rows ? rows.rows[0] : {}));
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+// ... existing code ...
 
 module.exports = router; 

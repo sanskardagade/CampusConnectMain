@@ -33,23 +33,25 @@ const FacultyReport = () => {
   const [toDate, setToDate] = useState('');
   const [downloading, setDownloading] = useState(false);
   const [error, setError] = useState(null);
+
   const [deptDropdownOpen, setDeptDropdownOpen] = useState(false);
   const deptDropdownRef = useRef(null);
+
   const [reportType, setReportType] = useState('attendance');
   const [rangeType, setRangeType] = useState('daily');
   const [attendanceType, setAttendanceType] = useState('faculty');
   const [stressType, setStressType] = useState('faculty');
+  const [attendanceStatus, setAttendanceStatus] = useState('present'); // present or absent
 
   useEffect(() => {
-    // Fetch departments for dropdown
     const fetchDepartments = async () => {
       try {
         const token = localStorage.getItem('token');
         const response = await axios.get('http://69.62.83.14:9000/api/principal/dashboard', {
-          headers: { Authorization: `Bearer ${token}` }
+          headers: { Authorization: `Bearer ${token}` },
         });
         setDepartments(response.data.departments || []);
-      } catch (err) {
+      } catch {
         setDepartments([]);
       }
     };
@@ -73,8 +75,8 @@ const FacultyReport = () => {
   }, [deptDropdownOpen]);
 
   useEffect(() => {
-    // Set default date range based on rangeType
     const today = new Date();
+
     if (rangeType === 'daily') {
       const d = today.toISOString().split('T')[0];
       setFromDate(d);
@@ -101,17 +103,26 @@ const FacultyReport = () => {
     setError(null);
     try {
       const token = localStorage.getItem('token');
+
       const params = {
         departmentId: reportDept.includes('all') ? 'all' : reportDept.join(','),
         fromDate,
         toDate,
         format,
       };
-      let endpoint;
+
+      let endpoint = '';
+
       if (reportType === 'attendance') {
-        endpoint = attendanceType === 'faculty'
-          ? 'http://69.62.83.14:9000/api/principal/faculty-attendance-report'
-          : 'http://69.62.83.14:9000/api/principal/staff-attendance-report';
+        if (attendanceStatus === 'present') {
+          endpoint = attendanceType === 'faculty'
+            ? 'http://69.62.83.14:9000/api/principal/faculty-attendance-report'
+            : 'http://69.62.83.14:9000/api/principal/staff-attendance-report';
+        } else {
+          endpoint = attendanceType === 'faculty'
+            ? 'http://69.62.83.14:9000/api/principal/absent-faculty-today'
+            : 'http://69.62.83.14:9000/api/principal/absent-staff-today'; // be sure to implement this backend route
+        }
       } else if (reportType === 'stress') {
         endpoint = stressType === 'faculty'
           ? 'http://69.62.83.14:9000/api/principal/faculty-stress-report'
@@ -119,18 +130,25 @@ const FacultyReport = () => {
       } else if (reportType === 'leave') {
         endpoint = 'http://69.62.83.14:9000/api/principal/faculty-leave-report';
       }
+
       const response = await axios.get(endpoint, {
-        params,
         headers: { Authorization: `Bearer ${token}` },
+        params,
         responseType: 'blob',
       });
-      // Get filename from content-disposition or fallback
-      const disposition = response.headers['content-disposition'];
-      let filename;
+
+      let filename = '';
+
       if (reportType === 'attendance') {
-        filename = attendanceType === 'faculty'
-          ? `faculty_attendance_report.${format}`
-          : `staff_attendance_report.${format}`;
+        if (attendanceStatus === 'present') {
+          filename = attendanceType === 'faculty'
+            ? `faculty_attendance_report.${format}`
+            : `staff_attendance_report.${format}`;
+        } else {
+          filename = attendanceType === 'faculty'
+            ? `absent_faculty_report.${format}`
+            : `absent_staff_report.${format}`;
+        }
       } else if (reportType === 'stress') {
         filename = stressType === 'faculty'
           ? `faculty_stress_report.${format}`
@@ -138,18 +156,20 @@ const FacultyReport = () => {
       } else if (reportType === 'leave') {
         filename = `faculty_leave_report.${format}`;
       }
+
+      const disposition = response.headers['content-disposition'];
       if (disposition) {
         const match = disposition.match(/filename="(.+)"/);
         if (match) filename = match[1];
       }
-      // Download file
+
       const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', filename);
-      document.body.appendChild(link);
-      link.click();
-      link.parentNode.removeChild(link);
+      const a = document.createElement('a');
+      a.href = url;
+      a.setAttribute('download', filename);
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
     } catch (err) {
       setError('Failed to download report.');
     } finally {
@@ -166,9 +186,24 @@ const FacultyReport = () => {
             <h2 className="text-2xl sm:text-3xl font-bold mb-6 sm:mb-10 flex items-center text-gray-800">
               <FiFileText className="mr-3 sm:mr-4 text-red-800 text-3xl sm:text-4xl" />
               <span className="bg-gradient-to-r from-red-800 to-red-600 bg-clip-text text-transparent">
-                Generate {reportType === 'attendance' ? (attendanceType === 'faculty' ? 'Faculty Attendance' : 'Non-Teaching Staff Attendance') : reportType === 'stress' ? (stressType === 'faculty' ? 'Faculty Stress' : 'Non-Teaching Staff Stress') : 'Faculty Leave'} Report
+                Generate{' '}
+                {reportType === 'attendance'
+                  ? attendanceStatus === 'present'
+                    ? attendanceType === 'faculty'
+                      ? 'Faculty Attendance'
+                      : 'Non-Teaching Staff Attendance'
+                    : attendanceType === 'faculty'
+                    ? 'Absent Faculty'
+                    : 'Absent Non-Teaching Staff'
+                  : reportType === 'stress'
+                  ? stressType === 'faculty'
+                    ? 'Faculty Stress'
+                    : 'Non-Teaching Staff Stress'
+                  : 'Faculty Leave'}{' '}
+                Report
               </span>
             </h2>
+
             <div className="flex flex-col sm:flex-row sm:justify-center sm:items-center gap-4 sm:gap-8 mb-6 sm:mb-8">
               {reportTypes.map(rt => (
                 <button
@@ -184,25 +219,45 @@ const FacultyReport = () => {
                 </button>
               ))}
             </div>
-            {/* Attendance type toggle for attendance report */}
+
             {reportType === 'attendance' && (
-              <div className="flex gap-2 mb-6 justify-center">
-                {attendanceTypes.map(at => (
-                  <button
-                    key={at.value}
-                    className={`px-4 py-2 rounded-xl font-semibold border-2 transition-all duration-200 ${
-                      attendanceType === at.value
-                        ? 'bg-gradient-to-r from-red-800 to-red-600 text-white border-red-700 shadow-lg'
-                        : 'bg-white text-red-800 border-red-300 hover:border-red-600'
-                    }`}
-                    onClick={() => setAttendanceType(at.value)}
-                  >
-                    {at.label}
-                  </button>
-                ))}
-              </div>
+              <>
+                {/* Present/Absent Toggle */}
+                <div className="flex gap-2 mb-6 justify-center">
+                  {['present', 'absent'].map(status => (
+                    <button
+                      key={status}
+                      className={`px-4 py-2 rounded-xl font-semibold border-2 transition-all duration-200 ${
+                        attendanceStatus === status
+                          ? 'bg-gradient-to-r from-red-800 to-red-600 text-white border-red-700 shadow-lg'
+                          : 'bg-white text-red-800 border-red-300 hover:border-red-600'
+                      }`}
+                      onClick={() => setAttendanceStatus(status)}
+                    >
+                      {status.charAt(0).toUpperCase() + status.slice(1)}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Faculty/Staff Toggle */}
+                <div className="flex gap-2 mb-6 justify-center">
+                  {attendanceTypes.map(at => (
+                    <button
+                      key={at.value}
+                      className={`px-4 py-2 rounded-xl font-semibold border-2 transition-all duration-200 ${
+                        attendanceType === at.value
+                          ? 'bg-gradient-to-r from-red-800 to-red-600 text-white border-red-700 shadow-lg'
+                          : 'bg-white text-red-800 border-red-300 hover:border-red-600'
+                      }`}
+                      onClick={() => setAttendanceType(at.value)}
+                    >
+                      {at.label}
+                    </button>
+                  ))}
+                </div>
+              </>
             )}
-            {/* Stress type toggle for stress report */}
+
             {reportType === 'stress' && (
               <div className="flex gap-2 mb-6 justify-center">
                 {stressTypes.map(st => (
@@ -220,7 +275,8 @@ const FacultyReport = () => {
                 ))}
               </div>
             )}
-            <div className="flex gap-2 mb-6 justify-center" >
+
+            <div className="flex gap-2 mb-6 justify-center">
               {['daily', 'weekly', 'monthly'].map(type => (
                 <button
                   key={type}
@@ -235,6 +291,7 @@ const FacultyReport = () => {
                 </button>
               ))}
             </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-10 mb-8 sm:mb-10">
               <div className="space-y-2 sm:space-y-3">
                 <label className="block text-base sm:text-lg font-medium text-gray-700 mb-1 sm:mb-3">Department</label>
@@ -242,7 +299,7 @@ const FacultyReport = () => {
                   <button
                     type="button"
                     className="w-full border-2 border-gray-300 rounded-xl px-4 py-3 sm:px-5 sm:py-4 text-base sm:text-lg bg-white text-left flex justify-between items-center focus:ring-2 focus:ring-red-600 focus:border-transparent transition-all duration-200 hover:border-red-400"
-                    onClick={() => setDeptDropdownOpen((open) => !open)}
+                    onClick={() => setDeptDropdownOpen(open => !open)}
                   >
                     <span>
                       {reportDept.includes('all')
@@ -295,6 +352,7 @@ const FacultyReport = () => {
                 </div>
                 <p className="text-gray-500 text-xs sm:text-sm mt-1 sm:mt-2">Tick to select branches. Selecting 'All Departments' disables others.</p>
               </div>
+
               <div className="space-y-2 sm:space-y-3">
                 <label className="block text-base sm:text-lg font-medium text-gray-700 mb-1 sm:mb-3">Format</label>
                 <select
@@ -307,6 +365,7 @@ const FacultyReport = () => {
                   ))}
                 </select>
               </div>
+
               <div className="space-y-2 sm:space-y-3">
                 <label className="block text-base sm:text-lg font-medium text-gray-700 mb-1 sm:mb-3">From Date</label>
                 <div className="relative">
@@ -319,6 +378,7 @@ const FacultyReport = () => {
                   />
                 </div>
               </div>
+
               <div className="space-y-2 sm:space-y-3">
                 <label className="block text-base sm:text-lg font-medium text-gray-700 mb-1 sm:mb-3">To Date</label>
                 <div className="relative">
@@ -332,20 +392,29 @@ const FacultyReport = () => {
                 </div>
               </div>
             </div>
+
             {error && (
               <div className="mb-6 sm:mb-8 p-4 sm:p-5 bg-red-100 border-l-4 border-red-800 text-red-700 text-base sm:text-lg rounded-lg animate-pulse">
                 {error}
               </div>
             )}
+
             <button
-              className={`w-full mt-2 sm:mt-4 flex items-center justify-center gap-2 px-4 py-3 sm:px-6 sm:py-4 rounded-xl text-lg sm:text-xl font-bold bg-gradient-to-r from-red-700 to-red-900 text-white shadow-lg transition-all duration-200 hover:from-red-800 hover:to-red-950 focus:ring-2 focus:ring-red-700 focus:ring-opacity-50 ${downloading ? 'opacity-75 cursor-not-allowed' : ''}`}
-              onClick={handleDownload}
               disabled={downloading}
+              onClick={handleDownload}
+              className={`w-full mt-2 sm:mt-4 flex items-center justify-center gap-2 px-4 py-3 sm:px-6 sm:py-4 rounded-xl text-lg sm:text-xl font-bold bg-gradient-to-r from-red-700 to-red-900 text-white shadow-lg transition-all duration-200 hover:from-red-800 hover:to-red-950 focus:ring-2 focus:ring-red-700 focus:ring-opacity-50 ${
+                downloading ? 'opacity-75 cursor-not-allowed' : ''
+              }`}
             >
               <FiDownload className="mr-2 text-2xl animate-bounce" />
               {downloading ? 'Generating Report...' : 'Download Report'}
               {downloading && (
-                <svg className="animate-spin ml-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <svg
+                  className="animate-spin ml-2 h-5 w-5 text-white"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
                 </svg>
