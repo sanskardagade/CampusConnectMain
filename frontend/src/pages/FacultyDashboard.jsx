@@ -302,7 +302,7 @@ const FacultyDashboard = () => {
                 transition={{ delay: 0.1 }}
                 className="text-xl sm:text-2xl font-bold text-gray-900"
               >
-                Welcome, <span className={theme.text}>{profile.name || 'Faculty'}!</span>
+                Welcomee..! <span className={theme.text}>{profile.name || 'Faculty'}!</span>
               </motion.h1>
               <motion.div 
                 initial={{ opacity: 0 }}
