@@ -10,6 +10,7 @@ import CollegeImg from "../assets/dit_image.png";
 import { FaCheckCircle, FaChalkboardTeacher, FaUsers, FaCalendarCheck } from 
 "react-icons/fa";
 import HeaderCollege from "../components/common/HeaderCollege";
+import CollegeSelectModal from '../components/common/CollegeSelectModal';
 
 const AdminSignInPage = () => {
   const navigate = useNavigate();
@@ -38,7 +39,7 @@ const AdminSignInPage = () => {
     setError("");
     setLoading(true);
     try {
-      const endpoint = "http://69.62.83.14:9000/api/admin/login";
+      const endpoint = "http://localhost:5000/api/admin/login";
       const response = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -163,45 +164,16 @@ const AdminSignInPage = () => {
       </div>
       <Footer />
       {/* College Selection Modal */}
-      {showCollegeSelect && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-          <div className="bg-white rounded-lg shadow-lg p-8 w-full max-w-sm relative">
-            <button
-              className="absolute top-2 right-2 text-[#6b6d71] hover:text-[#6b6d71]"
-              onClick={() => setShowCollegeSelect(false)}
-            >
-              <span className="text-xl">&times;</span>
-            </button>
-            <h2 className="text-center text-2xl mb-5">Select College</h2>
-            <div className="flex flex-col gap-3">
-              {colleges.map((college) => (
-                college === "Dr. D. Y. Patil Inst. of Tech., Pimpri" ? (
-                  <button
-                    key={college}
-                    className="bg-[#b22b2f] text-white p-3 rounded-md hover:bg-[#d1a550] transition-colors"
-                    onClick={() => {
-                      setShowCollegeSelect(false);
-                      localStorage.setItem("selectedCollege", college);
-                      navigate(`/admin?college=${encodeURIComponent(college)}`);
-                    }}
-                  >
-                    {college}
-                  </button>
-                ) : (
-                  <button
-                    key={college}
-                    className="bg-gray-300 text-gray-600 p-3 rounded-md cursor-not-allowed flex justify-between items-center"
-                    disabled
-                  >
-                    <span>{college}</span>
-                    <span className="ml-2 text-xs bg-yellow-200 text-yellow-800 px-2 py-1 rounded">Coming Soon</span>
-                  </button>
-                )
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
+      <CollegeSelectModal
+        open={showCollegeSelect}
+        onClose={() => setShowCollegeSelect(false)}
+        colleges={colleges}
+        onSelect={(college) => {
+          setShowCollegeSelect(false);
+          localStorage.setItem("selectedCollege", college);
+          navigate(`/admin?college=${encodeURIComponent(college)}`);
+        }}
+      />
     </>
   );
 };

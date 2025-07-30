@@ -230,8 +230,8 @@ router.get("/leave-apply", authenticateToken, async (req, res) => {
       WHERE "ErpStaffId" = ${erpStaffId}
       ORDER BY "ApplicationDate" DESC
     `;
-    
-    console.log('Query result:', result);
+
+    console.log('hello Query result:', result[0]);
     
     if (!result) {
       console.log('No leave applications found for faculty:', erpStaffId);
@@ -305,17 +305,75 @@ router.get("/leave-balances", authenticateToken, async (req, res) => {
   }
 });
 
-// Get all faculty members
-// router.get('/', authenticateToken, async (req, res) => {
-//   try {
-//     const faculty = await Faculty.getAll();
-//     console.log(faculty);
-//     res.json(faculty);
-//   } catch (error) {
-//     console.error('Error fetching faculty:', error);
-//     res.status(500).json({ message: 'Error fetching faculty data' });
-//   }
-// });
+// Get all task history for current faculty
+router.get('/task-history', authenticateToken, async (req, res) => {
+  try {
+    const erpStaffId = req.user.erpStaffId;
+    
+    if (!erpStaffId) {
+      return res.status(400).json({ 
+        message: 'Invalid user data', 
+        error: 'No erpStaffId found' 
+      });
+    }
+
+    const result = await sql`
+      SELECT 
+        t.id as task_id,
+        t.heading,
+        t.message,
+        t.file_url,
+        t.created_at,
+        h.name as hod_name,
+        at.id as assigned_task_id,
+        at.status,
+        at.completed_at,
+        at.response_file_url,
+        at.submission_message,
+        at.is_dismissed
+      FROM assigned_tasks at
+      JOIN tasks t ON at.task_id = t.id
+      LEFT JOIN hod h ON t.hod_erpid = h.erpid
+      WHERE at.faculty_erpid = ${erpStaffId}
+      ORDER BY t.created_at DESC
+    `;
+
+    // Transform the data to include status colors and formatted dates
+    const taskHistory = result.map(task => ({
+      ...task,
+      status_color: 
+        task.status === 'completed' ? 'green' :
+        task.status === 'pending' ? 'yellow' :
+        task.status === 'accepted' ? 'blue' :
+        task.status === 'rejected' ? 'red' : 'gray',
+      created_at_formatted: new Date(task.created_at).toLocaleDateString(),
+      completed_at_formatted: task.completed_at ? new Date(task.completed_at).toLocaleDateString() : null
+    }));
+
+    res.json({ 
+      total: taskHistory.length,
+      completed: taskHistory.filter(t => t.status === 'completed').length,
+      pending: taskHistory.filter(t => t.status === 'pending').length,
+      rejected: taskHistory.filter(t => t.status === 'rejected').length,
+      tasks: taskHistory 
+    });
+
+    console.log({ 
+      total: taskHistory.length,
+      completed: taskHistory.filter(t => t.status === 'completed').length,
+      pending: taskHistory.filter(t => t.status === 'pending').length,
+      rejected: taskHistory.filter(t => t.status === 'rejected').length,
+      tasks: taskHistory 
+    });
+
+  } catch (error) {
+    console.error('Error fetching task history:', error);
+    res.status(500).json({ 
+      message: 'Error fetching task history', 
+      error: error.message 
+    });
+  }
+});
 
 // Change password route
 router.put('/change-password', authenticateToken, async (req, res) => {
@@ -356,4 +414,256 @@ router.put('/change-password', authenticateToken, async (req, res) => {
   }
 })
 
-module.exports = router; 
+// Get assigned tasks for the logged-in faculty
+router.get('/assigned-tasks', authenticateToken, async (req, res) => {
+  try {
+    const erpStaffId = req.user.erpStaffId;
+    console.log(erpStaffId);
+    if (!erpStaffId) {
+      return res.status(400).json({ message: 'Invalid user data', error: 'No erpStaffId found' });
+    }
+    // Only return tasks that are not dismissed
+    const result = await sql`
+      SELECT 
+        t.id as task_id,
+        t.heading,
+        t.message,
+        t.file_url,
+        t.created_at,
+        h.name as hod_name,
+        at.id as assigned_task_id,
+        at.status
+      FROM assigned_tasks at
+      JOIN tasks t ON at.task_id = t.id
+      LEFT JOIN hod h ON t.hod_erpid = h.erpid
+      WHERE at.faculty_erpid = ${erpStaffId} AND (at.is_dismissed IS NULL OR at.is_dismissed = FALSE)
+      ORDER BY t.created_at DESC
+    `;
+    res.json({ tasks: result });
+  } catch (error) {
+    console.error('Error fetching assigned tasks:', error);
+    res.status(500).json({ message: 'Error fetching assigned tasks', error: error.message });
+  }
+});
+
+// PATCH endpoint to dismiss a task notification
+router.patch('/assigned-tasks/:id/dismiss', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    // Only allow the faculty to dismiss their own assigned task
+    const erpStaffId = req.user.erpStaffId;
+    const result = await sql`
+      UPDATE assigned_tasks SET is_dismissed = TRUE WHERE id = ${id} AND faculty_erpid = ${erpStaffId}
+      RETURNING id
+    `;
+    if (result.length === 0) {
+      return res.status(404).json({ message: 'Task not found or not authorized.' });
+    }
+    res.status(200).json({ message: 'Task dismissed successfully.' });
+  } catch (error) {
+    console.error('Error dismissing task:', error);
+    res.status(500).json({ error: 'Failed to dismiss task.' });
+  }
+});
+
+// PATCH: Faculty accepts a task
+router.patch('/assigned-tasks/:id/accept', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const facultyErpid = req.user.erpStaffId;
+
+    // Only allow the assigned faculty to accept
+    const result = await sql`
+      UPDATE assigned_tasks
+      SET status = 'accepted', completed_at = NULL, is_dismissed = false
+      WHERE id = ${id} AND faculty_erpid = ${facultyErpid}
+      RETURNING *
+    `;
+    if (result.length === 0) {
+      return res.status(404).json({ message: 'Task not found or not assigned to you.' });
+    }
+    res.json({ message: 'Task accepted.', task: result[0] });
+  } catch (error) {
+    console.error('Error accepting task:', error);
+    res.status(500).json({ message: 'Failed to accept task.' });
+  }
+});
+
+// PATCH: Faculty rejects a task
+router.patch('/assigned-tasks/:id/reject', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const facultyErpid = req.user.erpStaffId;
+
+    // Only allow the assigned faculty to reject
+    const result = await sql`
+      UPDATE assigned_tasks
+      SET status = 'rejected', completed_at = NOW()
+      WHERE id = ${id} AND faculty_erpid = ${facultyErpid}
+      RETURNING *
+    `;
+    if (result.length === 0) {
+      return res.status(404).json({ message: 'Task not found or not assigned to you.' });
+    }
+    res.json({ message: 'Task rejected.', task: result[0] });
+  } catch (error) {
+    console.error('Error rejecting task:', error);
+    res.status(500).json({ message: 'Failed to reject task.' });
+  }
+});
+
+// PATCH: Faculty marks task as completed (with optional message and file)
+router.patch('/assigned-tasks/:id/complete', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { responseFileUrl, submissionMessage } = req.body;
+    const facultyErpid = req.user.erpStaffId;
+
+    const result = await sql`
+      UPDATE assigned_tasks
+      SET 
+        status = 'completed', 
+        completed_at = NOW(), 
+        response_file_url = ${responseFileUrl},
+        submission_message = ${submissionMessage}
+      WHERE id = ${id} AND faculty_erpid = ${facultyErpid}
+      RETURNING *
+    `;
+    if (result.length === 0) {
+      return res.status(404).json({ message: 'Task not found or not assigned to you.' });
+    }
+    res.json({ message: 'Task marked as completed.', task: result[0] });
+  } catch (error) {
+    console.error('Error completing task:', error);
+    res.status(500).json({ message: 'Failed to complete task.' });
+  }
+});
+
+// Start a new attendance session
+router.post('/start-session', authenticateToken, async (req, res) => {
+  try {
+    const faculty_erpid = req.user.erpStaffId;
+    const {
+      subject_id,
+      department_id,
+      year,
+      semester,
+      division,
+      batch,
+      session_date,
+      start_time,
+      end_time,
+      location
+    } = req.body;
+
+    // Validate required fields
+    if (!subject_id || !department_id || !year || !semester || !division || !start_time || !end_time || !location) {
+      return res.status(400).json({ message: 'Missing required fields' });
+    }
+
+    // Insert session into the database
+    const result = await sql`
+      INSERT INTO sessions (
+        subject_id, faculty_erpid, department_id, year, semester, division, batch, session_date, start_time, end_time, location
+      ) VALUES (
+        ${subject_id}, ${faculty_erpid}, ${department_id}, ${year}, ${semester}, ${division}, ${batch || null}, ${session_date}, ${start_time}, ${end_time}, ${location}
+      ) RETURNING session_id;
+    `;
+
+    const sessionId = result[0]?.session_id;
+    res.status(201).json({ message: 'Session started successfully', session_id: sessionId });
+  } catch (error) {
+    console.error('Error starting session:', error);
+    res.status(500).json({ message: 'Error starting session' });
+  }
+});
+
+// Get students data
+router.get('/students-data', authenticateToken, async (req, res) => {
+  try {
+    const erpStaffId = req.user.erpStaffId;
+    console.log(erpStaffId);
+    if (!erpStaffId) {
+      return res.status(400).json({ message: 'Invalid user data', error: 'No erpStaffId found' });
+    }
+    // Only return tasks that are not dismissed
+    const result = await sql `
+      SELECT s.* 
+      FROM students s
+      JOIN faculty f ON s.class_teacher = f.erpid
+      WHERE f.erpid = ${erpStaffId}`;
+    res.json(result);
+  } catch (error) {
+    console.error('Error fetching assigned tasks:', error);
+    res.status(500).json({ message: 'Error fetching assigned tasks', error: error.message });
+  }
+});
+
+// Get students data
+router.get('/students-logs', authenticateToken, async (req, res) => {
+  const {date} = req.query;
+  try {
+    const erpStaffId = req.user.erpStaffId;
+    console.log(erpStaffId);
+    if (!erpStaffId) {
+      return res.status(400).json({ message: 'Invalid user data', error: 'No erpStaffId found' });
+    }
+
+    if (!date) {
+      return res.status(400).json({ message: 'Date parameter is required' });
+    }
+
+    // Get attendance logs for students under this faculty
+    const result = await sql`
+    SELECT * FROM attendance_logs_test 
+    WHERE detected_at::date = ${date}::date 
+    AND detected_erpid IN (
+      SELECT s.erpid 
+      FROM students s
+      JOIN faculty f ON s.class_teacher = f.erpid
+      WHERE f.erpid = ${erpStaffId}
+    )`;
+    res.json(result);
+  } catch (error) {
+    console.error('Error fetching assigned tasks:', error);
+    res.status(500).json({ message: 'Error fetching assigned tasks', error: error.message });
+  }
+});
+
+router.get('/sessions', authenticateToken, async (req, res) => {
+  try {
+    const faculty_erpid = req.user.erpStaffId;
+    const { date, subject_id } = req.query;
+    let query = `SELECT * FROM sessions WHERE faculty_erpid = $1`;
+    const params = [faculty_erpid];
+    if (date) {
+      query += ` AND session_date = $2`;
+      params.push(date);
+    }
+    if (subject_id) {
+      query += ` AND subject_id = $3`;
+      params.push(subject_id);
+    }
+    query += ` ORDER BY session_date DESC, start_time DESC`;
+    const result = await sql.query(query, params);
+    res.json(result.rows || result);
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching sessions' });
+  }
+});
+
+// GET /api/faculty/session-logs/:session_id
+router.get('/session-logs/:session_id', authenticateToken, async (req, res) => {
+  try {
+    const { session_id } = req.params;
+    const result = await sql`
+      SELECT * FROM attendance_logs_test WHERE session_id = ${session_id}
+      ORDER BY detected_at ASC
+    `;
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching attendance logs' });
+  }
+});
+
+module.exports = router;

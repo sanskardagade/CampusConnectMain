@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Navigate, useNavigate } from "react-router-dom";
 import { 
@@ -74,6 +74,11 @@ const HODDashboard = () => {
   const [facultyStressLoading, setFacultyStressLoading] = useState(true);
   const [facultyStressError, setFacultyStressError] = useState(null);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [showTasksModal, setShowTasksModal] = useState(false);
+  const [assignedTasksHistory, setAssignedTasksHistory] = useState([]);
+  const [loadingTaskHistory, setLoadingTaskHistory] = useState(false);
+  const [expandedTaskId, setExpandedTaskId] = useState(null);
+  const [showPendingTasksModal, setShowPendingTasksModal] = useState(false);
   
   // State for all data with proper initialization
   const [dashboardData, setDashboardData] = useState({
@@ -154,7 +159,7 @@ const HODDashboard = () => {
         console.log('Fetching dashboard and faculty data...');
 
         // Fetch faculty members first
-        const facultyResponse = await fetch('http://69.62.83.14:9000/api/hod/faculty', {
+        const facultyResponse = await fetch('http://localhost:5000/api/hod/faculty', {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
@@ -178,7 +183,7 @@ const HODDashboard = () => {
         setFacultyMembers(facultyData || []); // Ensure facultyData is an array
 
         // Fetch faculty logs for last active location
-        const logsResponse = await fetch('http://69.62.83.14:9000/api/hod/faculty-log', {
+        const logsResponse = await fetch('http://localhost:5000/api/hod/faculty-log', {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
@@ -194,7 +199,7 @@ const HODDashboard = () => {
         setFacultyLogs(logsData);
 
         // Fetch dashboard data
-        const dashboardResponse = await fetch('http://69.62.83.14:9000/api/hod/dashboard', {
+        const dashboardResponse = await fetch('http://localhost:5000/api/hod/dashboard', {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
@@ -212,7 +217,7 @@ const HODDashboard = () => {
         // Fetch non-teaching staff list for department
         let staffList = [];
         try {
-          const staffRes = await fetch('http://69.62.83.14:9000/api/hod/nonteaching', {
+          const staffRes = await fetch('http://localhost:5000/api/hod/nonteaching', {
             method: 'GET',
             headers: {
               'Content-Type': 'application/json',
@@ -228,7 +233,7 @@ const HODDashboard = () => {
         // Fetch attendance logs count for department
         let attendanceLogsCount = 0;
         try {
-          const logsRes = await fetch('http://69.62.83.14:9000/api/hod/faculty-log', {
+          const logsRes = await fetch('http://localhost:5000/api/hod/faculty-log', {
             method: 'GET',
             headers: {
               'Content-Type': 'application/json',
@@ -299,7 +304,7 @@ const HODDashboard = () => {
     const fetchFacultyStress = async () => {
       setFacultyStressLoading(true);
       try {
-        const response = await fetch('http://69.62.83.14:9000/api/faculty/student-stress-level', {
+        const response = await fetch('http://localhost:5000/api/faculty/student-stress-level', {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`,
             'Content-Type': 'application/json'
@@ -335,6 +340,26 @@ const HODDashboard = () => {
     };
     fetchFacultyStress();
   }, []);
+
+  // Fetch assigned tasks history for HOD (only when modal is opened)
+  const fetchAssignedTasksHistory = useCallback(async () => {
+    setLoadingTaskHistory(true);
+    try {
+      const token = localStorage.getItem("token");
+      const res = await axios.get("http://localhost:5000/api/hod/assigned-tasks/history", {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setAssignedTasksHistory(res.data.tasks || []);
+    } catch (err) {
+      setAssignedTasksHistory([]);
+    } finally {
+      setLoadingTaskHistory(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchAssignedTasksHistory();
+  }, [fetchAssignedTasksHistory]);
 
   // Calculate percentages
   const calculatePercentage = (present, total) => {
@@ -397,8 +422,8 @@ const HODDashboard = () => {
     setProfileLoading(true);
     setProfileLogs([]);
     const url = type === 'faculty'
-      ? `http://69.62.83.14:9000/api/hod/faculty-profile/${id}`
-      : `http://69.62.83.14:9000/api/hod/staff-profile/${id}`;
+      ? `http://localhost:5000/api/hod/faculty-profile/${id}`
+      : `http://localhost:5000/api/hod/staff-profile/${id}`;
     fetch(url, {
       headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
     })
@@ -417,13 +442,13 @@ const HODDashboard = () => {
       try {
         const token = localStorage.getItem('token');
         const [facultyRes, studentRes, staffRes] = await Promise.all([
-          axios.get('http://69.62.83.14:9000/api/hod/faculty-today-attendance-count', { 
+          axios.get('http://localhost:5000/api/hod/faculty-today-attendance-count', { 
             headers: { Authorization: `Bearer ${token}` } 
           }).catch(e => ({ data: { count: 0 } })), // Fallback if error
-          axios.get('http://69.62.83.14:9000/api/hod/student-today-attendance-count', { 
+          axios.get('http://localhost:5000/api/hod/student-today-attendance-count', { 
             headers: { Authorization: `Bearer ${token}` } 
           }).catch(e => ({ data: { count: 0 } })),
-          axios.get('http://69.62.83.14:9000/api/hod/nonteaching-today-attendance-count', { 
+          axios.get('http://localhost:5000/api/hod/nonteaching-today-attendance-count', { 
             headers: { Authorization: `Bearer ${token}` } 
           }).catch(e => ({ data: { count: 0 } }))
         ]);
@@ -445,6 +470,29 @@ const HODDashboard = () => {
     const interval = setInterval(fetchTodayCounts, 5 * 60 * 1000);
     return () => clearInterval(interval);
   }, []);
+
+  // Calculate assigned and pending task counts and arrays
+  const today = new Date();
+  today.setHours(0, 0, 0, 0); // Set to midnight for accurate comparison
+
+  const isSameDay = (dateA, dateB) => {
+    return (
+      dateA.getFullYear() === dateB.getFullYear() &&
+      dateA.getMonth() === dateB.getMonth() &&
+      dateA.getDate() === dateB.getDate()
+    );
+  };
+
+  const assignedTasks = assignedTasksHistory.filter(task => {
+    if (!task.createdAt) return false;
+    const created = new Date(task.createdAt);
+    return isSameDay(created, today);
+  });
+
+  const pendingTasks = assignedTasks.filter(task => {
+    const hasIncomplete = (task.facultyAssignments || []).some(fa => fa.status !== 'completed');
+    return hasIncomplete;
+  });
 
   if (loading) {
     return (
@@ -514,23 +562,40 @@ const HODDashboard = () => {
               className="mt-4 lg:mt-0 w-full lg:w-auto"
             >
               <div className="flex flex-wrap gap-2 mb-4 sm:mb-6">
-                {['overview', 'faculty', 'totalActivities', 'ongoingActivities', 'students'].map((tab) => (
+                {['overview', 'faculty', 'totalActivities', 'ongoingActivities', 'students', 'tasks', 'pendingTasks'].map((tab) => (
                   <motion.button
                     key={tab}
                     className={`px-2 sm:px-4 py-2 rounded-lg font-semibold transition-colors duration-200 text-xs sm:text-sm ${
                       activeTab === tab ? theme.primary + ' text-white' : 'bg-white text-gray-700 border border-gray-200'
                     }`}
-                    onClick={() => setActiveTab(tab)}
+                    onClick={() => {
+                      if (tab === 'tasks') {
+                        setShowTasksModal(true);
+                      } else if (tab === 'pendingTasks') {
+                        setShowPendingTasksModal(true);
+                      } else {
+                        setActiveTab(tab);
+                      }
+                    }}
                     whileHover={{ scale: 1.05 }}
                   >
-                    {tab === 'overview' ? <FiHome className="inline mr-1" /> : 
-                     tab === 'faculty' ? <FiUserCheck className="inline mr-1" /> : 
-                     tab === 'students' ? <FiUsers className="inline mr-1" /> :
-                     tab === 'totalActivities' ? <FiActivity className="inline mr-1" /> :
-                     tab === 'ongoingActivities' ? <FiActivity className="inline mr-1" /> : null}
                     {tab === 'totalActivities' ? 'Total Department Activities' : 
                      tab === 'ongoingActivities' ? 'Ongoing Department Activities' : 
-                     tab.charAt(0).toUpperCase() + tab.slice(1)}
+                     tab === 'tasks' ? (
+                       <>
+                         Assigned Tasks
+                         <span className="ml-1 inline-block bg-red-600 text-white text-xs rounded-full px-2 py-0.5">
+                           {assignedTasks.length}
+                         </span>
+                       </>
+                     ) : tab === 'pendingTasks' ? (
+                       <>
+                         Pending Tasks
+                         <span className="ml-1 inline-block bg-yellow-600 text-white text-xs rounded-full px-2 py-0.5">
+                           {pendingTasks.length}
+                         </span>
+                       </>
+                     ) : tab.charAt(0).toUpperCase() + tab.slice(1)}
                   </motion.button>
                 ))}
               </div>
@@ -1236,9 +1301,155 @@ const HODDashboard = () => {
               </motion.div>
             )}
           </AnimatePresence>
+
+          {/* Tasks Modal */}
+          <AnimatePresence>
+            {showTasksModal && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 sm:p-4"
+                onClick={() => setShowTasksModal(false)}
+              >
+                <motion.div
+                  initial={{ scale: 0.9, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  exit={{ scale: 0.9, opacity: 0 }}
+                  className="bg-white rounded-xl shadow-lg w-full max-w-3xl max-h-[90vh] sm:max-h-[80vh] overflow-hidden"
+                  onClick={e => e.stopPropagation()}
+                >
+                  <div className="p-3 sm:p-6 border-b border-gray-200 flex justify-between items-center">
+                    <h2 className="text-lg sm:text-xl font-bold flex items-center">
+                      <FiBook className="mr-2 text-red-600" /> Assigned Tasks
+                    </h2>
+                    <button
+                      onClick={() => setShowTasksModal(false)}
+                      className="text-gray-500 hover:text-gray-700 p-2 hover:bg-gray-100 rounded-full transition-colors"
+                    >
+                      <FiX size={20} className="sm:w-6 sm:h-6" />
+                    </button>
+                  </div>
+                  <div className="p-3 sm:p-6 overflow-y-auto max-h-[calc(90vh-6rem)] sm:max-h-[calc(80vh-8rem)]">
+                    {loadingTaskHistory ? (
+                      <div className="text-gray-500 text-sm">Loading...</div>
+                    ) : assignedTasks.length === 0 ? (
+                      <div className="text-gray-500 text-sm">No current tasks.</div>
+                    ) : (
+                      <ul className="divide-y divide-gray-200">
+                        {assignedTasks.map((task, idx) => (
+                          <li key={task.id || idx} className="py-3 cursor-pointer" onClick={() => setExpandedTaskId(expandedTaskId === task.id ? null : task.id)}>
+                            {/* Show only heading, assigned faculties with status, deadline, and created date */}
+                            <div className="flex flex-col gap-1">
+                              <div className="font-bold text-lg text-red-800 mb-1">{task.heading || 'No Heading'}</div>
+                              <div className="flex flex-wrap gap-2 text-sm text-gray-700">
+                                <span className="font-semibold">Assigned Faculties:</span>
+                                <ul className="ml-2 list-disc">
+                                  {task.facultyAssignments && task.facultyAssignments.length > 0 ? (
+                                    task.facultyAssignments.map((fa, i) => (
+                                      <li key={i} className="text-red-800">
+                                        {fa.name} <span className="text-gray-600 italic">({fa.status})</span>
+                                      </li>
+                                    ))
+                                  ) : (
+                                    <li className="text-gray-400">N/A</li>
+                                  )}
+                                </ul>
+                              </div>
+                              <div className="text-xs text-gray-500 mt-1">
+                                {task.deadline && (
+                                  <span className="mr-4">Deadline: <span className="font-semibold">{new Date(task.deadline).toLocaleDateString()}</span></span>
+                                )}
+                                {task.createdAt && (
+                                  <span>Created: <span className="font-semibold">{new Date(task.createdAt).toLocaleString()}</span></span>
+                                )}
+                              </div>
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Pending Tasks Modal */}
+          <AnimatePresence>
+            {showPendingTasksModal && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 sm:p-4"
+                onClick={() => setShowPendingTasksModal(false)}
+              >
+                <motion.div
+                  initial={{ scale: 0.9, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  exit={{ scale: 0.9, opacity: 0 }}
+                  className="bg-white rounded-xl shadow-lg w-full max-w-3xl max-h-[90vh] sm:max-h-[80vh] overflow-hidden"
+                  onClick={e => e.stopPropagation()}
+                >
+                  <div className="p-3 sm:p-6 border-b border-gray-200 flex justify-between items-center">
+                    <h2 className="text-lg sm:text-xl font-bold flex items-center">
+                      <FiBook className="mr-2 text-red-600" /> Pending Tasks
+                    </h2>
+                    <button
+                      onClick={() => setShowPendingTasksModal(false)}
+                      className="text-gray-500 hover:text-gray-700 p-2 hover:bg-gray-100 rounded-full transition-colors"
+                    >
+                      <FiX size={20} className="sm:w-6 sm:h-6" />
+                    </button>
+                  </div>
+                  <div className="p-3 sm:p-6 overflow-y-auto max-h-[calc(90vh-6rem)] sm:max-h-[calc(80vh-8rem)]">
+                    {loadingTaskHistory ? (
+                      <div className="text-gray-500 text-sm">Loading...</div>
+                    ) : pendingTasks.length === 0 ? (
+                      <div className="text-gray-500 text-sm">No pending tasks.</div>
+                    ) : (
+                      <ul className="divide-y divide-gray-200">
+                        {pendingTasks.map((task, idx) => (
+                          <li key={task.id || idx} className="py-3 cursor-pointer">
+                            {/* Show only heading, assigned faculties with status, deadline, and created date */}
+                            <div className="flex flex-col gap-1">
+                              <div className="font-bold text-lg text-red-800 mb-1">{task.heading || 'No Heading'}</div>
+                              <div className="flex flex-wrap gap-2 text-sm text-gray-700">
+                                <span className="font-semibold">Assigned Faculties:</span>
+                                <ul className="ml-2 list-disc">
+                                  {task.facultyAssignments && task.facultyAssignments.length > 0 ? (
+                                    task.facultyAssignments.map((fa, i) => (
+                                      <li key={i} className="text-red-800">
+                                        {fa.name} <span className="text-gray-600 italic">({fa.status})</span>
+                                      </li>
+                                    ))
+                                  ) : (
+                                    <li className="text-gray-400">N/A</li>
+                                  )}
+                                </ul>
+                              </div>
+                              <div className="text-xs text-gray-500 mt-1">
+                                {task.deadline && (
+                                  <span className="mr-4">Deadline: <span className="font-semibold">{new Date(task.deadline).toLocaleDateString()}</span></span>
+                                )}
+                                {task.createdAt && (
+                                  <span>Created: <span className="font-semibold">{new Date(task.createdAt).toLocaleString()}</span></span>
+                                )}
+                              </div>
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </motion.div>
       </div>
-              {isMobile && <MobileBottomTabsHOD onLogout={handleLogout} />}
+      {isMobile && <MobileBottomTabsHOD onLogout={handleLogout} />}
       {showLogoutModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
           <div className="bg-white rounded-xl shadow-lg p-6 max-w-sm w-full">
@@ -1267,7 +1478,7 @@ function RecentFacultyLogs({ facultyMembers = [], handlePersonClick }) {
       setError(null);
       try {
         const token = localStorage.getItem('token');
-        const res = await fetch('http://69.62.83.14:9000/api/hod/recent-faculty-logs', {
+        const res = await fetch('http://localhost:5000/api/hod/recent-faculty-logs', {
           headers: { 'Authorization': `Bearer ${token}` },
         });
         if (!res.ok) throw new Error('Failed to fetch logs');
@@ -1338,7 +1549,7 @@ function RecentLeaveApprovals() {
     const fetchLeaves = async () => {
       try {
         setLoading(true);
-        const res = await axios.get('http://69.62.83.14:9000/api/hod/leave-approval');
+        const res = await axios.get('http://localhost:5000/api/hod/leave-approval');
         setLeaveApplications(Array.isArray(res.data) ? res.data.filter(app => app.HodApproval === 'Pending').slice(0, 5) : []);
       } catch (err) {
         setError('Could not load leave requests');
@@ -1352,7 +1563,7 @@ function RecentLeaveApprovals() {
   const handleAction = async (application, action) => {
     setActionLoading(application.ErpStaffId);
     try {
-      await axios.put(`http://69.62.83.14:9000/api/hod/leave-approval/${application.ErpStaffId}`, {
+      await axios.put(`http://localhost:5000/api/hod/leave-approval/${application.ErpStaffId}`, {
         HodApproval: action === 'approve' ? 'Approved' : 'Rejected',
       });
       setLeaveApplications(prev => prev.filter(app => app.ErpStaffId !== application.ErpStaffId));

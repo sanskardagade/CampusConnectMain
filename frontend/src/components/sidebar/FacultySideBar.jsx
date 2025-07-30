@@ -2,6 +2,8 @@ import { NavLink, useNavigate, useLocation } from "react-router-dom";
 import { FaBars, FaHome, FaUser } from "react-icons/fa";
 import { BiAnalyse, BiSearch } from "react-icons/bi";
 import { TbReport } from "react-icons/tb";
+import { PiStudentBold } from "react-icons/pi";
+import { FaBuffer } from "react-icons/fa";
 import {
   AiOutlineSetting,
   AiFillDatabase,
@@ -44,7 +46,11 @@ import { useIsMobile } from "../hooks/use-mobile";
       name: "Student Stress Level",
       icon: <BiAnalyse />,
     },
-
+    {
+      path: "/faculty/students-logs",
+      name: "Students Logs",
+      icon: <FaBuffer/>,
+    },
     {
       path: "/faculty/leave-apply",
       name: "Leave Application",
@@ -54,6 +60,11 @@ import { useIsMobile } from "../hooks/use-mobile";
       path: "/faculty/attendance-report",
       name: "Attendance Report",
       icon: <TbReport />,
+    },
+    {
+      path: "/faculty/students",
+      name: "Students",
+      icon: <PiStudentBold />,
     },
     // {
     //   path: "/faculty/location",

@@ -292,8 +292,8 @@ router.get('/leave-approval', async (req, res) => {
   }
 });
 
-router.put('/leave-approval/:erpStaffId', async (req, res) => {
-  const { erpStaffId } = req.params;
+router.put('/leave-approval/:leaveId', async (req, res) => {
+  const { leaveId } = req.params;
   const { HodApproval } = req.body;
 
   try {
@@ -309,14 +309,14 @@ router.put('/leave-approval/:erpStaffId', async (req, res) => {
         SET "HodApproval" = ${HodApproval},
             "PrincipalApproval" = 'Rejected',
             "FinalStatus" = 'Rejected'
-        WHERE "ErpStaffId" = ${erpStaffId}
+        WHERE id = ${leaveId}
       `;
     } else {
       // If approved, only update HOD approval
       await sql`
         UPDATE faculty_leave 
         SET "HodApproval" = ${HodApproval}
-        WHERE "ErpStaffId" = ${erpStaffId}
+        WHERE id = ${leaveId}
       `;
     }
     res.json({ message: 'Leave approval updated successfully' });
@@ -1632,6 +1632,122 @@ router.get('/nonteaching-stress-report', authenticateToken, async (req, res) => 
   } catch (error) {
     console.error('Error generating non-teaching staff stress report:', error);
     res.status(500).json({ message: 'Failed to generate non-teaching staff stress report' });
+  }
+});
+
+// GET: fetch faculty for assignment
+router.get("/assign-task", authenticateToken, async (req, res) => {
+  try {
+    const { departmentId } = req.query;
+    if (!departmentId) {
+      return res.status(400).json({ error: "departmentId is required" });
+    }
+    const faculty = await sql`
+      SELECT id, erpid, name, email, is_active, created_at 
+      FROM faculty 
+      WHERE department_id = ${departmentId} AND is_active = true 
+      ORDER BY name ASC
+    `;
+    res.json({ faculty });
+  } catch (error) {
+    console.error("Error fetching faculty for task assignment:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// POST: assign task to faculty
+router.post('/assign-task', authenticateToken, async (req, res) => {
+  console.log('Received assign-task request:', req.body);
+  try {
+    const { heading, facultyErpIds, message, fileUrl, deadline, createdAt } = req.body;
+    const hodErpid = req.user.erpStaffId;
+    if (!facultyErpIds || facultyErpIds.length === 0) {
+      return res.status(400).json({ message: 'No faculty ERP IDs provided for task assignment.' });
+    }
+
+    // Insert task into the database
+    const taskId = await sql`
+      INSERT INTO tasks (hod_erpid, message, file_url, created_at, deadline, heading)
+      VALUES (${hodErpid}, ${message}, ${fileUrl}, ${createdAt}, ${deadline}, ${heading})
+      RETURNING id
+    `;
+    // Insert task-faculty assignments
+    for (const erpid of facultyErpIds) {
+      await sql`
+        INSERT INTO assigned_tasks (task_id, faculty_erpid, deadline)
+        VALUES (${taskId[0].id}, ${erpid}, ${deadline})
+      `;
+    }
+
+    res.json({ message: 'Task assigned successfully to selected faculty members.' });
+  } catch (error) {
+    console.error('Error assigning task:', error);
+    res.status(500).json({ message: 'Failed to assign task to faculty members.' });
+  }
+});
+
+// GET: fetch assigned task history for HOD's department
+router.get('/assigned-tasks/history', authenticateToken, async (req, res) => {
+  try {
+    const departmentId = req.user.departmentId;
+
+    // Get all tasks assigned by HODs in this department
+    const tasks = await sql`
+      SELECT 
+        t.id, 
+        t.heading,
+        t.message, 
+        t.file_url AS "fileUrl", 
+        t.created_at AS "createdAt",
+        t.deadline AS "deadline",
+        t.hod_erpid,
+        h.name AS hod_name
+      FROM tasks t
+      JOIN hod h ON t.hod_erpid = h.erpid
+      WHERE h.department_id = ${departmentId}
+      ORDER BY t.created_at DESC
+    `;
+
+    // For each task, get assigned faculty names and their status
+    const taskIds = tasks.map(t => t.id);
+    let facultyAssignments = [];
+    if (taskIds.length > 0) {
+      facultyAssignments = await sql`
+        SELECT 
+          at.task_id, 
+          f.name AS faculty_name,
+          at.status
+        FROM assigned_tasks at
+        JOIN faculty f ON at.faculty_erpid = f.erpid
+        WHERE at.task_id = ANY(${taskIds})
+      `;
+    }
+
+    // Map faculty names and status to each task
+    const taskIdToFaculty = {};
+    facultyAssignments.forEach(row => {
+      if (!taskIdToFaculty[row.task_id]) taskIdToFaculty[row.task_id] = [];
+      taskIdToFaculty[row.task_id].push({
+        name: row.faculty_name,
+        status: row.status
+      });
+    });
+
+    const result = tasks.map(task => ({
+      id: task.id,
+      heading: task.heading,
+      message: task.message,
+      fileUrl: task.fileUrl,
+      createdAt: task.createdAt,
+      deadline: task.deadline,
+      hodName: task.hod_name,
+      facultyAssignments: taskIdToFaculty[task.id] || []
+    }));
+    console.log("FROM BACKEND", result);
+    res.json({ tasks: result });
+  } catch (error) {
+    console.error('Error fetching assigned task history:', error);
+    res.status(500).json({ message: 'Failed to fetch assigned task history.' });
   }
 });
 

@@ -37,7 +37,7 @@ export default function LeaveApprovalDashboard() {
   useEffect(() => {
     const fetchLeaveApplications = async () => {
       try {
-        const response = await axios.get('http://69.62.83.14:9000/api/hod/leave-approval');
+        const response = await axios.get('http://localhost:5000/api/hod/leave-approval');
         
         if (response.data && Array.isArray(response.data)) {
           console.log('Received leave applications:', response.data);
@@ -67,7 +67,7 @@ export default function LeaveApprovalDashboard() {
     }
 
     try {
-      const response = await axios.put(`http://69.62.83.14:9000/api/hod/leave-approval/${application.ErpStaffId}`, {
+      const response = await axios.put(`http://localhost:5000/api/hod/leave-approval/${application.ErpStaffId}`, {
         HodApproval: 'Approved'
       });
 
@@ -104,7 +104,7 @@ export default function LeaveApprovalDashboard() {
     }
     
     try {
-      const response = await axios.put(`http://69.62.83.14:9000/api/hod/leave-approval/${application.ErpStaffId}`, {
+      const response = await axios.put(`http://localhost:5000/api/hod/leave-approval/${application.ErpStaffId}`, {
         HodApproval: 'Rejected'
       });
 

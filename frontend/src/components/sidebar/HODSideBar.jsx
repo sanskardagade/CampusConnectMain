@@ -1,6 +1,7 @@
 import { NavLink } from "react-router-dom";
 import { FaBars, FaHome, FaUser } from "react-icons/fa";
 import { BiAnalyse, BiSearch } from "react-icons/bi";
+import { FaTasks } from "react-icons/fa";
 import {
   AiOutlineSetting,
   AiFillDatabase,
@@ -17,6 +18,7 @@ import { useIsMobile } from '../hooks/use-mobile';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { FiHome, FiActivity } from 'react-icons/fi';
 import { AiOutlineFilePdf } from 'react-icons/ai';
+import { icons } from "lucide-react";
 
 const routes = [
   {
@@ -49,6 +51,11 @@ const routes = [
     path: "/hod/leave-approval",
     name: "Faculty Leave Approval",
     icon: <AiFillBell />,
+  },
+  {
+    path: "/hod/AssignTask",
+    name: "Assign Task",
+    icon: <FaTasks/>,
   },
   {
     path: "/hod/report",

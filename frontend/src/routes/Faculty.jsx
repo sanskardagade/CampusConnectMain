@@ -14,6 +14,8 @@ import FacultyChangePassword from "../components/faculty/FacultyChangePassword";
 import LeaveApplication from "../components/faculty/LeaveApplication";
 import DummyFacultyStress from "../components/faculty/DummyFacultyStress";
 import AttendanceReport from "../components/faculty/AttendanceReport";
+import StudentsSection from "../components/faculty/StudentsSection";
+import StudentsLogs from "../components/faculty/Students_logs";
 
 const Faculty = () => {
   return (
@@ -31,6 +33,8 @@ const Faculty = () => {
         <Route path="faculty-settings/edit-profile" element={<FacultyProfileEdit />} />
         <Route path="faculty-settings/change-password" element={<FacultyChangePassword />} />
         <Route path="attendance-report" element={<AttendanceReport />} />
+        <Route path="students" element={<StudentsSection />} />
+        <Route path="students-logs" element={<StudentsLogs />} />
       </Routes>
     </FacultySideBar>
   );

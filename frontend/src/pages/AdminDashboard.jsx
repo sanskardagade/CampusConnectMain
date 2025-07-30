@@ -13,6 +13,13 @@ import dayjs from 'dayjs';
 
 import { useNavigate } from 'react-router-dom';
 import HeaderAdmin from '../components/common/HeaderAdmin';
+import CollegeSelectModal from '../components/common/CollegeSelectModal';
+
+const colleges = [
+  "Dr. D. Y. Patil Inst. of Tech., Pimpri",
+  "IMR",
+  "B-School"
+];
 
 const AdminDashboard = () => {
   const [loading, setLoading] = useState(true);
@@ -69,6 +76,7 @@ const AdminDashboard = () => {
   const [staffListRefreshing, setStaffListRefreshing] = useState(false);
   const [branchPdfLoading, setBranchPdfLoading] = useState(null);
   const [staffBranchPdfLoading, setStaffBranchPdfLoading] = useState(null);
+  const [showCollegeSelect, setShowCollegeSelect] = useState(false);
 
   useEffect(() => {
     fetchDashboardData();
@@ -116,7 +124,7 @@ const AdminDashboard = () => {
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
-      const response = await axios.get('http://69.62.83.14:9000/api/admin/dashboard', {
+      const response = await axios.get('http://localhost:5000/api/admin/dashboard', {
         headers: { Authorization: `Bearer ${token}` }
       });
       setStats(response.data.stats);
@@ -132,7 +140,7 @@ const AdminDashboard = () => {
   const fetchPendingLeaves = async () => {
     try {
       const token = localStorage.getItem('token');
-      const res = await axios.get('http://69.62.83.14:9000/api/admin/faculty-leave-approval', {
+      const res = await axios.get('http://localhost:5000/api/admin/faculty-leave-approval', {
         headers: { Authorization: `Bearer ${token}` }
       });
       const pending = (res.data || []).filter(l => l.AdminApproval === 'Pending').length;
@@ -145,7 +153,7 @@ const AdminDashboard = () => {
   const fetchPresentFacultyStaffSummary = async () => {
     try {
       const token = localStorage.getItem('token');
-      const res = await axios.get('http://69.62.83.14:9000/api/admin/present-faculty-staff-summary', {
+      const res = await axios.get('http://localhost:5000/api/admin/present-faculty-staff-summary', {
         headers: { Authorization: `Bearer ${token}` }
       });
       // Find today's date in the summary
@@ -175,7 +183,7 @@ const AdminDashboard = () => {
     try {
       const token = localStorage.getItem('token');
       const response = await axios.get(
-        'http://69.62.83.14:9000/api/admin/all-members',
+        'http://localhost:5000/api/admin/all-members',
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setMembers(response.data.members);
@@ -189,7 +197,7 @@ const AdminDashboard = () => {
       setSelectedType(type);
       const token = localStorage.getItem('token');
       const response = await axios.get(
-        `http://69.62.83.14:9000/api/admin/members?deptId=${deptId}&type=${type}`,
+        `http://localhost:5000/api/admin/members?deptId=${deptId}&type=${type}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setMembers(response.data.members);
@@ -204,7 +212,7 @@ const AdminDashboard = () => {
       setProfileLoading(true);
       const token = localStorage.getItem('token');
       const response = await axios.get(
-        `http://69.62.83.14:9000/api/admin/profile/${memberId}?type=${selectedType}`,
+        `http://localhost:5000/api/admin/profile/${memberId}?type=${selectedType}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setProfileData(response.data);
@@ -214,7 +222,7 @@ const AdminDashboard = () => {
         setShowFacultyLogs(false);
         try {
           const logsRes = await axios.get(
-            `http://69.62.83.14:9000/api/admin/faculty-logs/${memberId}`,
+            `http://localhost:5000/api/admin/faculty-logs/${memberId}`,
             { headers: { Authorization: `Bearer ${token}` } }
           );
           setFacultyLogs(logsRes.data.logs || []);
@@ -229,7 +237,7 @@ const AdminDashboard = () => {
         setShowStaffLogs(false);
         try {
           const logsRes = await axios.get(
-            `http://69.62.83.14:9000/api/admin/staff-logs/${memberId}`,
+            `http://localhost:5000/api/admin/staff-logs/${memberId}`,
             { headers: { Authorization: `Bearer ${token}` } }
           );
           setStaffLogs(logsRes.data.logs || []);
@@ -306,7 +314,7 @@ const AdminDashboard = () => {
     setDownloading(true);
     try {
         const token = localStorage.getItem('token');
-        const response = await axios.get('http://69.62.83.14:9000/api/admin/faculty-attendance-report', {
+        const response = await axios.get('http://localhost:5000/api/admin/faculty-attendance-report', {
             headers: { Authorization: `Bearer ${token}` },
             params: { departmentId: reportDept, fromDate, toDate, format },
             responseType: 'blob',
@@ -336,7 +344,7 @@ const AdminDashboard = () => {
     setFacultyListRefreshing(true);
     try {
       const token = localStorage.getItem('token');
-      const res = await axios.get('http://69.62.83.14:9000/api/admin/present-faculty-today', {
+      const res = await axios.get('http://localhost:5000/api/admin/present-faculty-today', {
         headers: { Authorization: `Bearer ${token}` }
       });
       const facultyList = res.data.presentFaculty || [];
@@ -360,7 +368,7 @@ const AdminDashboard = () => {
     setStaffListRefreshing(true);
     try {
       const token = localStorage.getItem('token');
-      const res = await axios.get('http://69.62.83.14:9000/api/admin/present-staff-today', {
+      const res = await axios.get('http://localhost:5000/api/admin/present-staff-today', {
         headers: { Authorization: `Bearer ${token}` }
       });
       const staffList = res.data.presentStaff || [];
@@ -388,7 +396,7 @@ const AdminDashboard = () => {
   const fetchFacultyDeptTotals = async () => {
     try {
       const token = localStorage.getItem('token');
-      const res = await axios.get('http://69.62.83.14:9000/api/admin/faculty-department-counts', {
+      const res = await axios.get('http://localhost:5000/api/admin/faculty-department-counts', {
         headers: { Authorization: `Bearer ${token}` }
       });
       // Convert to map: { department_id: count }
@@ -406,7 +414,7 @@ const AdminDashboard = () => {
   const fetchStaffDeptTotals = async () => {
     try {
       const token = localStorage.getItem('token');
-      const res = await axios.get('http://69.62.83.14:9000/api/admin/staff-department-counts', {
+      const res = await axios.get('http://localhost:5000/api/admin/staff-department-counts', {
         headers: { Authorization: `Bearer ${token}` }
       });
       // Convert to map: { department_id: count }
@@ -426,7 +434,7 @@ const AdminDashboard = () => {
     try {
       const token = localStorage.getItem('token');
       const today = dayjs().format('YYYY-MM-DD');
-      const response = await axios.get('http://69.62.83.14:9000/api/admin/faculty-attendance-report', {
+      const response = await axios.get('http://localhost:5000/api/admin/faculty-attendance-report', {
         headers: { Authorization: `Bearer ${token}` },
         params: { departmentId: deptId, format: 'pdf', fromDate: today, toDate: today },
         responseType: 'blob',
@@ -447,7 +455,7 @@ const AdminDashboard = () => {
     try {
       const token = localStorage.getItem('token');
       const today = dayjs().format('YYYY-MM-DD');
-      const response = await axios.get('http://69.62.83.14:9000/api/admin/staff-attendance-report', {
+      const response = await axios.get('http://localhost:5000/api/admin/staff-attendance-report', {
         headers: { Authorization: `Bearer ${token}` },
         params: { departmentId: deptId, format: 'pdf', fromDate: today, toDate: today },
         responseType: 'blob',
@@ -479,6 +487,16 @@ const AdminDashboard = () => {
   return (
     <>
       <HeaderAdmin />
+      <CollegeSelectModal
+        open={showCollegeSelect}
+        onClose={() => setShowCollegeSelect(false)}
+        colleges={colleges}
+        onSelect={(college) => {
+          setShowCollegeSelect(false);
+          localStorage.setItem("selectedCollege", college);
+          navigate(`/admin?college=${encodeURIComponent(college)}`);
+        }}
+      />
      
       <div className="flex-1 overflow-auto bg-gray-50 p-4 sm:p-6">
         {/* Header */}
@@ -499,16 +517,25 @@ const AdminDashboard = () => {
               </h1>
               <p className="text-gray-600">Dr. D. Y. Patil Institute of Technology, Pimpri, Pune</p>
             </motion.div>
-            
-            <motion.button
-              whileHover={{ scale: 1.05, backgroundColor: "#f3f4f6" }}
-              whileTap={{ scale: 0.98 }}
-              onClick={fetchDashboardData}
-              className="px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium flex items-center gap-2 shadow-sm"
-            >
-              <FiRefreshCw className="text-red-600" />
-              <span>Refresh Data</span>
-            </motion.button>
+            <div className="flex gap-2 items-center">
+              <motion.button
+                whileHover={{ scale: 1.05, backgroundColor: "#f3f4f6" }}
+                whileTap={{ scale: 0.98 }}
+                onClick={fetchDashboardData}
+                className="px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium flex items-center gap-2 shadow-sm"
+              >
+                <FiRefreshCw className="text-red-600" />
+                <span>Refresh Data</span>
+              </motion.button>
+              <motion.button
+                whileHover={{ scale: 1.05, backgroundColor: "#f3f4f6" }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => setShowCollegeSelect(true)}
+                className="px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium flex items-center gap-2 shadow-sm"
+              >
+                <span>Back to College</span>
+              </motion.button>
+            </div>
           </div>
         </motion.header>
 
