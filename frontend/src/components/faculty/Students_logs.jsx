@@ -24,7 +24,7 @@ const StudentLogs = () => {
       setError(null);
       try {
         const token = localStorage.getItem('token');
-        let url = 'http://69.62.83.14:9000/api/faculty/sessions';
+        let url = 'http://localhost:5000/api/faculty/sessions';
         const params = [`date=${filterDate}`, `subject_id=${filterSubject}`];
         url += '?' + params.join('&');
         const response = await axios.get(url, {
@@ -46,7 +46,7 @@ const StudentLogs = () => {
     setError(null);
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get(`http://69.62.83.14:9000/api/faculty/session-logs/${session.session_id}`, {
+      const response = await axios.get(`http://localhost:5000/api/faculty/session-logs/${session.session_id}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setAttendanceLogs(response.data || []);
