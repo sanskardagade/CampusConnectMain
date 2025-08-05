@@ -22,7 +22,7 @@ export default function SessionStart({ isOpen, onClose }) {
       try {
         const token = localStorage.getItem('token');
         const today = new Date().toISOString().split('T')[0];
-        const response = await axios.get(`http://69.62.83.14:5000/api/faculty/dashboard?date=${today}`, {
+        const response = await axios.get(`http://69.62.83.14:9000/api/faculty/dashboard?date=${today}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (response.data && response.data.department) {
@@ -80,7 +80,7 @@ export default function SessionStart({ isOpen, onClose }) {
       };
 
       const response = await axios.post(
-        'http://69.62.83.14:5000/api/faculty/start-session',
+        'http://69.62.83.14:9000/api/faculty/start-session',
         sessionData,
         {
           headers: {
