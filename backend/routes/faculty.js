@@ -601,6 +601,7 @@ router.get('/students-data', authenticateToken, async (req, res) => {
 
 // Get students data
 router.get('/students-logs', authenticateToken, async (req, res) => {
+  console.log("Hello");
   const {date} = req.query;
   try {
     const erpStaffId = req.user.erpStaffId;
@@ -623,6 +624,7 @@ router.get('/students-logs', authenticateToken, async (req, res) => {
       JOIN faculty f ON s.class_teacher = f.erpid
       WHERE f.erpid = ${erpStaffId}
     )`;
+    console.log(result);
     res.json(result);
   } catch (error) {
     console.error('Error fetching assigned tasks:', error);
