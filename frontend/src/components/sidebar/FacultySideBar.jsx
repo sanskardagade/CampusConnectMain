@@ -41,11 +41,11 @@ import { useIsMobile } from "../hooks/use-mobile";
     //   icon: <AiTwotoneFileExclamation />,
     // },
     
-    {
-      path: "/faculty/student-stress-level",
-      name: "Student Stress Level",
-      icon: <BiAnalyse />,
-    },
+    // {
+    //   path: "/faculty/student-stress-level",
+    //   name: "Student Stress Level",
+    //   icon: <BiAnalyse />,
+    // },
     {
       path: "/faculty/students-logs",
       name: "Students Logs",
@@ -102,7 +102,8 @@ function MobileBottomTabsFaculty({ onLogout }) {
   const location = useLocation();
   const tabs = [
     { path: "/faculty", label: "Dashboard", icon: <FaHome /> },
-    { path: "/faculty/student-stress-level", label: "Stress", icon: <BiAnalyse /> },
+    // { path: "/faculty/student-stress-level", label: "Stress", icon: <BiAnalyse /> },
+    { path: "/faculty/students-logs", label: "Students Logs", icon: <FaBuffer /> },
     { path: "/faculty/leave-apply", label: "Leaves", icon: <AiFillContainer /> },
     { path: "/faculty/faculty-profile", label: "Profile", icon: <FaUser /> },
     { path: "/faculty/faculty-settings", label: "Settings", icon: <AiOutlineSetting /> },
