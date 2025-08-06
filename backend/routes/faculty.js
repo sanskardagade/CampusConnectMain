@@ -601,30 +601,35 @@ router.get('/students-data', authenticateToken, async (req, res) => {
 
 // Get students data
 router.get('/students-logs', authenticateToken, async (req, res) => {
-  console.log("Hello");
-  const {date} = req.query;
+  const { date } = req.query;
+
+  if (!date) {
+    return res.status(400).json({ message: 'Date parameter is required' });
+  }
+
+  const istDate = new Date(date);
+  istDate.setMinutes(istDate.getMinutes() + istDate.getTimezoneOffset() + 330); // Adjust to IST
+  const newdate = istDate.toISOString().split('T')[0];
+
   try {
     const erpStaffId = req.user.erpStaffId;
-    console.log(erpStaffId);
+
     if (!erpStaffId) {
       return res.status(400).json({ message: 'Invalid user data', error: 'No erpStaffId found' });
     }
 
-    if (!date) {
-      return res.status(400).json({ message: 'Date parameter is required' });
-    }
-
-    // Get attendance logs for students under this faculty
     const result = await sql`
-    SELECT * FROM attendance_logs_test 
-    WHERE detected_at::date = ${date}::date 
-    AND detected_erpid IN (
-      SELECT s.erpid 
-      FROM students s
-      JOIN faculty f ON s.class_teacher = f.erpid
-      WHERE f.erpid = ${erpStaffId}
-    )`;
-    console.log(result);
+      SELECT DISTINCT ON (detected_erpid) *
+      FROM attendance_logs_test 
+      WHERE detected_at::date = ${newdate} 
+        AND detected_erpid IN (
+          SELECT s.erpid 
+          FROM students s
+          JOIN faculty f ON s.class_teacher = f.erpid
+          WHERE f.erpid = ${erpStaffId}
+        )
+      ORDER BY detected_erpid, detected_at;
+    `;
     res.json(result);
   } catch (error) {
     console.error('Error fetching assigned tasks:', error);
@@ -632,39 +637,45 @@ router.get('/students-logs', authenticateToken, async (req, res) => {
   }
 });
 
-router.get('/sessions', authenticateToken, async (req, res) => {
-  try {
-    const faculty_erpid = req.user.erpStaffId;
-    const { date, subject_id } = req.query;
-    let query = `SELECT * FROM sessions WHERE faculty_erpid = $1`;
-    const params = [faculty_erpid];
-    if (date) {
-      query += ` AND session_date = $2`;
-      params.push(date);
-    }
-    if (subject_id) {
-      query += ` AND subject_id = $3`;
-      params.push(subject_id);
-    }
-    query += ` ORDER BY session_date DESC, start_time DESC`;
-    const result = await sql.query(query, params);
-    res.json(result.rows || result);
-  } catch (error) {
-    res.status(500).json({ message: 'Error fetching sessions' });
-  }
-});
 
-// GET /api/faculty/session-logs/:session_id
-router.get('/session-logs/:session_id', authenticateToken, async (req, res) => {
+// routes/faculty.js
+
+router.get('/sessions', async (req, res) => {
+  const { date, subject_id } = req.query;
+
+  if (!date || !subject_id) {
+    return res.status(400).json({ message: 'Date and subject_id are required' });
+  }
+
   try {
-    const { session_id } = req.params;
+    // Format the input date to ensure correct format
+    const formattedDate = new Date(date).toISOString().split('T')[0]; // 'YYYY-MM-DD'
+
     const result = await sql`
-      SELECT * FROM attendance_logs_test WHERE session_id = ${session_id}
-      ORDER BY detected_at ASC
+      SELECT 
+        session_id,
+        subject_id,
+        faculty_erpid,
+        department_id,
+        year,
+        semester,
+        division,
+        batch,
+        to_char(session_date, 'YYYY-MM-DD') AS session_date,
+        start_time,
+        end_time,
+        location,
+        created_at,
+        updated_at
+      FROM sessions
+      WHERE session_date = ${formattedDate}::date AND subject_id = ${subject_id}
+      ORDER BY created_at ASC
     `;
+
     res.json(result);
   } catch (error) {
-    res.status(500).json({ message: 'Error fetching attendance logs' });
+    console.error('Error fetching sessions:', error);
+    res.status(500).json({ message: 'Failed to fetch sessions' });
   }
 });
 

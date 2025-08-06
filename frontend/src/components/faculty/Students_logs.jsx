@@ -1,22 +1,22 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, Users, MapPin, User, RefreshCw, AlertCircle, CheckCircle2, Clock, Eye, BookOpen, Filter } from 'lucide-react';
-import axios from 'axios';
+import { Calendar, Users, MapPin, User, RefreshCw, AlertCircle, CheckCircle2, Clock, Eye, BookOpen, Filter, Download } from 'lucide-react';
+
 
 const StudentLogs = () => {
   const [sessions, setSessions] = useState([]);
   const [selectedSession, setSelectedSession] = useState(null);
-  const [attendanceLogs, setAttendanceLogs] = useState([]);
   const [loadingSessions, setLoadingSessions] = useState(false);
-  const [loadingLogs, setLoadingLogs] = useState(false);
   const [error, setError] = useState(null);
   const [filterDate, setFilterDate] = useState('');
   const [filterSubject, setFilterSubject] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
+  const [studentLogs, setStudentLogs] = useState([]);
+  const [loadingStudentLogs, setLoadingStudentLogs] = useState(false);
+  const [logsSearchTerm, setLogsSearchTerm] = useState('');
 
   // Fetch sessions for the selected date and subject
   useEffect(() => {
     setSelectedSession(null);
-    setAttendanceLogs([]);
     if (!filterDate || !filterSubject) {
       setSessions([]);
       return;
@@ -26,39 +26,41 @@ const StudentLogs = () => {
       setError(null);
       try {
         const token = localStorage.getItem('token');
-        const url = `http://69.62.83.14:9000/api/faculty/sessions?date=${filterDate}&subject_id=${filterSubject}`;
-        const response = await axios.get(url, {
+        const url = `http://localhost:5000/api/faculty/sessions?date=${filterDate}&subject_id=${filterSubject}`;
+        const response = await fetch(url, {
           headers: { Authorization: `Bearer ${token}` }
         });
-        setSessions(response.data || []);
+        const data = await response.json();
+        setSessions(data || []);
       } catch (err) {
-        setError(err.response?.data?.message || 'Failed to fetch sessions');
+        setError(err.message || 'Failed to fetch sessions');
       }
       setLoadingSessions(false);
     };
     fetchSessions();
   }, [filterDate, filterSubject]);
 
-  // Fetch logs for the selected session only
+  // Fetch logs for the selected session's date using /api/faculty/students-logs
   useEffect(() => {
     if (!selectedSession) {
-      setAttendanceLogs([]);
+      setStudentLogs([]);
       return;
     }
+    setLoadingStudentLogs(true);
+    setError(null);
     const fetchLogs = async () => {
-      setLoadingLogs(true);
-      setError(null);
       try {
         const token = localStorage.getItem('token');
-        const response = await axios.get(
-          `http://69.62.83.14:9000/api/faculty/session-logs/${selectedSession.session_id}`,
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-        setAttendanceLogs(response.data || []);
+        const url = `http://localhost:5000/api/faculty/students-logs?date=${selectedSession.session_date}`;
+        const response = await fetch(url, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const data = await response.json();
+        setStudentLogs(data || []);
       } catch (err) {
-        setError(err.response?.data?.message || 'Failed to fetch attendance logs');
+        setError(err.message || 'Failed to fetch student logs');
       }
-      setLoadingLogs(false);
+      setLoadingStudentLogs(false);
     };
     fetchLogs();
   }, [selectedSession]);
@@ -72,12 +74,64 @@ const StudentLogs = () => {
     return matchesSearch;
   });
 
+  // Filter student logs by search term
+  const filteredStudentLogs = studentLogs.filter(log => {
+    const matchesSearch = !logsSearchTerm ||
+      log.detected_name.toLowerCase().includes(logsSearchTerm.toLowerCase()) ||
+      log.detected_erpid.toLowerCase().includes(logsSearchTerm.toLowerCase()) ||
+      log.location.toLowerCase().includes(logsSearchTerm.toLowerCase());
+    return matchesSearch;
+  });
+
   // Attendance stats
   const getAttendanceStats = () => {
-    if (!attendanceLogs.length) return { total: 0 };
-    return { total: attendanceLogs.length };
+    if (!filteredStudentLogs.length) return { total: 0 };
+    return { total: filteredStudentLogs.length };
   };
   const stats = getAttendanceStats();
+
+  // Download report functionality
+  const downloadReport = () => {
+    if (filteredStudentLogs.length === 0) return;
+
+    // Prepare CSV data
+    const csvHeaders = ['Student Name', 'ERP ID', 'Detection Time', 'Location', 'Date'];
+    const csvData = filteredStudentLogs.map(log => {
+      const timeStr = log.detected_at.slice(11, 16);
+      const [hourStr, minute] = timeStr.split(':');
+      let hour = parseInt(hourStr, 10);
+      const ampm = hour >= 12 ? 'PM' : 'AM';
+      hour = hour % 12 || 12;
+      const formattedTime = `${hour}:${minute} ${ampm}`;
+      const date = log.detected_at.slice(0, 10);
+      
+      return [
+        log.detected_name,
+        log.detected_erpid,
+        formattedTime,
+        log.location,
+        date
+      ];
+    });
+
+    // Create CSV content
+    const csvContent = [csvHeaders, ...csvData]
+      .map(row => row.map(field => `"${field}"`).join(','))
+      .join('\n');
+
+    // Create and download file
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    if (link.download !== undefined) {
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', `attendance_logs_${selectedSession.subject_id}_${selectedSession.session_date}.csv`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-6">
@@ -231,22 +285,55 @@ const StudentLogs = () => {
               <h2 className="text-xl font-semibold text-slate-800">
                 Attendance Logs for Session: {selectedSession.subject_id}
               </h2>
-              <button
-                className="px-4 py-2 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition"
-                onClick={() => setSelectedSession(null)}
-              >
-                Back to Sessions
-              </button>
+              <div className="flex items-center space-x-3">
+                {filteredStudentLogs.length > 0 && (
+                  <button
+                    onClick={downloadReport}
+                    className="px-4 py-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors duration-200 flex items-center space-x-2"
+                  >
+                    <Download size={16} />
+                    <span>Download Report</span>
+                  </button>
+                )}
+                <button
+                  className="px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors duration-200"
+                  onClick={() => setSelectedSession(null)}
+                >
+                  Back to Sessions
+                </button>
+              </div>
             </div>
-            {loadingLogs ? (
+            
+            {/* Search logs */}
+            <div className="mb-4">
+              <div className="max-w-md">
+                <label className="text-sm font-medium text-slate-700 flex items-center mb-2">
+                  <Filter className="mr-2" size={16} />
+                  Search Logs
+                </label>
+                <input
+                  type="text"
+                  value={logsSearchTerm}
+                  onChange={e => setLogsSearchTerm(e.target.value)}
+                  placeholder="Search by name, ERP ID, or location..."
+                  className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200 bg-white/50"
+                />
+              </div>
+            </div>
+            {loadingStudentLogs ? (
               <div className="flex items-center justify-center py-8">
                 <RefreshCw className="animate-spin text-blue-600 mr-3" size={24} />
                 <span className="text-slate-600">Loading attendance logs...</span>
               </div>
-            ) : attendanceLogs.length === 0 ? (
+            ) : filteredStudentLogs.length === 0 ? (
               <div className="text-center py-8">
                 <AlertCircle className="mx-auto text-slate-400 mb-4" size={48} />
-                <p className="text-slate-600">No attendance logs found for this session.</p>
+                <p className="text-slate-600">
+                  {logsSearchTerm 
+                    ? 'No attendance logs found matching your search.' 
+                    : 'No attendance logs found for this session.'
+                  }
+                </p>
               </div>
             ) : (
               <div className="bg-white/70 rounded-xl border border-slate-200 overflow-hidden">
@@ -258,13 +345,10 @@ const StudentLogs = () => {
                         <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700">ERP ID</th>
                         <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700">Detection Time</th>
                         <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700">Location</th>
-                        <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700">Confidence</th>
-                        <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700">Log ID</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
-                      {attendanceLogs.map((log, index) => {
-                        const logTime = new Date(log.detected_at);
+                      {filteredStudentLogs.map((log, index) => {
                         return (
                           <tr
                             key={log.log_id}
@@ -290,7 +374,14 @@ const StudentLogs = () => {
                             <td className="px-6 py-4">
                             <div className="text-sm">
                               <p className="font-medium text-slate-800">
-                                {log.detected_at}
+                                {(() => {
+                                  const timeStr = log.detected_at.slice(11, 16); // "14:30"
+                                  const [hourStr, minute] = timeStr.split(':');
+                                  let hour = parseInt(hourStr, 10);
+                                  const ampm = hour >= 12 ? 'PM' : 'AM';
+                                  hour = hour % 12 || 12; // convert to 12-hour format
+                                  return `${hour}:${minute} ${ampm}`;
+                                })()}
                               </p>
                             </div>
                             </td>
@@ -299,11 +390,6 @@ const StudentLogs = () => {
                                 <MapPin className="mr-2 text-slate-400" size={14} />
                                 {log.location}
                               </div>
-                            </td>
-                            <td className="px-6 py-4">
-                              <span className="font-mono text-xs text-slate-500 bg-slate-50 px-2 py-1 rounded">
-                                {log.log_id}
-                              </span>
                             </td>
                           </tr>
                         );
@@ -314,7 +400,13 @@ const StudentLogs = () => {
                 {/* Table Footer with Summary */}
                 <div className="bg-gradient-to-r from-slate-50 to-slate-100 border-t border-slate-200 px-6 py-3">
                   <div className="flex items-center justify-between text-sm text-slate-600">
-                    <span>Showing {attendanceLogs.length} attendance records</span>
+                    <span>
+                      Showing {filteredStudentLogs.length} 
+                      {logsSearchTerm && filteredStudentLogs.length !== studentLogs.length 
+                        ? ` of ${studentLogs.length}` 
+                        : ''
+                      } attendance records
+                    </span>
                     <span className="flex items-center">
                       <Users className="mr-2 text-blue-500" size={16} />
                       Total: {stats.total}
