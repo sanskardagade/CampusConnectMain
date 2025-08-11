@@ -21,15 +21,17 @@ const hodRoutes = require('./routes/hod');
 const principalRoutes = require('./routes/principal');
 const registrarRoutes = require('./routes/registrar');
 const chatbotRoutes = require('./routes/chatbot');
+const studentAttendanceRoutes = require('./routes/StudentAttendance');
 
 // Use routes
 app.use('/api/auth', authRoutes);
-app.use('/api/student', studentRoutes);
+app.use('/api/students', studentRoutes);
 app.use('/api/faculty', facultyRoutes);
 app.use('/api/hod', hodRoutes);
 app.use('/api/principal', principalRoutes);
 app.use('/api/registrar', registrarRoutes);
 app.use('/api/chatbot', chatbotRoutes);
+app.use('/api/studentAttendance', studentAttendanceRoutes);
 app.use('/api/admin', require('./routes/admin'));
 
 

@@ -5,106 +5,115 @@ const authenticateToken = (req, res, next) => {
     const authHeader = req.headers['authorization'];
     const token = authHeader && authHeader.split(' ')[1];
     
-    console.log('Auth header:', authHeader);
-    console.log('Token:', token);
-
     if (!token) {
-      return res.status(401).json({ message: 'No token provided' });
+      return res.status(401).json({ 
+        success: false,
+        message: 'No token provided' 
+      });
     }
 
     jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
       if (err) {
         console.error('Token verification error:', err);
-        return res.status(403).json({ message: 'Invalid token' });
+        return res.status(403).json({ 
+          success: false,
+          message: 'Invalid or expired token' 
+        });
       }
 
-      console.log('Token decoded:', decoded);
-      
       // Set basic user info
       req.user = {
         id: decoded.id,
-        role: decoded.role
+        role: decoded.role,
+        erpid: decoded.erpid || decoded.erpStaffId // Handle both student and faculty/staff IDs
       };
 
       // Add role-specific fields
-      if (decoded.role === 'hod') {
-        if (!decoded.erpStaffId || !decoded.departmentId) {
-          console.error('HOD token missing required data:', decoded);
-          return res.status(403).json({ message: 'Invalid HOD token data' });
-        }
-        req.user.erpStaffId = decoded.erpStaffId;
-        req.user.departmentId = decoded.departmentId;
-      } else if (decoded.role === 'principal') {
-        // Principal only needs id and role
-        if (!decoded.id) {
-          console.error('Principal token missing required data:', decoded);
-          return res.status(403).json({ message: 'Invalid Principal token data' });
-        }
-      } else if (decoded.role === 'registrar') {
-        // Registrar only needs id and role
-        if (!decoded.id) {
-          console.error('Registrar token missing required data:', decoded);
-          return res.status(403).json({ message: 'Invalid Registrar token data' });
-        }
-      } else if (decoded.role === 'faculty') {
-        if (!decoded.erpStaffId) {
-          console.error('Faculty token missing required data:', decoded);
-          return res.status(403).json({ message: 'Invalid Faculty token data' });
-        }
-        req.user.erpStaffId = decoded.erpStaffId;
+      switch (decoded.role) {
+        case 'hod':
+          if (!decoded.erpStaffId || !decoded.departmentId) {
+            console.error('HOD token missing required data:', decoded);
+            return res.status(403).json({ 
+              success: false,
+              message: 'Invalid HOD token data' 
+            });
+          }
+          req.user.erpStaffId = decoded.erpStaffId;
+          req.user.departmentId = decoded.departmentId;
+          break;
+          
+        case 'principal':
+        case 'registrar':
+          if (!decoded.id) {
+            console.error(`${decoded.role} token missing required data:`, decoded);
+            return res.status(403).json({ 
+              success: false,
+              message: `Invalid ${decoded.role} token data` 
+            });
+          }
+          break;
+          
+        case 'faculty':
+          if (!decoded.erpStaffId) {
+            console.error('Faculty token missing required data:', decoded);
+            return res.status(403).json({ 
+              success: false,
+              message: 'Invalid Faculty token data' 
+            });
+          }
+          req.user.erpStaffId = decoded.erpStaffId;
+          break;
+          
+        case 'student':
+          if (!decoded.erpid) {
+            console.error('Student token missing required data:', decoded);
+            return res.status(403).json({ 
+              success: false,
+              message: 'Invalid Student token data' 
+            });
+          }
+          req.user.erpid = decoded.erpid;
+          break;
+          
+        default:
+          return res.status(403).json({ 
+            success: false,
+            message: 'Invalid user role' 
+          });
       }
       
-      console.log('User data set in request:', req.user);
       next();
     });
   } catch (error) {
     console.error('Auth middleware error:', error);
-    res.status(500).json({ message: 'Authentication error' });
+    res.status(500).json({ 
+      success: false,
+      message: 'Authentication error',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 };
 
-// Role verification middleware functions
-const verifyPrincipal = (req, res, next) => {
-  if (req.user.role !== 'principal') {
-    return res.status(403).json({ error: 'Access denied. Principal role required' });
-  }
-  next();
+// Role verification middlewares
+const createRoleVerifier = (role) => {
+  return (req, res, next) => {
+    if (req.user?.role !== role) {
+      return res.status(403).json({ 
+        success: false,
+        message: `Access denied. ${role} role required` 
+      });
+    }
+    next();
+  };
 };
 
-const verifyAdmin = (req, res, next) => {
-  if (req.user.role !== 'admin') {
-    return res.status(403).json({ error: 'Access denied. Admin role required' });
-  }
-  next();
-};
-
-const verifyRegistrar = (req, res, next) => {
-  if (req.user.role !== 'registrar') {
-    return res.status(403).json({ error: 'Access denied. Registrar role required' });
-  }
-  next();
-};
-
-const verifyHOD = (req, res, next) => {
-  if (req.user.role !== 'hod') {
-    return res.status(403).json({ error: 'Access denied. HOD role required' });
-  }
-  next();
-};
-
-const verifyFaculty = (req, res, next) => {
-  if (req.user.role !== 'faculty') {
-    return res.status(403).json({ error: 'Access denied. Faculty role required' });
-  }
-  next();
-};
-
-const verifyStudent = (req, res, next) => {
-  if (req.user.role !== 'student') {
-    return res.status(403).json({ error: 'Access denied. Student role required' });
-  }
-  next();
-};
+// Create all role verifiers from a single factory function
+const verifyPrincipal = createRoleVerifier('principal');
+const verifyAdmin = createRoleVerifier('admin');
+const verifyRegistrar = createRoleVerifier('registrar');
+const verifyHOD = createRoleVerifier('hod');
+const verifyFaculty = createRoleVerifier('faculty');
+const verifyStudent = createRoleVerifier('student');
 
 module.exports = {
   authenticateToken,
@@ -114,4 +123,4 @@ module.exports = {
   verifyHOD,
   verifyFaculty,
   verifyStudent
-}; 
+};

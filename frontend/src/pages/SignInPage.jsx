@@ -22,9 +22,6 @@ const SignInPage = () => {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // Get backend URL from environment variable
-  const backendUrl = import.meta.env.VITE_BACKEND_URL;
-
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
@@ -35,10 +32,7 @@ const SignInPage = () => {
     setLoading(true);
 
     try {
-      const endpoint = formData.role === 'student' 
-        ? "http://localhost:5000/api/student/login"
-        : "http://localhost:5000/api/auth/login";
-
+      const endpoint = "http://69.62.83.14:9000/api/auth/login";
       const response = await fetch(endpoint, {
         method: "POST",
         headers: {
@@ -47,28 +41,34 @@ const SignInPage = () => {
         body: JSON.stringify(formData)
       });
 
-      const data = await response.json();
 
+      const data = await response.json();
+      console.log("Login response data:", data); // Debugging line
       if (!response.ok) {
-        throw new Error(data.details || data.message || "Login failed");
+        throw new Error(data.message || "Login failed");
       }
 
-      // Store token and user data
-      localStorage.setItem("token", data.token);
-      localStorage.setItem("user", JSON.stringify(data.user));
-      localStorage.setItem("role", data.user.role);
-      updateUser(data.user);
+      // Normalize user data to handle backend inconsistencies
+      const normalizedUser = {
+        ...data.user,
+        erpStaffId: data.user.erpStaffId || data.user.erpid, // Handle both cases
+        departmentId: data.user.departmentId || data.user.department_id
+      };
 
-      // Redirect based on role
+      localStorage.setItem("token", data.token);
+      localStorage.setItem("user", JSON.stringify(normalizedUser));
+      localStorage.setItem("role", normalizedUser.role);
+      updateUser(normalizedUser);
+
       const rolePath = {
-        'student': '/student', 
+        'student': '/student',
         'faculty': '/faculty',
         'hod': '/hod',
         'principal': '/principal',
         'registrar': '/registrar'
       };
 
-      navigate(rolePath[data.user.role] || '/');
+      navigate(rolePath[normalizedUser.role] || '/');
     } catch (err) {
       setError(err.message || "An error occurred during login");
     } finally {
@@ -80,8 +80,8 @@ const SignInPage = () => {
     <>
       <HeaderCollege />
       <Navbar />
-      <div className={`flex min-h-screen font-sans bg-gradient-to-br from-white to-red-50`}> 
-        {/* Left Section - Image + Heading (hide on mobile) */}
+      <div className={`flex min-h-screen font-sans bg-gradient-to-br from-white to-red-50`}>
+        {/* Left Section - Image + Heading (hidden on mobile) */}
         {!isMobile && (
           <motion.div
             initial={{ x: -100, opacity: 0 }}
@@ -89,14 +89,11 @@ const SignInPage = () => {
             transition={{ duration: 0.6 }}
             className="relative md:w-1/2 h-[500px] md:h-auto"
           >
-            {/* Background image */}
             <div
               className="absolute inset-0 bg-cover bg-center"
               style={{ backgroundImage: `url(${CollegeImg})` }}
             ></div>
-            {/* Overlay */}
             <div className="absolute inset-0 bg-black/60"></div>
-            {/* Content */}
             <div className="relative z-10 text-white p-10 h-full flex flex-col justify-center items-start">
               <div className="bg-white bg-opacity-10 backdrop-blur-sm p-8 rounded-2xl shadow-xl max-w-sm mx-auto">
                 <h1 className="text-4xl font-extrabold mb-4">Welcome to CampusConnect</h1>
@@ -125,8 +122,9 @@ const SignInPage = () => {
             </div>
           </motion.div>
         )}
+        
         {/* Right Section - Login Form */}
-        <div className={`w-full flex justify-center items-center py-12 px-4 min-h-screen`}> 
+        <div className={`w-full flex justify-center items-center py-12 px-4 min-h-screen`}>
           <div className="border-2 border-red-700 rounded-2xl p-8 w-full max-w-md shadow-2xl bg-white/90 backdrop-blur-lg">
             <h2 className="text-center text-3xl font-bold mb-7 text-red-800 tracking-tight">Sign In</h2>
             {error && (
@@ -152,7 +150,7 @@ const SignInPage = () => {
               <input
                 type="text"
                 name="erpstaffid"
-                placeholder="ERP Staff ID"
+                placeholder={formData.role === 'student' ? "ERP ID" : "ERP Staff ID"}
                 value={formData.erpstaffid}
                 onChange={handleChange}
                 required

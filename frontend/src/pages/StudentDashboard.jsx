@@ -1,465 +1,831 @@
-import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { useUser } from '../context/UserContext';
-import { useNavigate } from 'react-router-dom';
-import AttendanceUpload from '../components/AttendanceUpload';
-import { 
-  FiDownload, 
-  FiCalendar, 
-  FiActivity, 
-  FiBookOpen, 
-  FiClock, 
-  FiChevronRight, 
-  FiBell, 
-  FiCheckCircle,
-  FiAlertTriangle,
-  FiFileText,
-  FiBarChart2,
-  FiExternalLink
-} from 'react-icons/fi';
+import { useState, useEffect } from "react";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
+import {
+  Calendar,
+  Clock,
+  TrendingUp,
+  Award,
+  BookOpen,
+  Table,
+  CheckCircle,
+  XCircle,
+  GraduationCap,
+  CalendarDays,
+} from "lucide-react";
 
 const StudentDashboard = () => {
-  const { user, loading: userLoading } = useUser();
-  const navigate = useNavigate();
+  const [selectedPeriod, setSelectedPeriod] = useState("weekly");
+  const [viewMode, setViewMode] = useState("charts"); // 'charts' or 'table'
+  const [activeTab, setActiveTab] = useState("overall"); // 'overall' or 'subjects'
+  const [customDateRange, setCustomDateRange] = useState({
+    startDate: "",
+    endDate: "",
+  });
+  const [studentData, setStudentData] = useState({
+    name: '',
+    class: '',
+    id: '',
+    contactNo: '',
+    email: '',
+    dob: '',
+    year: '',
+    division: '',
+    rollNo: '',
+    gender: '',
+    classTeacher: '',
+    semester: '',
+    departmentId: '',
+  
+  });
+  const [subjectAttendanceData, setSubjectAttendanceData] = useState([]); // now an array
+  const [overallAttendance, setOverallAttendance] = useState({ total: 0, present: 0, absent: 0, percentage: 0 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [dashboardData, setDashboardData] = useState({
-    courses: [],
-    stressData: {
-      currentLevel: "Moderate",
-      score: 65,
-      weeklyTrend: [45, 52, 65, 60, 58, 65, 70],
-      factors: [],
-      recommendations: []
-    },
-    recentNotes: [],
-    upcomingDeadlines: [],
-    attendance: {
-      subjects: [],
-      overallAttendance: 0
-    }
-  });
+
+  // Brand colors
+  const brandColors = {
+    primary: "#b22b2f",
+    secondary: "#d1a550",
+    accent: "#6b6d71",
+    primaryLight: "#d86a6d",
+    secondaryLight: "#e8d4a3",
+    accentLight: "#9a9ca0",
+    success: "#10b981",
+    danger: "#ef4444",
+    warning: "#f59e0b",
+  };
+
+  // Subject colors for charts
+  const subjectColors = {
+    Mathematics: "#b22b2f",
+    Physics: "#d1a550",
+    Chemistry: "#6b6d71",
+    Biology: "#10b981",
+    English: "#8b5cf6",
+  };
 
   useEffect(() => {
-    // Redirect to login if no user data
-    if (!userLoading && !user) {
-      navigate('/signin');
-      return;
-    }
-
-    const fetchDashboardData = async () => {
+    const fetchStudentData = async () => {
       try {
-        const token = localStorage.getItem('token');
-        if (!token) {
-          navigate('/signin');
-          return;
-        }
+        setLoading(true);
+        setError(null);
 
-        // Fetch dashboard data
-        const dashboardResponse = await fetch('http://localhost:5000/api/student/dashboard', {
+        // Fetch student profile
+        const profileResponse = await fetch('http://69.62.83.14:9000/api/students/profile', {
           headers: {
-            'Authorization': `Bearer ${token}`
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
           }
         });
+        if (!profileResponse.ok) throw new Error('Failed to fetch profile');
+        const profileData = await profileResponse.json();
+        setStudentData(profileData.data);
 
-        if (!dashboardResponse.ok) {
-          if (dashboardResponse.status === 401) {
-            localStorage.removeItem('token');
-            localStorage.removeItem('user');
-            navigate('/signin');
-            return;
-          }
-          throw new Error('Failed to fetch dashboard data');
-        }
-
-        const dashboardData = await dashboardResponse.json();
-
-        // Fetch attendance data
-        const attendanceResponse = await fetch('http://localhost:5000/api/student/attendance', {
+        // Fetch subject-wise attendance
+        const attendanceResponse = await fetch('http://69.62.83.14:9000/api/students/attendance', {
           headers: {
-            'Authorization': `Bearer ${token}`
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
           }
         });
+        if (!attendanceResponse.ok) throw new Error('Failed to fetch attendance');
+        const attendanceData = await attendanceResponse.json();
+        setSubjectAttendanceData(attendanceData.data || []);
 
-        if (attendanceResponse.ok) {
-          const attendanceData = await attendanceResponse.json();
-          setDashboardData(prev => ({
-            ...prev,
-            ...dashboardData,
-            attendance: attendanceData
-          }));
-        } else {
-          setDashboardData(prev => ({
-            ...prev,
-            ...dashboardData
-          }));
-        }
+        // Fetch overall attendance
+        const overallResponse = await fetch('http://69.62.83.14:9000/api/students/attendance/overall', {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
+        });
+        if (!overallResponse.ok) throw new Error('Failed to fetch overall attendance');
+        const overallData = await overallResponse.json();
+        setOverallAttendance(overallData.data);
+
       } catch (err) {
         setError(err.message);
+        console.error('Error fetching data:', err);
       } finally {
         setLoading(false);
       }
     };
 
-    if (user) {
-      fetchDashboardData();
-    }
-  }, [user, userLoading, navigate]);
+    fetchStudentData();
+  }, []);
 
-  if (userLoading || loading) {
-    return (
-      <div className="flex-1 overflow-auto bg-gray-50 p-4 sm:p-6 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-700"></div>
+  // Remove all dummy attendanceData and related code
+  // Use only subjectAttendanceData and overallAttendance for all stats, charts, and tables
+
+  // For period selection, fallback to overallAttendance for all periods
+  const getCurrentData = () => overallAttendance;
+
+  const currentData = getCurrentData();
+
+  // For subject chart data
+  const subjectChartData = subjectAttendanceData.map((data) => ({
+    subject: data.name,
+    present: data.present,
+    absent: data.absent,
+    percentage: data.percentage,
+    color: subjectColors[data.name] || brandColors.primary
+  }));
+
+  const subjectPieData = subjectAttendanceData.map((data) => ({
+    name: data.name,
+    value: data.percentage,
+    color: subjectColors[data.name] || brandColors.primary
+  }));
+
+  const pieData = [
+    { name: "Present", value: overallAttendance.present, color: brandColors.primary },
+    { name: "Absent", value: overallAttendance.absent, color: brandColors.primaryLight },
+  ];
+
+  // For quick stats and charts, use overallAttendance
+  // const currentData = overallAttendance; // This line is now redundant
+
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return "Good Morning";
+    if (hour < 17) return "Good Afternoon";
+    return "Good Evening";
+  };
+
+  const handleDateRangeChange = (field, value) => {
+    setCustomDateRange((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+  };
+
+  const renderDateRangePicker = () => (
+    <div className="flex flex-wrap items-center gap-4 mt-4 p-4 bg-gray-50 rounded-lg">
+      <div className="flex items-center space-x-2">
+        <CalendarDays className="w-4 h-4 text-gray-600" />
+        <span className="text-sm font-medium text-gray-700">Custom Date Range:</span>
       </div>
-    );
-  }
+      <div className="flex items-center space-x-2">
+        <label className="text-sm text-gray-600">From:</label>
+        <input
+          type="date"
+          value={customDateRange.startDate}
+          onChange={(e) => handleDateRangeChange("startDate", e.target.value)}
+          className="px-3 py-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+      </div>
+      <div className="flex items-center space-x-2">
+        <label className="text-sm text-gray-600">To:</label>
+        <input
+          type="date"
+          value={customDateRange.endDate}
+          onChange={(e) => handleDateRangeChange("endDate", e.target.value)}
+          className="px-3 py-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+      </div>
+      {customDateRange.startDate && customDateRange.endDate && (
+        <div className="text-sm text-gray-600">
+          Showing data from {new Date(customDateRange.startDate).toLocaleDateString()} to{" "}
+          {new Date(customDateRange.endDate).toLocaleDateString()}
+        </div>
+      )}
+    </div>
+  );
 
-  if (error) {
-    return (
-      <div className="flex-1 overflow-auto bg-gray-50 p-4 sm:p-6 flex items-center justify-center">
-        <div className="text-red-700 text-center">
-          <FiAlertTriangle className="mx-auto mb-2" size={24} />
-          <p>{error}</p>
+  const renderOverallAttendance = () => (
+    <>
+      {/* Quick Stats */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div className="bg-white rounded-lg p-4 shadow border border-gray-200">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-gray-600 text-sm">Total Classes</p>
+              <p className="text-2xl font-bold text-gray-800">{currentData.total}</p>
+            </div>
+            <BookOpen className="w-8 h-8" style={{ color: brandColors.primary }} />
+          </div>
+        </div>
+
+        <div className="bg-white rounded-lg p-4 shadow border border-gray-200">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-gray-600 text-sm">Present</p>
+              <p className="text-2xl font-bold" style={{ color: brandColors.success }}>
+                {currentData.present}
+              </p>
+            </div>
+            <Award className="w-8 h-8" style={{ color: brandColors.success }} />
+          </div>
+        </div>
+
+        <div className="bg-white rounded-lg p-4 shadow border border-gray-200">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-gray-600 text-sm">Absent</p>
+              <p className="text-2xl font-bold" style={{ color: brandColors.danger }}>
+                {currentData.absent}
+              </p>
+            </div>
+            <Clock className="w-8 h-8" style={{ color: brandColors.danger }} />
+          </div>
+        </div>
+
+        <div className="bg-white rounded-lg p-4 shadow border border-gray-200">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-gray-600 text-sm">Attendance Rate</p>
+              <p className="text-2xl font-bold" style={{ color: brandColors.secondary }}>
+                {currentData.percentage}%
+              </p>
+            </div>
+            <TrendingUp className="w-8 h-8" style={{ color: brandColors.secondary }} />
+          </div>
         </div>
       </div>
-    );
-  }
 
-  if (!user) {
-    return null; // Will be redirected by useEffect
-  }
+      {/* Charts/Table Content */}
+      <div className="bg-white rounded-xl shadow-lg border border-gray-200">
+        <div className="p-6 border-b border-gray-200">
+          <div className="flex flex-col md:flex-row md:items-center justify-between mb-4 gap-4">
+            <div className="flex items-center space-x-2">
+              <Calendar className="w-6 h-6" style={{ color: brandColors.primary }} />
+              <h2 className="text-xl font-bold text-gray-800">Attendance Overview</h2>
+            </div>
 
-  const { courses, stressData, recentNotes, upcomingDeadlines, attendance } = dashboardData;
-
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
-  };
-
-  const itemVariants = {
-    hidden: { y: 20, opacity: 0 },
-    visible: { y: 0, opacity: 1 }
-  };
-
-  // Function to determine attendance status color
-  const getAttendanceStatusColor = (percentage) => {
-    if (percentage >= 85) return "text-green-600";
-    if (percentage >= 75) return "text-yellow-600";
-    return "text-red-600";
-  };
-
-  return (
-    <div className="flex-1 overflow-auto bg-gray-50 p-4 sm:p-6">
-      {/* Welcome section */}
-      <motion.section 
-        className="bg-white rounded-lg shadow-md p-6 mb-6"
-        initial={{ opacity: 0, y: 30 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-      >
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
-          <div>
-            <h2 className="text-2xl font-semibold text-gray-800">Welcome, {user.name}</h2>
-            <p className="text-gray-600">{user.erpid} | {user.department}</p>
-            <p className="text-gray-600">{user.semester} Semester</p>
-          </div>
-          <div className="mt-4 md:mt-0 bg-red-50 p-3 rounded-lg">
-            <p className="text-red-800 font-medium flex items-center">
-              <FiBell size={16} className="mr-2" />
-              {dashboardData.notifications || 0} new notifications
-            </p>
-          </div>
-        </div>
-      </motion.section>
-
-      {/* Attendance Upload Section */}
-      {(user.role === 'admin' || user.role === 'faculty') && <AttendanceUpload />}
-
-      {/* Attendance Overview */}
-      <motion.section 
-        className="bg-white rounded-lg shadow-md p-6 mb-6"
-        initial={{ opacity: 0, y: 30 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.2 }}
-      >
-        <h3 className="text-lg font-semibold text-gray-800 mb-4">Attendance Overview</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <h4 className="text-sm font-medium text-gray-600 mb-2">Overall Attendance</h4>
-            <div className="flex items-center">
-              <div className="w-full bg-gray-200 rounded-full h-2.5 mr-4">
-                <div 
-                  className={`h-2.5 rounded-full ${getAttendanceStatusColor(attendance.overallAttendance)}`}
-                  style={{ width: `${attendance.overallAttendance}%` }}
-                ></div>
-              </div>
-              <span className={`font-semibold ${getAttendanceStatusColor(attendance.overallAttendance)}`}>
-                {attendance.overallAttendance}%
-              </span>
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={() => setViewMode("charts")}
+                className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 flex items-center space-x-2 ${
+                  viewMode === "charts" ? "text-white shadow-md" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                }`}
+                style={viewMode === "charts" ? { backgroundColor: brandColors.primary } : {}}
+              >
+                <BarChart className="w-4 h-4" />
+                <span>Charts</span>
+              </button>
+              <button
+                onClick={() => setViewMode("table")}
+                className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 flex items-center space-x-2 ${
+                  viewMode === "table" ? "text-white shadow-md" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                }`}
+                style={viewMode === "table" ? { backgroundColor: brandColors.primary } : {}}
+              >
+                <Table className="w-4 h-4" />
+                <span>Table</span>
+              </button>
             </div>
           </div>
-          <div className="space-y-3">
-            {attendance.subjects.map((subject, index) => (
-              <div key={index} className="flex justify-between items-center">
-                <span className="text-sm text-gray-600">{subject.name}</span>
-                <span className={`font-semibold ${getAttendanceStatusColor(subject.attendance)}`}>
-                  {subject.attendance}%
+
+          {/* Period Selection */}
+          <div className="flex flex-wrap gap-2">
+            {["daily", "weekly", "monthly", "custom"].map((period) => (
+              <button
+                key={period}
+                onClick={() => setSelectedPeriod(period)}
+                className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
+                  selectedPeriod === period ? "text-white shadow-md" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                }`}
+                style={selectedPeriod === period ? { backgroundColor: brandColors.secondary } : {}}
+              >
+                {period.charAt(0).toUpperCase() + period.slice(1)}
+              </button>
+            ))}
+          </div>
+
+          {/* Custom Date Range Picker */}
+          {selectedPeriod === "custom" && renderDateRangePicker()}
+        </div>
+        <div className="p-6">
+          {viewMode === "charts" ? (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              {/* Bar Chart */}
+              <div>
+                <h3 className="text-lg font-semibold text-gray-800 mb-4">
+                  {selectedPeriod === "custom"
+                    ? "Custom Period"
+                    : selectedPeriod.charAt(0).toUpperCase() + selectedPeriod.slice(1)}{" "}
+                  Attendance
+                </h3>
+                <div className="h-64">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={subjectAttendanceData}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                      <XAxis
+                        dataKey="name"
+                        stroke={brandColors.accent}
+                        fontSize={12}
+                      />
+                      <YAxis stroke={brandColors.accent} fontSize={12} />
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: "white",
+                          border: "1px solid #e5e7eb",
+                          borderRadius: "8px",
+                          boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
+                        }}
+                      />
+                      <Bar dataKey="present" fill={brandColors.primary} radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="absent" fill={brandColors.primaryLight} radius={[4, 4, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+
+              {/* Pie Chart */}
+              <div>
+                <h3 className="text-lg font-semibold text-gray-800 mb-4">Attendance Distribution</h3>
+                <div className="h-64 flex items-center justify-center">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={pieData}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={60}
+                        outerRadius={100}
+                        paddingAngle={5}
+                        dataKey="value"
+                        strokeWidth={2}
+                        stroke="white"
+                      >
+                        {pieData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: "white",
+                          border: "1px solid #e5e7eb",
+                          borderRadius: "8px",
+                          boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
+                        }}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+
+                {/* Legend */}
+                <div className="flex justify-center space-x-6 mt-4">
+                  <div className="flex items-center space-x-2">
+                    <div className="w-4 h-4 rounded" style={{ backgroundColor: brandColors.primary }}></div>
+                    <span className="text-sm text-gray-600">Present ({currentData.present})</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <div className="w-4 h-4 rounded" style={{ backgroundColor: brandColors.primaryLight }}></div>
+                    <span className="text-sm text-gray-600">Absent ({currentData.absent})</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : (
+            // Table View
+            <div className="overflow-x-auto">
+              <h3 className="text-lg font-semibold text-gray-800 mb-4">
+                {selectedPeriod === "custom"
+                  ? "Custom Period"
+                  : selectedPeriod.charAt(0).toUpperCase() + selectedPeriod.slice(1)}{" "}
+                Attendance Details
+              </h3>
+              <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                <table className="w-full">
+                  <thead style={{ backgroundColor: brandColors.secondaryLight }}>
+                    <tr>
+                      {selectedPeriod === "daily" || selectedPeriod === "custom" ? (
+                        <>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                            Date
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                            Day
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                            Subject
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                            Time
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                            Status
+                          </th>
+                        </>
+                      ) : (
+                        <>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                            Period
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                            Total Classes
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                            Present
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                            Absent
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                            Percentage
+                          </th>
+                        </>
+                      )}
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {subjectAttendanceData.map((row, index) => (
+                      <tr key={index} className="hover:bg-gray-50 transition-colors">
+                        {selectedPeriod === "daily" || selectedPeriod === "custom" ? (
+                          <>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{row.date}</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{row.day}</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{row.subject}</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{row.time}</td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <span
+                                className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                  row.status === "Present" ? "text-white" : "text-white"
+                                }`}
+                                style={{
+                                  backgroundColor: row.status === "Present" ? brandColors.success : brandColors.danger,
+                                }}
+                              >
+                                {row.status === "Present" ? (
+                                  <CheckCircle className="w-3 h-3 mr-1" />
+                                ) : (
+                                  <XCircle className="w-3 h-3 mr-1" />
+                                )}
+                                {row.status}
+                              </span>
+                            </td>
+                          </>
+                        ) : (
+                          <>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{row.period}</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{row.classes}</td>
+                            <td
+                              className="px-6 py-4 whitespace-nowrap text-sm font-medium"
+                              style={{ color: brandColors.success }}
+                            >
+                              {row.present}
+                            </td>
+                            <td
+                              className="px-6 py-4 whitespace-nowrap text-sm font-medium"
+                              style={{ color: brandColors.danger }}
+                            >
+                              {row.absent}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <span
+                                className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium text-white`}
+                                style={{
+                                  backgroundColor:
+                                    Number.parseFloat(row.percentage) >= 90
+                                      ? brandColors.success
+                                      : Number.parseFloat(row.percentage) >= 75
+                                        ? brandColors.warning
+                                        : brandColors.danger,
+                                }}
+                              >
+                                {row.percentage}
+                              </span>
+                            </td>
+                          </>
+                        )}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </>
+  );
+
+  const renderSubjectAttendance = () => {
+    if (subjectAttendanceData.length === 0) {
+      return <div className="text-center py-8 text-gray-500">No subject attendance data available</div>;
+    }
+
+    return (
+      <>
+        {/* Subject Stats Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+          {subjectAttendanceData.map((data) => (
+            <div
+              key={data.name}
+              className="bg-white rounded-lg p-4 shadow border border-gray-200 hover:shadow-md transition-shadow"
+            >
+              <div className="flex items-center justify-between mb-2">
+                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: subjectColors[data.name] }}></div>
+                <span
+                  className={`text-xs font-medium px-2 py-1 rounded-full text-white`}
+                  style={{
+                    backgroundColor:
+                      data.percentage >= 90
+                        ? brandColors.success
+                        : data.percentage >= 75
+                          ? brandColors.warning
+                          : brandColors.danger,
+                  }}
+                >
+                  {data.percentage}%
                 </span>
               </div>
-            ))}
+              <h3 className="font-semibold text-gray-800 text-sm mb-1">{data.name}</h3>
+              <p className="text-xs text-gray-600 mb-2">{data.teacher}</p>
+              <div className="flex justify-between text-xs text-gray-500">
+                <span>
+                  {data.present}/{data.total}
+                </span>
+                <span>{data.absent} absent</span>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Subject Charts */}
+        <div className="bg-white rounded-xl shadow-lg border border-gray-200">
+          <div className="p-6 border-b border-gray-200">
+            <div className="flex items-center space-x-2 mb-4">
+              <GraduationCap className="w-6 h-6" style={{ color: brandColors.primary }} />
+              <h2 className="text-xl font-bold text-gray-800">Subject-wise Attendance</h2>
+            </div>
+          </div>
+
+          <div className="p-6">
+            {viewMode === "charts" ? (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                {/* Subject Bar Chart */}
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-800 mb-4">Attendance by Subject</h3>
+                  <div className="h-80">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={subjectChartData} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                        <XAxis
+                          dataKey="subject"
+                          stroke={brandColors.accent}
+                          fontSize={11}
+                          angle={-45}
+                          textAnchor="end"
+                          height={80}
+                        />
+                        <YAxis stroke={brandColors.accent} fontSize={12} />
+                        <Tooltip
+                          contentStyle={{
+                            backgroundColor: "white",
+                            border: "1px solid #e5e7eb",
+                            borderRadius: "8px",
+                            boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
+                          }}
+                        />
+                        <Bar dataKey="present" fill={brandColors.primary} radius={[4, 4, 0, 0]} />
+                        <Bar dataKey="absent" fill={brandColors.primaryLight} radius={[4, 4, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+
+                {/* Subject Percentage Pie Chart */}
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-800 mb-4">Attendance Percentage by Subject</h3>
+                  <div className="h-80 flex items-center justify-center">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={subjectPieData}
+                          cx="50%"
+                          cy="50%"
+                          outerRadius={100}
+                          paddingAngle={2}
+                          dataKey="value"
+                          strokeWidth={2}
+                          stroke="white"
+                        >
+                          {subjectPieData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.color} />
+                          ))}
+                        </Pie>
+                        <Tooltip
+                          contentStyle={{
+                            backgroundColor: "white",
+                            border: "1px solid #e5e7eb",
+                            borderRadius: "8px",
+                            boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
+                          }}
+                          formatter={(value) => [`${value}%`, "Attendance"]}
+                        />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+
+                  {/* Subject Legend */}
+                  <div className="grid grid-cols-2 gap-2 mt-4">
+                    {Object.entries(subjectColors).map(([subject, color]) => (
+                      <div key={subject} className="flex items-center space-x-2">
+                        <div className="w-3 h-3 rounded" style={{ backgroundColor: color }}></div>
+                        <span className="text-xs text-gray-600">{subject}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              // Subject Table View
+              <div className="overflow-x-auto">
+                <h3 className="text-lg font-semibold text-gray-800 mb-4">Subject-wise Attendance Details</h3>
+                <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                  <table className="w-full">
+                    <thead style={{ backgroundColor: brandColors.secondaryLight }}>
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                          Subject
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                          Teacher
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                          Schedule
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                          Total Classes
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                          Present
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                          Absent
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                          Percentage
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {subjectAttendanceData.map((data, index) => (
+                        <tr key={index} className="hover:bg-gray-50 transition-colors">
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="flex items-center space-x-3">
+                              <div
+                                className="w-3 h-3 rounded-full"
+                                style={{ backgroundColor: subjectColors[data.name] }}
+                              ></div>
+                              <span className="text-sm font-medium text-gray-900">{data.name}</span>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{data.teacher}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{data.schedule}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{data.total}</td>
+                          <td
+                            className="px-6 py-4 whitespace-nowrap text-sm font-medium"
+                            style={{ color: brandColors.success }}
+                          >
+                            {data.present}
+                          </td>
+                          <td
+                            className="px-6 py-4 whitespace-nowrap text-sm font-medium"
+                            style={{ color: brandColors.danger }}
+                          >
+                            {data.absent}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span
+                              className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium text-white`}
+                              style={{
+                                backgroundColor:
+                                  data.percentage >= 90
+                                    ? brandColors.success
+                                    : data.percentage >= 75
+                                      ? brandColors.warning
+                                      : brandColors.danger,
+                              }}
+                            >
+                              {data.percentage}%
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
           </div>
         </div>
-      </motion.section>
+      </>
+    );
+  };
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Course Attendance */}
-        <motion.section 
-          className="lg:col-span-2 bg-white rounded-lg shadow-md p-6"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.3, duration: 0.5 }}
-        >
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-lg font-semibold text-gray-800">Course Attendance</h3>
-            <button className="text-red-700 text-sm font-medium flex items-center">
-              View Detailed Report <FiChevronRight size={16} />
-            </button>
-          </div>
-          <motion.div 
-            className="space-y-4"
-            variants={containerVariants}
-            initial="hidden"
-            animate="visible"
-          >
-            {courses.map((course) => (
-              <motion.div 
-                key={course.id} 
-                className="p-4 border border-gray-100 rounded-lg hover:bg-red-50 transition-colors duration-200"
-                variants={itemVariants}
-              >
-                <div className="flex flex-col md:flex-row md:items-center md:justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-start">
-                      <div className="mr-3 mt-1">
-                        <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center text-red-800">
-                          <FiBookOpen size={18} />
-                        </div>
-                      </div>
-                      <div>
-                        <h4 className="font-medium text-gray-800">{course.code}: {course.name}</h4>
-                        <p className="text-sm text-gray-600">Instructor: {course.instructor}</p>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="mt-3 md:mt-0 flex items-center">
-                    <div className="mr-4">
-                      <p className="text-sm text-gray-600">Attendance</p>
-                      <p className={`font-bold ${getAttendanceStatusColor(course.attendance)}`}>
-                        {course.attendance}%
-                        {course.attendance < 75 && (
-                          <FiAlertTriangle className="inline-block ml-1" />
-                        )}
-                      </p>
-                    </div>
-                    <div className="flex space-x-2">
-                      <motion.button 
-                        className="px-3 py-1 bg-red-700 text-white text-sm rounded-md hover:bg-red-800 flex items-center"
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                      >
-                        <FiFileText className="mr-1" size={14} />
-                        Notes ({course.notes})
-                      </motion.button>
-                    </div>
-                  </div>
-                </div>
-              </motion.div>
-            ))}
-          </motion.div>
-          
-          {/* Upcoming Deadlines */}
-          <div className="mt-6">
-            <h3 className="text-lg font-semibold text-gray-800 mb-3">Upcoming Deadlines</h3>
-            <div className="space-y-3">
-              {upcomingDeadlines.map((deadline) => (
-                <motion.div 
-                  key={deadline.id}
-                  className="flex items-center justify-between p-3 bg-red-50 rounded-lg border-l-4 border-red-600"
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.5 }}
-                  whileHover={{ x: 5 }}
-                >
-                  <div className="flex items-center">
-                    <FiClock size={16} className="text-red-600 mr-2" />
-                    <div>
-                      <h4 className="font-medium text-gray-800">{deadline.title}</h4>
-                      <p className="text-sm text-gray-600">Due: {deadline.date}</p>
-                    </div>
-                  </div>
-                  <span className="text-red-600 font-medium">{deadline.remaining}</span>
-                </motion.div>
-              ))}
-            </div>
-          </div>
-        </motion.section>
-
-        {/* Stress Monitor */}
-        <motion.section 
-          className="bg-white rounded-lg shadow-md p-6"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.4, duration: 0.5 }}
-        >
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-lg font-semibold text-gray-800">Stress Monitor</h3>
-            <span className={`px-2 py-1 text-sm rounded ${
-              stressData.currentLevel === "Low" ? "bg-green-100 text-green-800" :
-              stressData.currentLevel === "Moderate" ? "bg-yellow-100 text-yellow-800" :
-              "bg-red-100 text-red-800"
-            }`}>
-              {stressData.currentLevel}
-            </span>
-          </div>
-          
-          {/* Stress Score Visualization */}
-          <div className="mb-6">
-            <div className="flex justify-between items-center mb-2">
-              <span className="text-sm text-gray-600">Stress Score</span>
-              <span className="font-bold text-gray-800">{stressData.score}/100</span>
-            </div>
-            <div className="w-full bg-gray-200 rounded-full h-2.5">
-              <motion.div 
-                className={`h-2.5 rounded-full ${
-                  stressData.score < 50 ? "bg-green-600" :
-                  stressData.score < 75 ? "bg-yellow-500" :
-                  "bg-red-600"
-                }`}
-                style={{ width: `${stressData.score}%` }}
-                initial={{ width: 0 }}
-                animate={{ width: `${stressData.score}%` }}
-                transition={{ duration: 1, delay: 0.5 }}
-              ></motion.div>
-            </div>
-          </div>
-          
-          {/* Weekly Trend */}
-          <div className="mb-6">
-            <h4 className="font-medium text-gray-800 mb-2">Weekly Trend</h4>
-            <div className="flex items-end justify-between h-24">
-              {stressData.weeklyTrend.map((value, index) => (
-                <motion.div 
-                  key={index}
-                  className={`w-6 rounded-t ${
-                    value < 50 ? "bg-green-400" :
-                    value < 75 ? "bg-yellow-400" :
-                    "bg-red-400"
-                  }`}
-                  style={{ height: `${value}%` }}
-                  initial={{ height: 0 }}
-                  animate={{ height: `${value}%` }}
-                  transition={{ duration: 1, delay: 0.5 + (index * 0.1) }}
-                ></motion.div>
-              ))}
-            </div>
-            <div className="flex justify-between mt-1 text-xs text-gray-500">
-              <span>Mon</span>
-              <span>Tue</span>
-              <span>Wed</span>
-              <span>Thu</span>
-              <span>Fri</span>
-              <span>Sat</span>
-              <span>Sun</span>
-            </div>
-          </div>
-          
-          {/* Stress Factors */}
-          <div className="mb-4">
-            <h4 className="font-medium text-gray-800 mb-2">Contributing Factors</h4>
-            <div className="space-y-2">
-              {stressData.factors.map((factor, index) => (
-                <div key={index} className="flex justify-between items-center">
-                  <span className="text-sm text-gray-700">{factor.name}</span>
-                  <span className={`text-sm font-medium ${
-                    factor.level === "Low" ? "text-green-600" :
-                    factor.level === "Moderate" ? "text-yellow-600" :
-                    "text-red-600"
-                  }`}>
-                    {factor.level}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-          
-          <motion.button 
-            className="w-full mt-4 px-4 py-2 bg-red-700 text-white text-sm rounded-md hover:bg-red-800 flex items-center justify-center"
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-          >
-            <FiActivity className="mr-2" />
-            View Wellness Resources
-          </motion.button>
-        </motion.section>
+  // Loading state
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
+        <p className="mt-4 text-gray-600">Loading your dashboard...</p>
       </div>
+    );
+  }
 
-      {/* Recent Notes */}
-      <motion.section 
-        className="mt-6 bg-white rounded-lg shadow-md p-6"
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.6, duration: 0.5 }}
-      >
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-semibold text-gray-800">Recent Notes</h3>
-          <button className="text-red-700 text-sm font-medium flex items-center">
-            View All Notes <FiChevronRight size={16} />
-          </button>
+  // Error state
+  if (error) {
+    return (
+      <div className="p-4 text-red-500 bg-red-50 rounded-lg">
+        <h2 className="font-bold">Error:</h2>
+        <p>{error}</p>
+        <button
+          onClick={() => window.location.reload()}
+          className="mt-2 px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
+        >
+          Try Again
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50 p-6">
+      <div className="max-w-7xl mx-auto space-y-6">
+        {/* Header Section */}
+        <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-200">
+          <div className="flex flex-col md:flex-row items-center justify-between">
+            <div className="flex items-center space-x-4 mb-4 md:mb-0">
+              <div className="w-16 h-16 rounded-full overflow-hidden border-4 border-white shadow-lg">
+                <img
+                  src={`https://static.vecteezy.com/system/resources/previews/005/544/718/non_2x/profile-icon-design-free-vector.jpg`}
+                  alt="Student Profile"
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-gray-800">
+                  {getGreeting()}, {studentData.name}!
+                </h1>
+                <p className="text-gray-600">
+                  Year {studentData.year} Sem {studentData.semester} • ID: {studentData.erpid}
+                </p>
+              </div>
+            </div>
+            <div className="bg-gradient-to-r from-[#b22b2f] to-[#d86a6d] rounded-lg p-4 text-white text-center">
+              <div className="text-3xl font-bold">{currentData.percentage}%</div>
+              <div className="text-white/90">Overall Attendance</div>
+            </div>
+          </div>
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-left">
-            <thead>
-              <tr className="bg-gray-50">
-                <th className="px-4 py-3 text-sm font-medium text-gray-600">Title</th>
-                <th className="px-4 py-3 text-sm font-medium text-gray-600">Course</th>
-                <th className="px-4 py-3 text-sm font-medium text-gray-600">Date Added</th>
-                <th className="px-4 py-3 text-sm font-medium text-gray-600">Size</th>
-                <th className="px-4 py-3 text-sm font-medium text-gray-600">Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {recentNotes.map((note) => (
-                <motion.tr 
-                  key={note.id}
-                  className="border-b border-gray-100 hover:bg-red-50"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.7 + (note.id * 0.1) }}
-                >
-                  <td className="px-4 py-3">
-                    <div className="flex items-center">
-                      <FiFileText size={16} className="text-red-600 mr-2" />
-                      <span className="font-medium text-gray-800">{note.title}</span>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 text-sm text-gray-700">{note.course}</td>
-                  <td className="px-4 py-3 text-sm text-gray-700">{note.date}</td>
-                  <td className="px-4 py-3 text-sm text-gray-700">{note.size}</td>
-                  <td className="px-4 py-3">
-                    <motion.button 
-                      className="p-2 text-red-700 hover:bg-red-100 rounded-full"
-                      whileHover={{ scale: 1.1 }}
-                      whileTap={{ scale: 0.9 }}
-                    >
-                      <FiDownload size={16} />
-                    </motion.button>
-                  </td>
-                </motion.tr>
-              ))}
-            </tbody>
-          </table>
+
+        {/* Tab Navigation */}
+        <div className="bg-white rounded-xl shadow-lg border border-gray-200">
+          <div className="p-6 border-b border-gray-200">
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={() => setActiveTab("overall")}
+                className={`px-6 py-3 rounded-lg font-medium transition-all duration-200 flex items-center space-x-2 ${
+                  activeTab === "overall" ? "text-white shadow-md" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                }`}
+                style={activeTab === "overall" ? { backgroundColor: brandColors.primary } : {}}
+              >
+                <Calendar className="w-4 h-4" />
+                <span>Overall Attendance</span>
+              </button>
+              <button
+                onClick={() => setActiveTab("subjects")}
+                className={`px-6 py-3 rounded-lg font-medium transition-all duration-200 flex items-center space-x-2 ${
+                  activeTab === "subjects" ? "text-white shadow-md" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                }`}
+                style={activeTab === "subjects" ? { backgroundColor: brandColors.primary } : {}}
+              >
+                <GraduationCap className="w-4 h-4" />
+                <span>Subject-wise Attendance</span>
+              </button>
+            </div>
+          </div>
+
+          {/* View Mode Toggle */}
+          <div className="p-6 border-b border-gray-200">
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={() => setViewMode("charts")}
+                className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 flex items-center space-x-2 ${
+                  viewMode === "charts" ? "text-white shadow-md" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                }`}
+                style={viewMode === "charts" ? { backgroundColor: brandColors.secondary } : {}}
+              >
+                <BarChart className="w-4 h-4" />
+                <span>Charts</span>
+              </button>
+              <button
+                onClick={() => setViewMode("table")}
+                className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 flex items-center space-x-2 ${
+                  viewMode === "table" ? "text-white shadow-md" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                }`}
+                style={viewMode === "table" ? { backgroundColor: brandColors.secondary } : {}}
+              >
+                <Table className="w-4 h-4" />
+                <span>Table</span>
+              </button>
+            </div>
+          </div>
         </div>
-      </motion.section>
+
+        {/* Content based on active tab */}
+        {activeTab === "overall" ? renderOverallAttendance() : renderSubjectAttendance()}
+      </div>
     </div>
   );
 };

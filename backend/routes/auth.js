@@ -6,8 +6,9 @@ const Faculty = require('../models/Faculty');
 const Hod = require('../models/Hod');
 const PrincipalModel = require('../models/Principal');
 const RegistrarModel = require('../models/Registrar');
+const Student = require('../models/Student');
 
-// Login user
+
 router.post('/login', async (req, res) => {
   try {
     const { erpstaffid, password, role } = req.body;
@@ -184,6 +185,40 @@ router.post('/login', async (req, res) => {
           name: registrarRec.name,
           email: registrarRec.email,
           role: 'registrar'
+        }
+      });
+    }
+
+    // Student login: authenticate against students table
+    if (role === 'student') {
+      const studentRec = await Student.findByErp(erpstaffid);
+      console.log("from auth.js",studentRec);
+      if (!studentRec) {
+        return res.status(401).json({ message: 'Invalid credentials' });
+      }
+      console.log('Found student record:', studentRec ? 'Yes' : 'No');
+      console.log(password, studentRec.passwordHash);
+      const isMatchStudent = await Student.comparePassword(password, studentRec.passwordHash);
+      console.log('Password match result for student:', isMatchStudent);
+      if (!isMatchStudent) {
+        return res.status(401).json({ message: 'Invalid credentials' });
+      }
+      // Create JWT token for student
+      const token = jwt.sign(
+        { erpid: studentRec.erpid, role: 'student', id: studentRec.id },
+        process.env.JWT_SECRET,
+        { expiresIn: '24h' }
+      );
+      // Return student data and token
+      return res.json({
+        token,
+        user: {
+          id: studentRec.id,
+          erpid: studentRec.erpid,
+          name: studentRec.name,
+          email: studentRec.email,
+          role: 'student',
+          department_id: studentRec.department_id
         }
       });
     }

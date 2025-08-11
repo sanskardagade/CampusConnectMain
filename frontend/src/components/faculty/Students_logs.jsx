@@ -26,7 +26,7 @@ const StudentLogs = () => {
       setError(null);
       try {
         const token = localStorage.getItem('token');
-        const url = `http://localhost:5000/api/faculty/sessions?date=${filterDate}&subject_id=${filterSubject}`;
+        const url = `http://69.62.83.14:9000/api/faculty/sessions?date=${filterDate}&subject_id=${filterSubject}`;
         const response = await fetch(url, {
           headers: { Authorization: `Bearer ${token}` }
         });
@@ -51,7 +51,7 @@ const StudentLogs = () => {
     const fetchLogs = async () => {
       try {
         const token = localStorage.getItem('token');
-        const url = `http://localhost:5000/api/faculty/students-logs?date=${selectedSession.session_date}`;
+        const url = `http://69.62.83.14:9000/api/faculty/students-logs?date=${selectedSession.session_date}`;
         const response = await fetch(url, {
           headers: { Authorization: `Bearer ${token}` }
         });

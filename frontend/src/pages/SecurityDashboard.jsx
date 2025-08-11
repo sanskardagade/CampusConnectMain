@@ -48,13 +48,17 @@ const SecurityDashboard = () => {
     setError('');
     try {
       const date = getSelectedDate();
-      const res = await axios.get('http://localhost:5000/api/registrar/security-dashboard', { params: { date } });
+      const res = await axios.get('http://69.62.83.14:9000/api/registrar/security-dashboard', { params: { date } });
       let data = res.data;
+      
+      // Ensure data is always an array
       if (!Array.isArray(data)) {
-        if (data == null) data = [];
-        else if (typeof data === 'object') data = Object.values(data);
-        else data = [];
+        data = [];
       }
+      
+      // Filter out any dummy entries if they exist
+      data = data.filter(item => item.id !== -1 && item.ErpStaffId !== 'DUMMY');
+      
       setFacultyOnLeave(data);
     } catch (err) {
       setError('Failed to fetch faculty leave data.');
@@ -71,7 +75,7 @@ const SecurityDashboard = () => {
     setMarking(erpStaffId);
     setSuccess('');
     try {
-      await axios.post('http://localhost:5000/api/registrar/security-dashboard/exit', { erpStaffId });
+      await axios.post('http://69.62.83.14:9000/api/registrar/security-dashboard/exit', { erpStaffId });
       setSuccess('Exit marked successfully!');
       fetchFacultyOnLeave();
     } catch (err) {
@@ -93,7 +97,7 @@ const SecurityDashboard = () => {
     setSuccess('');
     setShowEditModal(false);
     try {
-      await axios.post('http://localhost:5000/api/registrar/security-dashboard/unexit', { erpStaffId: editErpId });
+      await axios.post('http://69.62.83.14:9000/api/registrar/security-dashboard/unexit', { erpStaffId: editErpId });
       setSuccess('Exit unmarked successfully!');
       fetchFacultyOnLeave();
     } catch (err) {
@@ -110,8 +114,26 @@ const SecurityDashboard = () => {
       <div className="w-full h-full mx-auto px-4 py-8">
         <div className="bg-white rounded-xl shadow-lg p-4 sm:p-8">
           <h1 className="text-2xl font-bold text-red-800 mb-4 text-center">Security Dashboard</h1>
-          <p className="text-gray-600 text-center mb-6">Faculty on leave. Mark exit when faculty leaves the campus.</p>
+          <p className="text-gray-600 text-center mb-6">Faculty leave applications for selected date. Mark exit when faculty leaves the campus (including pending applications).</p>
           
+          {/* Summary Stats */}
+          {facultyOnLeave.length > 0 && (
+            <div className="flex flex-wrap gap-4 justify-center mb-4 text-sm">
+              <div className="bg-blue-100 text-blue-800 px-3 py-2 rounded-lg">
+                Total: {facultyOnLeave.length}
+              </div>
+              <div className="bg-yellow-100 text-yellow-800 px-3 py-2 rounded-lg">
+                Pending: {facultyOnLeave.filter(f => f.FinalStatus === 'Pending').length}
+              </div>
+              <div className="bg-green-100 text-green-800 px-3 py-2 rounded-lg">
+                Approved: {facultyOnLeave.filter(f => f.FinalStatus === 'Approved').length}
+              </div>
+              <div className="bg-red-100 text-red-800 px-3 py-2 rounded-lg">
+                Rejected: {facultyOnLeave.filter(f => f.FinalStatus === 'Rejected').length}
+              </div>
+            </div>
+          )}
+
           {/* Filter Controls */}
           <div className="flex flex-wrap gap-2 justify-center mb-6">
             <button
@@ -148,7 +170,7 @@ const SecurityDashboard = () => {
           ) : error ? (
             <div className="text-center text-red-600 py-8">{error}</div>
           ) : facultyOnLeave.length === 0 ? (
-            <div className="text-center text-gray-500 py-8">No faculty on leave for selected date.</div>
+            <div className="text-center text-gray-500 py-8">No faculty leave applications found for selected date.</div>
           ) : (
             <div className="overflow-x-auto">
               <table className="min-w-full bg-white border border-gray-300 rounded-lg">
@@ -175,6 +197,9 @@ const SecurityDashboard = () => {
                       </td>
                       <td className="px-4 py-3 border-b border-gray-200">
                         <div className="font-semibold text-red-900">{f.StaffName}</div>
+                        {f.FinalStatus === 'Pending' && (
+                          <div className="text-xs text-orange-600 font-medium">(Pending Approval)</div>
+                        )}
                       </td>
                       <td className="px-4 py-3 border-b border-gray-200 text-gray-700">
                         {f.ErpStaffId}
@@ -194,7 +219,7 @@ const SecurityDashboard = () => {
                           f.HodApproval === 'Rejected' ? 'bg-red-100 text-red-800' :
                           'bg-yellow-100 text-yellow-800'
                         }`}>
-                          {f.HodApproval || 'Pending'}
+                          {f.HodApproval}
                         </span>
                       </td>
                       <td className="px-4 py-3 border-b border-gray-200">
@@ -203,7 +228,7 @@ const SecurityDashboard = () => {
                           f.PrincipalApproval === 'Rejected' ? 'bg-red-100 text-red-800' :
                           'bg-yellow-100 text-yellow-800'
                         }`}>
-                          {f.PrincipalApproval || 'Pending'}
+                          {f.PrincipalApproval}
                         </span>
                       </td>
                       <td className="px-4 py-3 border-b border-gray-200">
@@ -212,7 +237,7 @@ const SecurityDashboard = () => {
                           f.FinalStatus === 'Rejected' ? 'bg-red-100 text-red-800' :
                           'bg-yellow-100 text-yellow-800'
                         }`}>
-                          {f.FinalStatus || 'Pending'}
+                          {f.FinalStatus}
                         </span>
                       </td>
                       <td className="px-4 py-3 border-b border-gray-200 text-gray-700 text-sm">
@@ -235,6 +260,7 @@ const SecurityDashboard = () => {
                             }`}
                             onClick={() => handleMarkExit(f.ErpStaffId)}
                             disabled={marking === f.ErpStaffId}
+                            title="Mark faculty exit from campus"
                           >
                             {marking === f.ErpStaffId ? 'Marking...' : 'Mark Exit'}
                           </button>
@@ -243,6 +269,7 @@ const SecurityDashboard = () => {
                             className="px-3 py-2 rounded-lg font-semibold text-blue-700 bg-blue-100 hover:bg-blue-200 transition-colors"
                             onClick={() => handleEditExit(f.ErpStaffId)}
                             disabled={marking === f.ErpStaffId}
+                            title="Unmark exit status"
                           >
                             Edit
                           </button>
@@ -256,6 +283,13 @@ const SecurityDashboard = () => {
           )}
           
           {success && <div className="text-green-700 text-center mt-4 font-semibold">{success}</div>}
+          
+          {/* Info Note */}
+          {facultyOnLeave.length > 0 && (
+            <div className="text-center text-gray-600 text-sm mt-4">
+              <p>💡 <strong>Note:</strong> Exit can be marked for both approved and pending leave applications.</p>
+            </div>
+          )}
         </div>
       </div>
 
@@ -323,7 +357,7 @@ export default SecurityDashboard;
 //     setError('');
 //     try {
 //       const date = getSelectedDate();
-//       const res = await axios.get('http://localhost:5000/api/registrar/security-dashboard', { params: { date } });
+//       const res = await axios.get('http://69.62.83.14:9000/api/registrar/security-dashboard', { params: { date } });
 //       let data = res.data;
 //       if (!Array.isArray(data)) {
 //         if (data == null) data = [];
@@ -347,7 +381,7 @@ export default SecurityDashboard;
 //     setMarking(erpStaffId);
 //     setSuccess('');
 //     try {
-//       await axios.post('http://localhost:5000/api/registrar/security-dashboard/exit', { erpStaffId });
+//       await axios.post('http://69.62.83.14:9000/api/registrar/security-dashboard/exit', { erpStaffId });
 //       setSuccess('Exit marked successfully!');
 //       fetchFacultyOnLeave();
 //     } catch (err) {
@@ -369,7 +403,7 @@ export default SecurityDashboard;
 //     setSuccess('');
 //     setShowEditModal(false);
 //     try {
-//       await axios.post('http://localhost:5000/api/registrar/security-dashboard/unexit', { erpStaffId: editErpId });
+//       await axios.post('http://69.62.83.14:9000/api/registrar/security-dashboard/unexit', { erpStaffId: editErpId });
 //       setSuccess('Exit unmarked successfully!');
 //       fetchFacultyOnLeave();
 //     } catch (err) {
@@ -571,7 +605,7 @@ export default SecurityDashboard;
 //     setError('');
 //     try {
 //       const date = getSelectedDate();
-//       const res = await axios.get('http://localhost:5000/api/registrar/security-dashboard', { params: { date } });
+//       const res = await axios.get('http://69.62.83.14:9000/api/registrar/security-dashboard', { params: { date } });
 //       let data = res.data;
 //       if (!Array.isArray(data)) {
 //         if (data == null) data = [];
@@ -595,7 +629,7 @@ export default SecurityDashboard;
 //     setMarking(erpStaffId);
 //     setSuccess('');
 //     try {
-//       await axios.post('http://localhost:5000/api/registrar/security-dashboard/exit', { erpStaffId });
+//       await axios.post('http://69.62.83.14:9000/api/registrar/security-dashboard/exit', { erpStaffId });
 //       setSuccess('Exit marked successfully!');u
 //       fetchFacultyOnLeave();
 //     } catch (err) {
@@ -618,7 +652,7 @@ export default SecurityDashboard;
 //     setSuccess('');
 //     setShowEditModal(false);
 //     try {
-//       await axios.post('http://localhost:5000/api/registrar/security-dashboard/unexit', { erpStaffId: editErpId });
+//       await axios.post('http://69.62.83.14:9000/api/registrar/security-dashboard/unexit', { erpStaffId: editErpId });
 //       setSuccess('Exit unmarked successfully!');
 //       fetchFacultyOnLeave();
 //     } catch (err) {

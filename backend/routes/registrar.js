@@ -6,6 +6,10 @@ const RegistrarModel = require('../models/Registrar.js');
 const { verifyRegistrar } = require('../middleware/auth');
 const PDFDocument = require('pdfkit');
 
+// Protect all registrar routes
+router.use(authenticateToken);
+router.use(verifyRegistrar);
+
 // SECURITY DASHBOARD ENDPOINTS
 // GET: List all faculty with leave status for a given date (and exit status)
 router.get('/security-dashboard', async (req, res) => {
@@ -14,19 +18,32 @@ router.get('/security-dashboard', async (req, res) => {
     if (!date) {
       date = new Date().toISOString().split('T')[0];
     }
+    
+    // Get all faculty leave applications for the selected date
+    // Include both approved and pending applications
     const leaveRows = await sql`
-      SELECT fl.*, f.name as faculty_name, f.department_id, f.email
+      SELECT 
+        fl.*,
+        f.name as faculty_name, 
+        f.department_id, 
+        f.email,
+        COALESCE(fl."HodApproval", 'Pending') as "HodApproval",
+        COALESCE(fl."PrincipalApproval", 'Pending') as "PrincipalApproval",
+        COALESCE(fl."FinalStatus", 'Pending') as "FinalStatus",
+        COALESCE(fl."exitStatus", FALSE) as "exitStatus"
       FROM faculty_leave fl
       LEFT JOIN faculty f ON fl."ErpStaffId" = f.erpid
       WHERE (CAST(${date} AS DATE)) BETWEEN fl."fromDate" AND fl."toDate"
       ORDER BY fl."StaffName" ASC
     `;
+    
     console.log('[SECURITY DASHBOARD] Query date:', date, '| Rows returned:', leaveRows.length, '| Data:', leaveRows);
+    
+    // Return empty array if no records found (no dummy data)
     if (!leaveRows || leaveRows.length === 0) {
-      return res.json([
-        { id: -1, faculty_name: 'Dummy Faculty', StaffName: 'Dummy', ErpStaffId: 'DUMMY', fromDate: date, toDate: date, reason: 'Test', leaveType: 'Test', exitStatus: false, email: 'dummy@example.com' }
-      ]);
+      return res.json([]);
     }
+    
     res.json(leaveRows);
   } catch (err) {
     console.error('Error fetching security dashboard data:', err);    
@@ -89,13 +106,8 @@ router.post('/security-dashboard/unexit', async (req, res) => {
   }
 });
 
-
-// Protect all registrar routes
-router.use(authenticateToken);
-router.use(verifyRegistrar);
-
 // route to get all members
-router.get('/all-members', authenticateToken, verifyRegistrar, async (req, res) => {
+router.get('/all-members', async (req, res) => {
   try {
     // Get all members across all departments and types
     const [students, faculty, staff] = await Promise.all([

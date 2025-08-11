@@ -1,6 +1,6 @@
 import { NavLink } from "react-router-dom";
 import {
-  FaBars, FaHome, FaUser,
+  FaBars, FaHome, FaUser, FaBook,
 } from "react-icons/fa";
 import { MdMessage } from "react-icons/md";
 import { BiAnalyse, BiSearch, BiCog } from "react-icons/bi";
@@ -16,10 +16,13 @@ import { useNavigate } from 'react-router-dom';
 
 const routes = [
   { path: "/student", name: "Dashboard", icon: <FaHome /> },
-  { path: "/student/attendance", name: "View Attendance", icon: <FaUser /> },
-  { path: "/student/notes", name: "Download Notes", icon: <BiAnalyse /> },
-  { path: "/student/stresslevel", name: "View Stress Level", icon: <MdMessage /> },
+  // { path: "/student/attendance", name: "View Attendance", icon: <FaUser /> },
+  // { path: "/student/notes", name: "Download Notes", icon: <BiAnalyse /> },
+  // { path: "/student/stresslevel", name: "View Stress Level", icon: <MdMessage /> },
   { path: "/student/student-profile", name: "Profile", icon: <FaUser /> },
+   { path: "/student/subjects", name: "Subjects", icon: <FaBook/> },
+   { path: "/student/attendance", name: "Attendance", icon: <FaUser /> },
+  
   {
     path: "/student/student-settings",
     name: "Settings",
