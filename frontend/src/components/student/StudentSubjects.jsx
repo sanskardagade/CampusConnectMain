@@ -37,7 +37,7 @@ const StudentSubjects = () => {
       setLoading(true);
       try {
         const token = localStorage.getItem('token');
-        const res = await fetch('http://69.62.83.14:9000/api/students/subjects', {
+        const res = await fetch('http://localhost:5000/api/students/subjects', {
           headers: {
             Authorization: `Bearer ${token}`,
             'Content-Type': 'application/json'
@@ -197,7 +197,7 @@ export default StudentSubjects;
 //       setLoading(true);
 //       try {
 //         const token = localStorage.getItem('token');
-//         const res = await fetch('http://69.62.83.14:9000/api/students/subjects', {
+//         const res = await fetch('http://localhost:5000/api/students/subjects', {
 //           headers: {
 //             Authorization: `Bearer ${token}`,
 //             'Content-Type': 'application/json'

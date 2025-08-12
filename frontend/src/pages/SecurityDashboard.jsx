@@ -48,7 +48,7 @@ const SecurityDashboard = () => {
     setError('');
     try {
       const date = getSelectedDate();
-      const res = await axios.get('http://69.62.83.14:9000/api/registrar/security-dashboard', { params: { date } });
+      const res = await axios.get('http://localhost:5000/api/registrar/security-dashboard', { params: { date } });
       let data = res.data;
       
       // Ensure data is always an array
@@ -75,7 +75,7 @@ const SecurityDashboard = () => {
     setMarking(erpStaffId);
     setSuccess('');
     try {
-      await axios.post('http://69.62.83.14:9000/api/registrar/security-dashboard/exit', { erpStaffId });
+      await axios.post('http://localhost:5000/api/registrar/security-dashboard/exit', { erpStaffId });
       setSuccess('Exit marked successfully!');
       fetchFacultyOnLeave();
     } catch (err) {
@@ -97,7 +97,7 @@ const SecurityDashboard = () => {
     setSuccess('');
     setShowEditModal(false);
     try {
-      await axios.post('http://69.62.83.14:9000/api/registrar/security-dashboard/unexit', { erpStaffId: editErpId });
+      await axios.post('http://localhost:5000/api/registrar/security-dashboard/unexit', { erpStaffId: editErpId });
       setSuccess('Exit unmarked successfully!');
       fetchFacultyOnLeave();
     } catch (err) {
@@ -357,7 +357,7 @@ export default SecurityDashboard;
 //     setError('');
 //     try {
 //       const date = getSelectedDate();
-//       const res = await axios.get('http://69.62.83.14:9000/api/registrar/security-dashboard', { params: { date } });
+//       const res = await axios.get('http://localhost:5000/api/registrar/security-dashboard', { params: { date } });
 //       let data = res.data;
 //       if (!Array.isArray(data)) {
 //         if (data == null) data = [];
@@ -381,7 +381,7 @@ export default SecurityDashboard;
 //     setMarking(erpStaffId);
 //     setSuccess('');
 //     try {
-//       await axios.post('http://69.62.83.14:9000/api/registrar/security-dashboard/exit', { erpStaffId });
+//       await axios.post('http://localhost:5000/api/registrar/security-dashboard/exit', { erpStaffId });
 //       setSuccess('Exit marked successfully!');
 //       fetchFacultyOnLeave();
 //     } catch (err) {
@@ -403,7 +403,7 @@ export default SecurityDashboard;
 //     setSuccess('');
 //     setShowEditModal(false);
 //     try {
-//       await axios.post('http://69.62.83.14:9000/api/registrar/security-dashboard/unexit', { erpStaffId: editErpId });
+//       await axios.post('http://localhost:5000/api/registrar/security-dashboard/unexit', { erpStaffId: editErpId });
 //       setSuccess('Exit unmarked successfully!');
 //       fetchFacultyOnLeave();
 //     } catch (err) {
@@ -605,7 +605,7 @@ export default SecurityDashboard;
 //     setError('');
 //     try {
 //       const date = getSelectedDate();
-//       const res = await axios.get('http://69.62.83.14:9000/api/registrar/security-dashboard', { params: { date } });
+//       const res = await axios.get('http://localhost:5000/api/registrar/security-dashboard', { params: { date } });
 //       let data = res.data;
 //       if (!Array.isArray(data)) {
 //         if (data == null) data = [];
@@ -629,7 +629,7 @@ export default SecurityDashboard;
 //     setMarking(erpStaffId);
 //     setSuccess('');
 //     try {
-//       await axios.post('http://69.62.83.14:9000/api/registrar/security-dashboard/exit', { erpStaffId });
+//       await axios.post('http://localhost:5000/api/registrar/security-dashboard/exit', { erpStaffId });
 //       setSuccess('Exit marked successfully!');u
 //       fetchFacultyOnLeave();
 //     } catch (err) {
@@ -652,7 +652,7 @@ export default SecurityDashboard;
 //     setSuccess('');
 //     setShowEditModal(false);
 //     try {
-//       await axios.post('http://69.62.83.14:9000/api/registrar/security-dashboard/unexit', { erpStaffId: editErpId });
+//       await axios.post('http://localhost:5000/api/registrar/security-dashboard/unexit', { erpStaffId: editErpId });
 //       setSuccess('Exit unmarked successfully!');
 //       fetchFacultyOnLeave();
 //     } catch (err) {
