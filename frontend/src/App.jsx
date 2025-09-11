@@ -18,6 +18,7 @@ import Admin from "./routes/Admin";
 import Chatbot from "./components/Chatbot";
 import SecurityDashboard from "./pages/SecurityDashboard";
 import AdminSignInPage from "./pages/AdminSignInPage";
+import TranscriptVerification from "./pages/TranscriptVerification";
 
 const App = () => {
   return (
@@ -31,7 +32,7 @@ const App = () => {
             <Route path="/about" element={<About />} />
             <Route path="/admin/*" element={<Admin/>}/>
             <Route path="/admin-login" element={<AdminSignInPage/>} />
-            
+            <Route path="/verify/:randomcode" element={<TranscriptVerification/>} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/features" element={<Features/>} />
             <Route path="/student/*" element={<Student />} />

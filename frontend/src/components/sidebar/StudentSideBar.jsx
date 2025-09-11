@@ -9,6 +9,7 @@ import {
   AiFillEye,
   AiFillDatabase,
 } from "react-icons/ai";
+import { CgTranscript } from "react-icons/cg";
 import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import SidebarMenu from "./SideBarMenu";
@@ -22,7 +23,7 @@ const routes = [
   { path: "/student/student-profile", name: "Profile", icon: <FaUser /> },
    { path: "/student/subjects", name: "Subjects", icon: <FaBook/> },
    { path: "/student/attendance", name: "Attendance", icon: <FaUser /> },
-  
+   { path: "/student/transcript", name: "Transcript", icon: <CgTranscript /> },
   {
     path: "/student/student-settings",
     name: "Settings",

@@ -15,6 +15,7 @@ import AttendanceTracker from "../components/hod/FacultyLog";
 import HODFacultyReport from '../components/hod/HODFacultyReport';
 import HODFacultyStressLevel from '../components/hod/HODFacultyStressLevel';
 import TaskAssign from "../components/hod/TaskAssign";
+import TranscriptRequests from "../components/hod/TranscriptRequests";
 
 const HOD = () => {
   return (
@@ -33,6 +34,7 @@ const HOD = () => {
         <Route path="hod-settings/change-password" element={<HODChangePassword />} />
         <Route path="report" element={<HODFacultyReport />} />
         <Route path="AssignTask" element ={<TaskAssign/>}/>
+        <Route path="transcript-requests" element={<TranscriptRequests />} />
       </Routes>
     </HODSideBar>
   );

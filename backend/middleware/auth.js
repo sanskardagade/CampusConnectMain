@@ -12,7 +12,7 @@ const authenticateToken = (req, res, next) => {
       });
     }
 
-    jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
+    jwt.verify(token, process.env.JWT_SECRET || 'your_jwt_secret', (err, decoded) => {
       if (err) {
         console.error('Token verification error:', err);
         return res.status(403).json({ 
@@ -30,6 +30,16 @@ const authenticateToken = (req, res, next) => {
 
       // Add role-specific fields
       switch (decoded.role) {
+        case 'admin':
+          // Admin needs only a valid id in token
+          if (!decoded.id) {
+            console.error('Admin token missing required data:', decoded);
+            return res.status(403).json({ 
+              success: false,
+              message: 'Invalid Admin token data' 
+            });
+          }
+          break;
         case 'hod':
           if (!decoded.erpStaffId || !decoded.departmentId) {
             console.error('HOD token missing required data:', decoded);

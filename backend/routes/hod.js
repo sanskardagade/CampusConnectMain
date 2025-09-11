@@ -1,10 +1,31 @@
 const express = require('express');
 const router = express.Router();
-const { authenticateToken } = require('../middleware/auth');
+const { authenticateToken} = require('../middleware/auth');
 const sql = require('../config/neonsetup');
 const Hod = require('../models/Hod');
 const PDFDocument = require('pdfkit');
 const ExcelJS = require('exceljs');
+const { v4: uuidv4 } = require('uuid');
+const multer = require('multer');
+const fs = require('fs');
+const { v2: cloudinary } = require('cloudinary');
+
+if (!process.env.CLOUDINARY_CLOUD_NAME) {
+  throw new Error("CLOUDINARY_CLOUD_NAME missing");
+}else {
+  cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET,
+  });
+}
+
+// temporary storage folder
+const upload = multer({
+  dest: "uploads/",
+  limits: { fileSize: 5 * 1024 * 1024 },
+  // ...fileFilter...
+});
 
 // Get HOD dashboard data (real-time, structured)
 router.get('/dashboard', authenticateToken, async (req, res) => {
@@ -274,6 +295,24 @@ router.get('/faculty-log', authenticateToken, async (req, res) => {
   }
 });
 
+// //HOD Leave Approval
+// router.get('/leave-approval', async (req, res) => {
+//   try {
+//     const rows = await sql`
+//       SELECT * FROM faculty_leave
+//     `;
+//     // Add a computed 'status' field for frontend filtering
+//     const withStatus = rows.map(row => ({
+//       ...row,
+//       status: row.HodApproval || 'Pending'
+//     }));
+//     res.json(withStatus);
+//   } catch (error) {
+//     console.error("Detailed error in /leave-approval route:", error);
+//     res.status(500).json({ message: "Error fetching all leave applications" });
+//   }
+// });
+
 //HOD Leave Approval
 router.get('/leave-approval', async (req, res) => {
   try {
@@ -325,6 +364,40 @@ router.put('/leave-approval/:leaveId', async (req, res) => {
     res.status(500).json({ error: 'Error updating leave approval' });
   }
 });
+
+// router.put('/leave-approval/:leaveId', async (req, res) => {
+//   const { leaveId } = req.params;
+//   const { HodApproval } = req.body;
+
+//   try {
+//     // Validate the approval status
+//     if (!['Approved', 'Rejected'].includes(HodApproval)) {
+//       return res.status(400).json({ error: 'Invalid approval status' });
+//     }
+
+//     if (HodApproval === 'Rejected') {
+//       // If rejected, update all status fields to Rejected
+//       await sql`
+//         UPDATE faculty_leave 
+//         SET "HodApproval" = ${HodApproval},
+//             "PrincipalApproval" = 'Rejected',
+//             "FinalStatus" = 'Rejected'
+//         WHERE id = ${leaveId}
+//       `;
+//     } else {
+//       // If approved, only update HOD approval
+//       await sql`
+//         UPDATE faculty_leave 
+//         SET "HodApproval" = ${HodApproval}
+//         WHERE id = ${leaveId}
+//       `;
+//     }
+//     res.json({ message: 'Leave approval updated successfully' });
+//   } catch (error) {
+//     console.error('Error updating leave approval:', error);
+//     res.status(500).json({ error: 'Error updating leave approval' });
+//   }
+// });
 
 // Faculty attendance report for HOD (CSV, XLSX, PDF)
 router.get('/faculty-attendance-report', authenticateToken, async (req, res) => {
@@ -417,7 +490,6 @@ router.get('/faculty-attendance-report', authenticateToken, async (req, res) => 
       let y = doc.y;
       function drawHeader() {
         let x = startX;
-        doc.font('Helvetica-Bold').fontSize(10);
         doc.font('Helvetica-Bold').fontSize(10);
         headers.forEach((header, i) => {
           doc.rect(x, y, colWidths[i], 20).stroke();
@@ -1222,7 +1294,6 @@ router.get('/faculty-leave-report', authenticateToken, async (req, res) => {
       function drawHeader() {
         let x = startX;
         doc.font('Helvetica-Bold').fontSize(10);
-        doc.font('Helvetica-Bold').fontSize(10);
         headers.forEach((header, i) => {
           doc.rect(x, y, colWidths[i], 20).stroke();
           doc.text(header, x + 2, y + 6, { width: colWidths[i] - 4, align: 'center' });
@@ -1310,7 +1381,7 @@ router.get('/faculty-leave-report', authenticateToken, async (req, res) => {
     // CSV
     const csvHeader = `Faculty Leave Report\nFrom: ${from} To: ${to}\n\nS.No,Name,ERP ID,Date,Department,Reason\n`;
     let serialNumber = 1;
-    const csvRows = rows.map(r => [
+    const csvRows = rows.map (r => [
       serialNumber,
       `"${r.faculty_name}"`,
       r.erpid,
@@ -1628,7 +1699,60 @@ router.get('/nonteaching-stress-report', authenticateToken, async (req, res) => 
       doc.end();
       return;
     }
-    res.status(501).send('XLSX and CSV not implemented in this snippet.');
+    if (format === 'xlsx') {
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet('Non-Teaching Staff Stress');
+      
+      // Add title and date range
+      worksheet.addRow(['Non-Teaching Staff Stress Report']);
+      worksheet.addRow([`From: ${fromDate} To: ${toDate}`]);
+      worksheet.addRow([]); // Empty row for spacing
+      
+      worksheet.columns = [
+        { header: 'S.No', key: 'serial_no', width: 10 },
+        { header: 'Staff Name', key: 'staff_name', width: 25 },
+        { header: 'ERP ID', key: 'erpid', width: 15 },
+        { header: 'Department', key: 'department_name', width: 25 },
+        { header: 'Stressed Count', key: 'stressed_count', width: 15 },
+        { header: 'Unstressed Count', key: 'unstressed_count', width: 15 },
+        { header: 'Verdict', key: 'verdict', width: 15 },
+      ];
+      let serialNumber = 1;
+      finalData.forEach(r => {
+        worksheet.addRow({
+          serial_no: serialNumber,
+          staff_name: r.staff_name,
+          erpid: r.erpid,
+          department_name: r.department_name,
+          stressed_count: r.stressed_count,
+          unstressed_count: r.unstressed_count,
+          verdict: r.verdict,
+        });
+        serialNumber++;
+      });
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Content-Disposition', 'attachment; filename=nonteaching_stress_report.xlsx');
+      await workbook.xlsx.write(res);
+      res.end();
+      return;
+    }
+    // CSV
+    const csvHeader = `Non-Teaching Staff Stress Report\nFrom: ${fromDate} To: ${toDate}\n\nS.No,Staff Name,ERP ID,Department,Stressed Count,Unstressed Count,Verdict\n`;
+    let serialNumber = 1;
+    const csvRows = finalData.map(r => [
+      serialNumber,
+      `"${r.staff_name}"`,
+      r.erpid,
+      `"${r.department_name}"`,
+      r.stressed_count,
+      r.unstressed_count,
+      r.verdict
+    ].join(','));
+    serialNumber++;
+    const csvData = csvHeader + csvRows.join('\n');
+    res.header('Content-Type', 'text/csv');
+    res.attachment('nonteaching_stress_report.csv');
+    return res.send(csvData);
   } catch (error) {
     console.error('Error generating non-teaching staff stress report:', error);
     res.status(500).json({ message: 'Failed to generate non-teaching staff stress report' });
@@ -1751,4 +1875,112 @@ router.get('/assigned-tasks/history', authenticateToken, async (req, res) => {
   }
 });
 
-module.exports = router; 
+router.get('/transcript-requests', authenticateToken, async (req, res) => {
+  try {
+    const departmentId = req.user.departmentId;
+    const result = await sql`
+      SELECT 
+        tr.*, 
+        td.sem1_cgpa, td.sem1_percentage,
+        td.sem2_cgpa, td.sem2_percentage,
+        td.sem3_cgpa, td.sem3_percentage,
+        td.sem4_cgpa, td.sem4_percentage,
+        td.sem5_cgpa, td.sem5_percentage,
+        td.sem6_cgpa, td.sem6_percentage,
+        td.sem7_cgpa, td.sem7_percentage,
+        td.sem8_cgpa, td.sem8_percentage
+      FROM transcript_requests tr
+      LEFT JOIN transcript_details td ON td.transcript_id = tr.request_id
+      WHERE tr.department_id = ${departmentId}
+      ORDER BY tr.uploaded_at DESC
+    `;
+    res.json({ result });
+  }
+  catch (error) {
+    console.error('Error fetching transcript requests:', error);
+    res.status(500).json({ message: 'Failed to fetch transcript requests.' });
+  }
+});
+
+// Approve a transcript request and generate verification codes
+router.patch('/transcript-requests/:id/approve', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const departmentId = req.user.departmentId;
+
+    // Generate verification and random codes
+    const verificationCode = uuidv4().slice(0, 8); // short code for verification
+    const randomCode = Math.random().toString(36).substring(2, 8); // random alphanumeric
+    console.log(verificationCode, randomCode);
+    // Update the transcript request
+    const updated = await sql`
+      UPDATE transcript_requests
+      SET status = 'approved',
+          approved_at = NOW(),
+          verification_code = ${verificationCode},
+          random_code = ${randomCode}
+      WHERE request_id = ${id} AND department_id = ${departmentId}
+      RETURNING *
+    `;
+
+    if (updated.length === 0) {
+      return res.status(404).json({ message: 'Transcript request not found or not in your department.' });
+    }
+    res.json({
+      message: 'Transcript approved successfully.',
+      data: updated[0],
+      randomCode,
+      verificationCode
+    });
+
+  } catch (error) {
+    console.error('Error approving transcript:', error);
+    res.status(500).json({ message: 'Failed to approve transcript.', error: error.message });
+  }
+});
+
+router.post("/transcript-requests/:request_id/upload-pdf", authenticateToken, upload.single("pdf"), async (req, res) => {
+  let filepath;
+  try {
+    const { request_id } = req.params;
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: "PDF file is required" });
+    }
+    filepath = req.file.path;
+
+    // Upload PDF to Cloudinary
+    const cloudRes = await cloudinary.uploader.upload(filepath, {
+      folder: "transcripts/approved",
+      resource_type: "raw",
+      public_id: `approved_${request_id}_${Date.now()}.pdf`,
+      use_filename: false,
+      unique_filename: false
+    });
+
+    // Update transcript_requests table with transcript_url
+    const result = await sql`
+      UPDATE transcript_requests
+      SET transcript_url = ${cloudRes.secure_url}
+      WHERE request_id = ${request_id}
+      RETURNING *;
+    `;
+
+    res.json({
+      success: true,
+      message: "Transcript PDF uploaded and URL saved",
+      pdfUrl: cloudRes.secure_url,
+      data: result[0]
+    });
+  } catch (error) {
+    console.error("Transcript PDF upload error:", error);
+    res.status(500).json({ success: false, message: "Server error while uploading transcript PDF" });
+  } finally {
+    if (filepath) {
+      fs.unlink(filepath, err => {
+        if (err) console.error("Temp file cleanup failed:", err);
+      });
+    }
+  }
+});
+
+module.exports = router;

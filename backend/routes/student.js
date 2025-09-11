@@ -4,7 +4,34 @@ const jwt = require('jsonwebtoken');
 const Student = require('../models/Student');
 const { authenticateToken } = require('../middleware/auth');
 const sql = require('../config/neonsetup');
+const multer = require('multer');
+const { v2: cloudinary } = require('cloudinary');
+const fs = require('fs');
+const path = require('path');
+require("dotenv").config({path: path.join(__dirname, '../.env')});
 
+if (!process.env.CLOUDINARY_CLOUD_NAME) {
+  throw new Error("CLOUDINARY_CLOUD_NAME missing");
+}else {
+  cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET,
+  });
+}
+
+// temporary storage folder
+const upload = multer({
+  dest: "uploads/",
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype === "application/pdf") {
+      cb(null, true);
+    } else {
+      cb(new Error("Only PDF files are allowed!"), false);
+    }
+  },
+})
 
 // Login student
 router.post('/login', async (req, res) => {
@@ -191,81 +218,79 @@ router.get('/profile', authenticateToken, async (req, res) => {
 
 
 // Get student subjects - protected route
-
 router.get('/subjects', authenticateToken, async (req, res) => {
-
   try {
-
-    // Get student profile to get department, year, semester, elective_subject_id
-
+    // Get student profile for department/year/semester/elective info
     const profile = await Student.getStudentProfile(req.user.erpid);
 
     if (!profile) {
-
       return res.status(404).json({
-
         success: false,
-
         message: 'Student profile not found'
-
       });
-
     }
 
-    // Fetch subjects based on student's profile
-
+    // Fetch subjects from attendance_summary joined with subjects table
     const subjects = await sql`
-
-      SELECT subject_id, subject_code, name, department_id, year, semester
-
-      FROM subjects
-
-      WHERE department_id = ${profile.departmentId}
-
-        AND year = ${profile.year}
-
-        AND semester = ${profile.semester}
-
-        AND (
-
-          is_elective = false OR subject_id = ${profile.elective_subject_id}
-
-        )
-
-      ORDER BY name ASC;
-
-    `;
-    console.log(subjects)
+    SELECT 
+    subject_id,
+    subject_code,
+    name,
+    department_id,
+    year,
+    semester
+    FROM subjects
+    WHERE department_id = ${profile.departmentId}
+      AND year = ${profile.year}
+      AND semester = ${profile.semester}
+      AND (
+        is_elective = false
+        OR subject_id = ${profile.elective_subject_id}
+      )
+    ORDER BY name ASC`;
+    console.log("hello",subjects);
     res.json({
-
       success: true,
-
       data: subjects
-
     });
 
   } catch (error) {
-
     console.error("Subjects fetch error:", error);
-
     res.status(500).json({
-
       success: false,
-
       message: 'Failed to fetch subjects',
-
       error: process.env.NODE_ENV === 'development' ? error.message : undefined
-
     });
-
   }
-
 });
 
+router.get('/attendance-summary', authenticateToken, async (req, res) => {
+  try {
+    const profile = await Student.getStudentProfile(req.user.erpid);
 
-
-
-
+    const attendance = await sql`
+      SELECT 
+        a.student_erpid,
+        a.subject_id,
+        s.name AS subject_name,
+        a.total_sessions,
+        a.attended_sessions,
+        a.updated_at
+      FROM attendance_summary a
+      JOIN subjects s 
+        ON a.subject_id = s.subject_id
+      WHERE a.student_erpid = ${profile.erpid}
+        AND s.department_id = ${profile.departmentId}
+        AND s.year = ${profile.year}
+        AND s.semester = ${profile.semester};
+    `;
+    console.log("frm summary",attendance)
+    res.json({ attendance });
+  } catch (error) {
+    console.error('Error fetching attendance: from summary', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
 
 // // Get student subjects - protected route
 // router.get('/subjects', authenticateToken, async (req, res) => {
@@ -632,6 +657,170 @@ router.put('/profile', authenticateToken, async (req, res) => {
       message: 'Failed to update profile',
       error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
+  }
+});
+
+router.post("/transcript", authenticateToken, upload.single("details_file"), async (req, res) => {
+  let filepath; // declare once so it’s accessible in finally
+  try {
+    const { erpid } = req.user;
+    const { firstname, lastname, prnno, dob, gender, yearofjoin, yearofpass, department_id, course, mobno, emailaddress } = req.body;
+    console.log(req.body);
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: 'Details file is required' });
+    }
+
+    filepath = req.file.path;
+
+    const details = await cloudinary.uploader.upload(filepath, {
+      folder: 'transcripts',
+      resource_type: 'raw',
+      public_id: `transcripts/${erpid}_${Date.now()}.pdf`,
+      use_filename: false,
+      unique_filename: false
+    });
+
+    const result = await sql`
+      INSERT INTO transcript_requests (
+        studenterpid, firstname, lastname, prnno, dob, gender, yearofjoin, yearofpass,
+        department_id, course, mobno, fileurl, public_id, emailaddress
+      ) VALUES (
+        ${erpid}, ${firstname}, ${lastname}, ${prnno}, ${dob}, ${gender}, ${yearofjoin}, ${yearofpass},
+        ${department_id}, ${course}, ${mobno}, ${details.secure_url}, ${details.public_id}, ${emailaddress}
+      ) RETURNING *;
+    `;
+
+    res.json({ success: true, message: "Transcript created successfully", data: result[0] });
+
+  } catch (error) {
+    console.error("Transcript fetch error:", error);
+    res.status(500).json({ success: false, message: "Server error while creating transcript" });
+  } finally {
+    if (filepath) {
+      fs.unlink(filepath, err => {
+        if (err) console.error("Temp file cleanup failed:", err);
+      });
+    }
+  }
+});
+
+router.post("/transcript-details", authenticateToken, async (req, res) => {
+  try {
+    const {
+      transcript_id,
+      sem1_cgpa,
+      sem1_percentage,
+      sem2_cgpa,
+      sem2_percentage,
+      sem3_cgpa,
+      sem3_percentage,
+      sem4_cgpa,
+      sem4_percentage,
+      sem5_cgpa,
+      sem5_percentage,
+      sem6_cgpa,
+      sem6_percentage,
+      sem7_cgpa,
+      sem7_percentage,
+      sem8_cgpa,
+      sem8_percentage,
+    } = req.body;
+
+    if (!transcript_id) {
+      return res.status(400).json({ success: false, message: "transcript_id is required" });
+    }
+
+    // Insert into transcript_details table
+    const result = await sql`
+      INSERT INTO transcript_details (
+        transcript_id,
+        sem1_cgpa, sem1_percentage,
+        sem2_cgpa, sem2_percentage,
+        sem3_cgpa, sem3_percentage,
+        sem4_cgpa, sem4_percentage,
+        sem5_cgpa, sem5_percentage,
+        sem6_cgpa, sem6_percentage,
+        sem7_cgpa, sem7_percentage,
+        sem8_cgpa, sem8_percentage
+      ) VALUES (
+        ${transcript_id},
+        ${sem1_cgpa}, ${sem1_percentage},
+        ${sem2_cgpa}, ${sem2_percentage},
+        ${sem3_cgpa}, ${sem3_percentage},
+        ${sem4_cgpa}, ${sem4_percentage},
+        ${sem5_cgpa}, ${sem5_percentage},
+        ${sem6_cgpa}, ${sem6_percentage},
+        ${sem7_cgpa}, ${sem7_percentage},
+        ${sem8_cgpa}, ${sem8_percentage}
+      ) RETURNING *;
+    `;
+
+    res.status(201).json({
+      success: true,
+      message: "Transcript details saved successfully",
+      data: result[0],
+    });
+
+  } catch (error) {
+    console.error("Transcript details error:", error);
+    res.status(500).json({ success: false, message: "Server error while saving transcript details" });
+  }
+});
+
+// Get all transcript requests for the logged-in student, with optional details
+router.get('/transcripts', authenticateToken, async (req, res) => {
+  try {
+    const { erpid } = req.user;
+
+    // Fetch requests with details if present
+    const rows = await sql`
+      SELECT 
+        tr.request_id,
+        tr.studenterpid,
+        tr.firstname,
+        tr.lastname,
+        tr.prnno,
+        tr.dob,
+        tr.gender,
+        tr.yearofjoin,
+        tr.yearofpass,
+        tr.department_id,
+        tr.course,
+        tr.mobno,
+        tr.emailaddress,
+        tr.fileurl,
+        tr.public_id,
+        tr.uploaded_at,
+        tr.status,
+        tr.approved_at,
+        tr.feestatus,
+        td.sem1_cgpa,
+        td.sem1_percentage,
+        td.sem2_cgpa,
+        td.sem2_percentage,
+        td.sem3_cgpa,
+        td.sem3_percentage,
+        td.sem4_cgpa,
+        td.sem4_percentage,
+        td.sem5_cgpa,
+        td.sem5_percentage,
+        td.sem6_cgpa,
+        td.sem6_percentage,
+        td.sem7_cgpa,
+        td.sem7_percentage,
+        td.sem8_cgpa,
+        td.sem8_percentage,
+        tr.transcript_url
+      FROM transcript_requests tr
+      LEFT JOIN transcript_details td ON td.transcript_id = tr.request_id
+      WHERE tr.studenterpid = ${erpid}
+      ORDER BY tr.uploaded_at DESC
+    `;
+    console.log(rows)
+    res.json({ success: true, data: rows });
+  } catch (error) {
+    console.error('Fetch transcripts error:', error);
+    res.status(500).json({ success: false, message: 'Failed to fetch transcripts' });
   }
 });
 

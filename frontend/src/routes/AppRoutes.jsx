@@ -11,6 +11,7 @@ import RegistrarDashboard from '../pages/RegistrarDashboard';
 import LandingPage from '../pages/LandingPage';
 import UnauthorizedPage from '../pages/UnauthorizedPage';
 import AdminSignInPage from '../pages/AdminSignInPage';
+import TranscriptVerification from '../pages/TranscriptVerification';
 
 const AppRoutes = () => {
   return (
@@ -20,7 +21,6 @@ const AppRoutes = () => {
       <Route path="/signup" element={<SignUpPage />} />
       <Route path="/admin-login" element={<AdminSignInPage />} />
       <Route path="/unauthorized" element={<UnauthorizedPage />} />
-
       {/* Protected Routes */}
       <Route
         path="/dashboard/student"

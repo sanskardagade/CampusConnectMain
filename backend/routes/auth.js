@@ -7,6 +7,7 @@ const Hod = require('../models/Hod');
 const PrincipalModel = require('../models/Principal');
 const RegistrarModel = require('../models/Registrar');
 const Student = require('../models/Student');
+const sql = require('../config/neonsetup');
 
 
 router.post('/login', async (req, res) => {
@@ -229,6 +230,30 @@ router.post('/login', async (req, res) => {
   } catch (error) {
     console.error('Login error:', error);
     return res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// GET /api/verify/:code
+router.get("/verify/:code", async (req, res) => {
+  try {
+    const randomCode = req.params.code;
+
+    const result = await sql`
+      SELECT tr.*, td.*
+      FROM transcript_requests AS tr
+      JOIN transcript_details AS td
+      ON tr.request_id = td.transcript_id
+      WHERE tr.random_code = ${randomCode};
+    `;
+
+    if (result.length === 0) {
+      return res.status(404).json({ message: "No user found" });
+    }
+
+    res.json({ result});
+  } catch (error) {
+    console.error("Error in verify route:", error);
+    res.status(500).json({ message: "Internal server error" });
   }
 });
 

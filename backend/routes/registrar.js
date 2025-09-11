@@ -6,80 +6,138 @@ const RegistrarModel = require('../models/Registrar.js');
 const { verifyRegistrar } = require('../middleware/auth');
 const PDFDocument = require('pdfkit');
 
-// Protect all registrar routes
-router.use(authenticateToken);
-router.use(verifyRegistrar);
+
 
 // SECURITY DASHBOARD ENDPOINTS
-// GET: List all faculty with leave status for a given date (and exit status)
 router.get('/security-dashboard', async (req, res) => {
   try {
     let date = req.query.date;
     if (!date) {
-      date = new Date().toISOString().split('T')[0];
+      date = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
     }
     
-    // Get all faculty leave applications for the selected date
-    // Include both approved and pending applications
+    console.log('[SECURITY DASHBOARD] Querying for date:', date);
+    console.log('[SECURITY DASHBOARD] Date type:', typeof date);
+    
+    // SIMPLE QUERY - Since fromDate/toDate are DATE types, no timezone issues!
     const leaveRows = await sql`
       SELECT 
         fl.*,
         f.name as faculty_name, 
         f.department_id, 
         f.email,
-        COALESCE(fl."HodApproval", 'Pending') as "HodApproval",
-        COALESCE(fl."PrincipalApproval", 'Pending') as "PrincipalApproval",
-        COALESCE(fl."FinalStatus", 'Pending') as "FinalStatus",
-        COALESCE(fl."exitStatus", FALSE) as "exitStatus"
+        fl."HodApproval",
+        fl."PrincipalApproval",
+        fl."FinalStatus",
+        fl."exitStatus"
       FROM faculty_leave fl
       LEFT JOIN faculty f ON fl."ErpStaffId" = f.erpid
-      WHERE (CAST(${date} AS DATE)) BETWEEN fl."fromDate" AND fl."toDate"
+      WHERE 
+        ${date}::DATE BETWEEN fl."fromDate" AND fl."toDate"
       ORDER BY fl."StaffName" ASC
     `;
     
-    console.log('[SECURITY DASHBOARD] Query date:', date, '| Rows returned:', leaveRows.length, '| Data:', leaveRows);
+    console.log('[SECURITY DASHBOARD] Rows returned:', leaveRows.length);
     
-    // Return empty array if no records found (no dummy data)
-    if (!leaveRows || leaveRows.length === 0) {
-      return res.json([]);
+    // DEBUG: Check what's actually in the database
+    if (leaveRows.length === 0) {
+      console.log('[DEBUG] No records found for date:', date);
+      
+      const allRecords = await sql`
+        SELECT 
+          id, 
+          "StaffName", 
+          "ErpStaffId", 
+          "fromDate", 
+          "toDate",
+          "FinalStatus"
+        FROM faculty_leave 
+        WHERE "fromDate" <= ${date}::DATE 
+          AND "toDate" >= ${date}::DATE
+        ORDER BY "fromDate" DESC
+        LIMIT 10
+      `;
+      
+      console.log('[DEBUG] Records that should match:', allRecords);
     }
     
-    res.json(leaveRows);
+    res.json(leaveRows || []);
   } catch (err) {
     console.error('Error fetching security dashboard data:', err);    
-    res.status(500).json({ error: 'Failed to fetch security dashboard data' });
-  }
-});
-
-// POST: Mark a faculty as exited for today
-router.post('/security-dashboard/exit', async (req, res) => {
-  try {
-    const { erpStaffId } = req.body;
-    const today = new Date().toISOString().split('T')[0];
-    
-    // Corrected query with proper column casing
-    const result = await sql`
-      UPDATE faculty_leave
-      SET "exitStatus" = TRUE, "exit_time" = NOW()
-      WHERE "ErpStaffId" = ${erpStaffId} 
-        AND (CAST(${today} AS DATE)) BETWEEN "fromDate" AND "toDate"
-      RETURNING *
-    `;
-    
-    if (result.length === 0) {
-      return res.status(404).json({ error: 'No leave record found for this faculty today' });
-    }
-    res.json({ message: 'Faculty exit marked', record: result[0] });
-  } catch (err) {
-    console.error('Error marking faculty exit:', err.message, err.stack);
     res.status(500).json({ 
-      error: 'Failed to mark faculty exit', 
+      error: 'Failed to fetch security dashboard data',
       details: err.message 
     });
   }
 });
 
-// POST: Unmark a faculty as exited for today
+// DEBUG: Check database contents
+router.get('/security-dashboard/debug', async (req, res) => {
+  try {
+    const allRecords = await sql`
+      SELECT 
+        id, 
+        "StaffName", 
+        "ErpStaffId", 
+        "fromDate", 
+        "toDate",
+        "FinalStatus",
+        "exitStatus"
+      FROM faculty_leave 
+      ORDER BY "fromDate" DESC
+      LIMIT 20
+    `;
+    
+    const today = new Date().toISOString().split('T')[0];
+    const todayRecords = await sql`
+      SELECT COUNT(*) as count 
+      FROM faculty_leave 
+      WHERE ${today}::DATE BETWEEN "fromDate" AND "toDate"
+    `;
+    
+    res.json({
+      today: today,
+      total_records: allRecords.length,
+      today_records: todayRecords[0].count,
+      recent_records: allRecords
+    });
+  } catch (err) {
+    console.error('Debug error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// EXIT/UNEXIT endpoints (simplified)
+router.post('/security-dashboard/exit', async (req, res) => {
+  try {
+    const { erpStaffId } = req.body;
+    const today = new Date().toISOString().split('T')[0];
+
+    const result = await sql`
+      UPDATE faculty_leave
+      SET "exitStatus" = TRUE, "exit_time" = NOW()
+      WHERE "ErpStaffId" = ${erpStaffId} 
+        AND ${today}::DATE BETWEEN "fromDate" AND "toDate"
+      RETURNING *
+    `;
+    
+    if (result.length === 0) {
+      return res.status(404).json({ 
+        error: 'No leave record found for today',
+        details: `No leave application found for ERP ID: ${erpStaffId} on date: ${today}`
+      });
+    }
+
+    res.json({ 
+      message: 'Faculty exit marked successfully', 
+      record: result[0] 
+    });
+  } catch (err) {
+    console.error('Error marking faculty exit:', err);
+    res.status(500).json({ error: 'Failed to mark exit' });
+  }
+});
+
 router.post('/security-dashboard/unexit', async (req, res) => {
   try {
     const { erpStaffId } = req.body;
@@ -89,22 +147,33 @@ router.post('/security-dashboard/unexit', async (req, res) => {
       UPDATE faculty_leave
       SET "exitStatus" = FALSE, "exit_time" = NULL
       WHERE "ErpStaffId" = ${erpStaffId}
-        AND (CAST(${today} AS DATE)) BETWEEN "fromDate" AND "toDate"
+        AND ${today}::DATE BETWEEN "fromDate" AND "toDate"
       RETURNING *
     `;
 
     if (result.length === 0) {
-      return res.status(404).json({ error: 'No leave record found for this faculty today' });
+      return res.status(404).json({ 
+        error: 'No exited record found for today',
+        details: `No exit record found for ERP ID: ${erpStaffId} on date: ${today}`
+      });
     }
-    res.json({ message: 'Faculty exit unmarked', record: result[0] });
-  } catch (err) {
-    console.error('Error unmarking faculty exit:', err.message, err.stack);
-    res.status(500).json({ 
-      error: 'Failed to unmark faculty exit', 
-      details: err.message 
+
+    res.json({ 
+      message: 'Faculty exit unmarked successfully', 
+      record: result[0] 
     });
+  } catch (err) {
+    console.error('Error unmarking faculty exit:', err);
+    res.status(500).json({ error: 'Failed to unmark exit' });
   }
 });
+
+
+
+// Protect all registrar routes
+router.use(authenticateToken);
+router.use(verifyRegistrar);
+
 
 // route to get all members
 router.get('/all-members', async (req, res) => {

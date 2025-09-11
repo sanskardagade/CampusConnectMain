@@ -7,6 +7,32 @@ const { verifyAdmin } = require('../middleware/auth');
 const PDFDocument = require('pdfkit');
 const jwt = require('jsonwebtoken');
 
+// Helper: Calculate attendance percentage from recent logs
+function calculateAttendancePercentage(logs) {
+  try {
+    if (!Array.isArray(logs) || logs.length === 0) return 0;
+
+    // Normalize to date strings and count unique days
+    const uniqueDays = new Set(
+      logs
+        .map((log) => {
+          const source = log.date || log.timestamp || log.first_log || log.last_log;
+          const d = new Date(source);
+          return isNaN(d) ? null : d.toISOString().split('T')[0];
+        })
+        .filter(Boolean)
+    ).size;
+
+    // Use a fixed recent window of 10 days to compute percentage
+    const totalDaysConsidered = Math.max(uniqueDays, 10);
+    const percent = Math.round((uniqueDays / totalDaysConsidered) * 100);
+    return Math.min(100, Math.max(0, percent));
+  } catch (e) {
+    return 0;
+  }
+}
+
+
 // Admin Login Endpoint (should be before authentication middleware)
 router.post('/login', async (req, res) => {
   const { adminname, password } = req.body;

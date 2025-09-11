@@ -18,7 +18,7 @@ import { useIsMobile } from '../hooks/use-mobile';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { FiHome, FiActivity } from 'react-icons/fi';
 import { AiOutlineFilePdf } from 'react-icons/ai';
-import { icons } from "lucide-react";
+import { CgTranscript } from "react-icons/cg";
 
 const routes = [
   {
@@ -56,6 +56,11 @@ const routes = [
     path: "/hod/AssignTask",
     name: "Assign Task",
     icon: <FaTasks/>,
+  },
+  {
+    path: "/hod/transcript-requests",
+    name: "Transcript Requests",
+    icon: <CgTranscript />,
   },
   {
     path: "/hod/report",

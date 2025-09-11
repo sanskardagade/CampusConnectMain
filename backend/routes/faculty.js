@@ -466,6 +466,8 @@ router.patch('/assigned-tasks/:id/dismiss', authenticateToken, async (req, res) 
   }
 });
 
+
+
 // PATCH: Faculty accepts a task
 router.patch('/assigned-tasks/:id/accept', authenticateToken, async (req, res) => {
   try {
@@ -545,6 +547,7 @@ router.post('/start-session', authenticateToken, async (req, res) => {
     const faculty_erpid = req.user.erpStaffId;
     const {
       subject_id,
+      subject,
       department_id,
       year,
       semester,
@@ -555,25 +558,25 @@ router.post('/start-session', authenticateToken, async (req, res) => {
       end_time,
       location
     } = req.body;
-
+    console.log(req.body);
     // Validate required fields
-    if (!subject_id || !department_id || !year || !semester || !division || !start_time || !end_time || !location) {
+    if (!subject || !department_id || !year || !semester || !division || !start_time || !end_time || !location) {
       return res.status(400).json({ message: 'Missing required fields' });
     }
 
     // Insert session into the database
     const result = await sql`
       INSERT INTO sessions (
-        subject_id, faculty_erpid, department_id, year, semester, division, batch, session_date, start_time, end_time, location
+        subject_id, subject, faculty_erpid, department_id, year, semester, division, batch, session_date, start_time, end_time, location
       ) VALUES (
-        ${subject_id}, ${faculty_erpid}, ${department_id}, ${year}, ${semester}, ${division}, ${batch || null}, ${session_date}, ${start_time}, ${end_time}, ${location}
+        ${subject_id}, ${subject}, ${faculty_erpid}, ${department_id}, ${year}, ${semester}, ${division}, ${batch || null}, ${session_date}, ${start_time}, ${end_time}, ${location}
       ) RETURNING session_id;
     `;
-
+    console.log(result);
     const sessionId = result[0]?.session_id;
     res.status(201).json({ message: 'Session started successfully', session_id: sessionId });
   } catch (error) {
-    console.error('Error starting session:', error);
+    console.log('Error starting session from start',error);
     res.status(500).json({ message: 'Error starting session' });
   }
 });
@@ -599,50 +602,9 @@ router.get('/students-data', authenticateToken, async (req, res) => {
   }
 });
 
-// Get students data
-router.get('/students-logs', authenticateToken, async (req, res) => {
-  const { date } = req.query;
-
-  if (!date) {
-    return res.status(400).json({ message: 'Date parameter is required' });
-  }
-
-  const istDate = new Date(date);
-  istDate.setMinutes(istDate.getMinutes() + istDate.getTimezoneOffset() + 330); // Adjust to IST
-  const newdate = istDate.toISOString().split('T')[0];
-
-  try {
-    const erpStaffId = req.user.erpStaffId;
-
-    if (!erpStaffId) {
-      return res.status(400).json({ message: 'Invalid user data', error: 'No erpStaffId found' });
-    }
-
-    const result = await sql`
-      SELECT DISTINCT ON (detected_erpid) *
-      FROM attendance_logs_test 
-      WHERE detected_at::date = ${newdate} 
-        AND detected_erpid IN (
-          SELECT s.erpid 
-          FROM students s
-          JOIN faculty f ON s.class_teacher = f.erpid
-          WHERE f.erpid = ${erpStaffId}
-        )
-      ORDER BY detected_erpid, detected_at;
-    `;
-    res.json(result);
-  } catch (error) {
-    console.error('Error fetching assigned tasks:', error);
-    res.status(500).json({ message: 'Error fetching assigned tasks', error: error.message });
-  }
-});
-
-
-// routes/faculty.js
-
-router.get('/sessions', async (req, res) => {
+router.get('/sessions', authenticateToken, async (req, res) => {
   const { date, subject_id } = req.query;
-
+  console.log("subject id is",subject_id);
   if (!date || !subject_id) {
     return res.status(400).json({ message: 'Date and subject_id are required' });
   }
@@ -671,11 +633,256 @@ router.get('/sessions', async (req, res) => {
       WHERE session_date = ${formattedDate}::date AND subject_id = ${subject_id}
       ORDER BY created_at ASC
     `;
-
+    console.log(result);
     res.json(result);
   } catch (error) {
-    console.error('Error fetching sessions:', error);
+    console.error('Error fetching sessions: from sessions', error);
     res.status(500).json({ message: 'Failed to fetch sessions' });
+  }
+});
+
+router.get('/subjects', authenticateToken, async(req, res) => {
+  
+  try {
+    const erpid = req.user.erpStaffId;
+    const result = await sql`
+      SELECT fs.subject_id, s.name 
+      FROM faculty_subjects as fs
+      JOIN subjects s ON fs.subject_id = s.subject_id
+      WHERE fs.faculty_erpid = ${erpid}
+    `;
+    console.log("from subjects routes",result);
+    res.json(result);
+  }catch(error) {
+    console.error('Error fetching sessions from subjects:', error);
+    res.status(500).json({ message: 'Failed to fetch sessions' });
+  }
+})
+
+router.get("/students-logs",authenticateToken,async(req,res) => {
+
+  try {
+    const {subject_id, division, selecteddate, year} = req.query;
+    const erpid = req.user.erpStaffId;
+    console.log("this is query",req.query);
+    const result = await sql`
+          SELECT 
+          st.erpid AS student_id,
+          st.name  AS student_name,
+          ad.session_date,
+          ad.status,
+          s.subject_id,
+          subj.name,
+          s.division,
+          s.year,
+          s.semester,
+          f.department_id AS faculty_branch
+      FROM attendance_details ad
+      JOIN students st 
+          ON ad.student_erpid = st.erpid
+      JOIN sessions s 
+          ON ad.session_id = s.session_id
+      JOIN subjects subj
+          ON s.subject_id = subj.subject_id
+      JOIN faculty f
+          ON s.faculty_erpid = f.erpid
+      WHERE s.faculty_erpid = ${erpid}         
+        AND st.department_id = f.department_id     
+        AND s.division = ${division}                       
+        AND s.year = ${year}                             
+        AND s.subject_id = ${subject_id}                       
+        AND ad.session_date = ${selecteddate}  
+      ORDER BY ad.session_date, st.erpid;
+    `;
+    res.json(result);
+  } catch (error) {
+    console.error('Error fetching attendance:', error);
+    res.status(500).json({ message: 'Failed to fetch attendance' });
+  }
+})
+
+// Update attendance status
+router.put('/students-logs/update-attendance', authenticateToken, async (req, res) => {
+  try {
+    const { student_id, subject_id, session_date, status } = req.body;
+    const faculty_erpid = req.user.erpStaffId;
+
+    // Validate required fields
+    if (!student_id || !subject_id || !session_date || !status) {
+      return res.status(400).json({ message: 'Missing required fields: student_id, subject_id, session_date, status' });
+    }
+
+    // Validate status value
+    if (!['Present', 'Absent'].includes(status)) {
+      return res.status(400).json({ message: 'Status must be either "Present" or "Absent"' });
+    }
+
+    console.log('Updating attendance:', { student_id, subject_id, session_date, status, faculty_erpid });
+
+    // Update the attendance record
+    const result = await sql`
+      UPDATE attendance_details 
+      SET status = ${status}
+      WHERE student_erpid = ${student_id}
+        AND session_id IN (
+          SELECT session_id 
+          FROM sessions 
+          WHERE faculty_erpid = ${faculty_erpid}
+            AND subject_id = ${subject_id}
+            AND session_date = ${session_date}::date
+        )
+      RETURNING student_erpid, session_date, status
+    `;
+
+    if (result.length === 0) {
+      return res.status(404).json({ 
+        message: 'Attendance record not found or you are not authorized to update this record' 
+      });
+    }
+
+    console.log('Attendance updated successfully:', result[0]);
+    res.json({ 
+      message: 'Attendance updated successfully',
+      updated_record: result[0]
+    });
+
+  } catch (error) {
+    console.error('Error updating attendance:', error);
+    res.status(500).json({ 
+      message: 'Failed to update attendance',
+      error: error.message 
+    });
+  }
+});
+
+router.post('/todo', authenticateToken, async(req,res) => {
+  try {
+    const {title, description, status, due_date, task_timing} = req.body;
+    const erpid = req.user.erpStaffId;
+
+    let tasktime = null;
+    if (task_timing && task_timing.trim().length > 0) {
+      tasktime = task_timing;
+    }
+
+    console.log("task time is ",tasktime);
+
+    const account = await sql `
+      SELECT account_id 
+      FROM accounts
+      WHERE erpid = ${erpid}
+    `;
+
+    if(account.length == 0) {
+      return res.status(500).json ({
+        message: "no account found;"
+      });
+    }; 
+
+    const accountid = account[0].account_id;
+
+    const result = await sql `
+     INSERT INTO account_tasks (account_id, title, description, status, due_date, task_timing )
+     VALUES(${accountid}, ${title},${description},${status},${due_date}, ${tasktime})
+     RETURNING *;
+    `;
+
+    res.status(201).json({
+      message: 'Task created successfully',
+      task: result[0]
+    });
+
+    console.log(result);
+
+  } catch (err) {
+    console.error('Error in /todo POST:', err); // Add this line
+    res.status(500).json({
+      message: 'Failed to fetch tasks',
+      err: err.message
+    });
+  }
+})
+
+router.get('/todo', authenticateToken, async (req, res) => {
+  try {
+    const erpid = req.user.erpStaffId;
+    const account = await sql`
+      SELECT account_id 
+      FROM accounts
+      WHERE erpid = ${erpid};
+    `;
+
+    if (account.length === 0) {
+      return res.status(404).json({ message: 'Account not found' });
+    }
+
+    const accountId = account[0].account_id;
+
+    // fetch tasks for this user
+    const tasks = await sql`
+      SELECT *
+      FROM account_tasks
+      WHERE account_id = ${accountId}
+      ORDER BY created_at DESC;
+    `;
+    console.log("from get request",tasks);
+    res.json({ tasks });
+
+  } catch (err) {
+    res.status(500).json({
+      message: 'Failed to fetch tasks',
+      error: err.message
+    });
+  }
+});
+
+// Update a task
+router.put('/todo/:task_id', authenticateToken, async (req, res) => {
+  try {
+    const { task_id } = req.params;
+    const { title, description, status, due_date } = req.body;
+    // Optionally, check if the task belongs to the logged-in user
+
+    const result = await sql`
+      UPDATE account_tasks
+      SET 
+        title = ${title},
+        description = ${description},
+        status = ${status},
+        due_date = ${due_date}
+      WHERE task_id = ${task_id}
+      RETURNING *;
+    `;
+
+    if (result.length === 0) {
+      return res.status(404).json({ message: 'Task not found' });
+    }
+
+    res.json({ message: 'Task updated successfully', task: result[0] });
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to update task', error: err.message });
+  }
+});
+
+// Delete a task
+router.delete('/todo/:task_id', authenticateToken, async (req, res) => {
+  try {
+    const { task_id } = req.params;
+    // Optionally, check if the task belongs to the logged-in user
+
+    const result = await sql`
+      DELETE FROM account_tasks
+      WHERE task_id = ${task_id}
+      RETURNING *;
+    `;
+
+    if (result.length === 0) {
+      return res.status(404).json({ message: 'Task not found' });
+    }
+
+    res.json({ message: 'Task deleted successfully' });
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to delete task', error: err.message });
   }
 });
 

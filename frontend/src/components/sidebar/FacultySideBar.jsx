@@ -2,6 +2,7 @@ import { NavLink, useNavigate, useLocation } from "react-router-dom";
 import { FaBars, FaHome, FaUser } from "react-icons/fa";
 import { BiAnalyse, BiSearch } from "react-icons/bi";
 import { TbReport } from "react-icons/tb";
+import { FaTasks } from "react-icons/fa";
 import { PiStudentBold } from "react-icons/pi";
 import { FaBuffer } from "react-icons/fa";
 import {
@@ -25,27 +26,6 @@ import { useIsMobile } from "../hooks/use-mobile";
       name: "Dashboard",
       icon: <FaHome />,
     },
-    // {
-    //   path: "/faculty/take-attendance",
-    //   name: "Take Attendance",
-    //   icon: <FaUser />,
-    // },
-    // {
-    //   path: "/faculty/divisions",
-    //   name: "Divisions",
-    //   icon: <AiOutlinePlus />,
-    // },
-    // {
-    //   path: "/faculty/add-notes",
-    //   name: "Add Notes",
-    //   icon: <AiTwotoneFileExclamation />,
-    // },
-    
-    // {
-    //   path: "/faculty/student-stress-level",
-    //   name: "Student Stress Level",
-    //   icon: <BiAnalyse />,
-    // },
     {
       path: "/faculty/students-logs",
       name: "Students Logs",
@@ -57,6 +37,11 @@ import { useIsMobile } from "../hooks/use-mobile";
       icon: <AiFillContainer />,
     },
     {
+      path: "/faculty/add-tasks",
+      name: "Task to do",
+      icon: <FaTasks />,
+    },
+    {
       path: "/faculty/attendance-report",
       name: "Attendance Report",
       icon: <TbReport />,
@@ -66,11 +51,6 @@ import { useIsMobile } from "../hooks/use-mobile";
       name: "Students",
       icon: <PiStudentBold />,
     },
-    // {
-    //   path: "/faculty/location",
-    //   name: "View Student Location",
-    //   icon: <BiAnalyse />,
-    // },
     {
       path: "/faculty/faculty-profile",
       name: "Profile",

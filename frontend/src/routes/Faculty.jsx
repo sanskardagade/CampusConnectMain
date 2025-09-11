@@ -16,6 +16,7 @@ import DummyFacultyStress from "../components/faculty/DummyFacultyStress";
 import AttendanceReport from "../components/faculty/AttendanceReport";
 import StudentsSection from "../components/faculty/StudentsSection";
 import StudentsLogs from "../components/faculty/Students_logs";
+import Todo from "../components/faculty/todo";
 
 const Faculty = () => {
   return (
@@ -35,6 +36,7 @@ const Faculty = () => {
         <Route path="attendance-report" element={<AttendanceReport />} />
         <Route path="students" element={<StudentsSection />} />
         <Route path="students-logs" element={<StudentsLogs />} />
+        <Route path="add-tasks" element={<Todo/>}/>
       </Routes>
     </FacultySideBar>
   );
