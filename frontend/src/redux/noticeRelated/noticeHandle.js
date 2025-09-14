@@ -6,7 +6,7 @@ import {
     getError
 } from './noticeSlice';
 
-const REACT_APP_BASE_URL =  "http://69.62.83.14:9000";
+const REACT_APP_BASE_URL =  "http://82.112.238.4:5000";
 
 
 export const getAllNotices = (id, address) => async (dispatch) => {

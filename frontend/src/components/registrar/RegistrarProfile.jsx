@@ -30,7 +30,7 @@ const RegistrarProfile = () => {
         if (!token) {
           throw new Error('No authentication token found');
         }
-        const response = await axios.get('http://69.62.83.14:9000/api/registrar/profile', {
+        const response = await axios.get('http://82.112.238.4:5000/api/registrar/profile', {
           headers: {
             Authorization: `Bearer ${token}`
           }
