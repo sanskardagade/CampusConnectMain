@@ -886,4 +886,48 @@ router.delete('/todo/:task_id', authenticateToken, async (req, res) => {
   }
 });
 
+router.get("/short-leave", authenticateToken, async(req,res) => {
+  try {
+    const erpid = req.user.erpStaffId;
+    const result = await sql`
+      SELECT * FROM short_leaves WHERE staffid = ${erpid}`;
+    console.log("short leave",result);
+    res.json(result);
+  }
+  catch(err) {
+    console.error('Error in /short-leave GET:', err);
+    res.status(500).json({
+      message: 'Failed to fetch short leave',
+      error: err.message
+    });
+  }
+})
+
+router.post('/short-leave', authenticateToken, async(req,res) => {
+  try {
+    const erpid  = req.user.erpStaffId;
+    const {leavedate, startTime, endTime, reason} = req.body;
+    const result = await sql `
+     INSERT INTO short_leaves (
+      staffid,
+      leave_date,
+      start_time,
+      end_time,
+      reason
+     ) VALUES (${erpid}, ${leavedate}, ${startTime}, ${endTime}, ${reason});
+    `;
+    res.status(201).json({
+      message: 'Short leave created successfully',
+      short_leave: result[0]
+    });
+    console.log(result);
+  } catch (err) {
+    console.error('Error in /short-leave POST:', err);
+    res.status(500).json({
+      message: 'Failed to create short leave',
+      error: err.message
+    });
+  }
+})
+
 module.exports = router;

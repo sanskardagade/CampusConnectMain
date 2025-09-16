@@ -295,110 +295,6 @@ router.get('/faculty-log', authenticateToken, async (req, res) => {
   }
 });
 
-// //HOD Leave Approval
-// router.get('/leave-approval', async (req, res) => {
-//   try {
-//     const rows = await sql`
-//       SELECT * FROM faculty_leave
-//     `;
-//     // Add a computed 'status' field for frontend filtering
-//     const withStatus = rows.map(row => ({
-//       ...row,
-//       status: row.HodApproval || 'Pending'
-//     }));
-//     res.json(withStatus);
-//   } catch (error) {
-//     console.error("Detailed error in /leave-approval route:", error);
-//     res.status(500).json({ message: "Error fetching all leave applications" });
-//   }
-// });
-
-//HOD Leave Approval
-router.get('/leave-approval', async (req, res) => {
-  try {
-    const rows = await sql`
-      SELECT * FROM faculty_leave
-    `;
-    // Add a computed 'status' field for frontend filtering
-    const withStatus = rows.map(row => ({
-      ...row,
-      status: row.HodApproval || 'Pending'
-    }));
-    res.json(withStatus);
-  } catch (error) {
-    console.error("Detailed error in /leave-approval route:", error);
-    res.status(500).json({ message: "Error fetching all leave applications" });
-  }
-});
-
-router.put('/leave-approval/:leaveId', async (req, res) => {
-  const { leaveId } = req.params;
-  const { HodApproval } = req.body;
-
-  try {
-    // Validate the approval status
-    if (!['Approved', 'Rejected'].includes(HodApproval)) {
-      return res.status(400).json({ error: 'Invalid approval status' });
-    }
-
-    if (HodApproval === 'Rejected') {
-      // If rejected, update all status fields to Rejected
-      await sql`
-        UPDATE faculty_leave 
-        SET "HodApproval" = ${HodApproval},
-            "PrincipalApproval" = 'Rejected',
-            "FinalStatus" = 'Rejected'
-        WHERE id = ${leaveId}
-      `;
-    } else {
-      // If approved, only update HOD approval
-      await sql`
-        UPDATE faculty_leave 
-        SET "HodApproval" = ${HodApproval}
-        WHERE id = ${leaveId}
-      `;
-    }
-    res.json({ message: 'Leave approval updated successfully' });
-  } catch (error) {
-    console.error('Error updating leave approval:', error);
-    res.status(500).json({ error: 'Error updating leave approval' });
-  }
-});
-
-// router.put('/leave-approval/:leaveId', async (req, res) => {
-//   const { leaveId } = req.params;
-//   const { HodApproval } = req.body;
-
-//   try {
-//     // Validate the approval status
-//     if (!['Approved', 'Rejected'].includes(HodApproval)) {
-//       return res.status(400).json({ error: 'Invalid approval status' });
-//     }
-
-//     if (HodApproval === 'Rejected') {
-//       // If rejected, update all status fields to Rejected
-//       await sql`
-//         UPDATE faculty_leave 
-//         SET "HodApproval" = ${HodApproval},
-//             "PrincipalApproval" = 'Rejected',
-//             "FinalStatus" = 'Rejected'
-//         WHERE id = ${leaveId}
-//       `;
-//     } else {
-//       // If approved, only update HOD approval
-//       await sql`
-//         UPDATE faculty_leave 
-//         SET "HodApproval" = ${HodApproval}
-//         WHERE id = ${leaveId}
-//       `;
-//     }
-//     res.json({ message: 'Leave approval updated successfully' });
-//   } catch (error) {
-//     console.error('Error updating leave approval:', error);
-//     res.status(500).json({ error: 'Error updating leave approval' });
-//   }
-// });
-
 // Faculty attendance report for HOD (CSV, XLSX, PDF)
 router.get('/faculty-attendance-report', authenticateToken, async (req, res) => {
   try {
@@ -1980,6 +1876,90 @@ router.post("/transcript-requests/:request_id/upload-pdf", authenticateToken, up
         if (err) console.error("Temp file cleanup failed:", err);
       });
     }
+  }
+});
+
+//HOD Leave Approval
+router.get("/leave-approval", authenticateToken, async (req, res) => {
+
+  const departmentId = req.user.departmentId;
+  console.log("Hod department id is",departmentId);
+  try {
+    const rows = await sql`
+      SELECT * FROM faculty_leave as fl
+      JOIN faculty as f ON fl."ErpStaffId" = f.erpid
+      WHERE f.department_id = ${departmentId}
+    `;
+    console.log("leaces",rows);
+    res.json(rows);
+  } catch (error) {
+    console.error("Detailed error in /leave-approval route:", error);
+    res.status(500).json({ message: "Error fetching all leave applications" });
+  }
+});
+
+router.put('/leave-approval/:erpStaffId', async (req, res) => {
+  const { erpStaffId } = req.params;
+  const { HodApproval } = req.body;
+  
+  try {
+    // Validate the approval status
+    if (!['Approved', 'Rejected'].includes(HodApproval)) {
+      return res.status(400).json({ error: 'Invalid approval status' });
+    }
+
+    if (HodApproval === 'Rejected') {
+      // If rejected, update all status fields to Rejected
+      await sql`
+        UPDATE faculty_leave 
+        SET "HodApproval" = ${HodApproval},
+            "PrincipalApproval" = 'Rejected',
+            "FinalStatus" = 'Rejected'
+        WHERE "ErpStaffId" = ${erpStaffId}
+      `;
+    } else {
+      // If approved, only update HOD approval
+      await sql`
+        UPDATE faculty_leave 
+        SET "HodApproval" = ${HodApproval}
+        WHERE "ErpStaffId" = ${erpStaffId}
+      `;
+    }
+    console.log(HodApproval);
+    res.json({ message: 'Leave approval updated successfully' });
+  } catch (error) {
+    console.error('Error updating leave approval:', error);
+    res.status(500).json({ error: 'Error updating leave approval' });
+  }
+});
+
+router.get('/short-leaves', authenticateToken, async (req, res) => {
+  try {
+    const departmentId = req.user.departmentId;
+    const result = await sql`
+      SELECT sl.*,fl.name FROM short_leaves as sl
+      JOIN faculty as fl ON fl.erpid = sl.staffid
+      WHERE fl.department_id = ${departmentId}
+    `;
+    console.log("short leaves",result);
+    res.json(result);
+  } catch (error) {
+    console.error('Error fetching short leaves:', error);
+    res.status(500).json({ message: 'Failed to fetch short leaves' });
+  }
+});
+
+router.put('/short-leaves/:leave_id', async (req, res) => {
+  const { leave_id } = req.params;
+  const { status } = req.body;
+  console.log(leave_id,status);
+  try {
+    await sql`UPDATE short_leaves SET status = ${status}, approved_on = NOW() WHERE id = ${leave_id}`;
+    console.log("short leave updated successfully");
+    res.json({ message: 'Short leave updated successfully' });
+  } catch (error) {
+    console.error('Error updating short leave:', error);
+    res.status(500).json({ message: 'Failed to update short leave' });
   }
 });
 

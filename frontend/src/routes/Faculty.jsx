@@ -17,6 +17,7 @@ import AttendanceReport from "../components/faculty/AttendanceReport";
 import StudentsSection from "../components/faculty/StudentsSection";
 import StudentsLogs from "../components/faculty/Students_logs";
 import Todo from "../components/faculty/Todo.jsx";
+import ShortLeaves from "../components/faculty/ShortLeaves";
 
 const Faculty = () => {
   return (
@@ -37,6 +38,7 @@ const Faculty = () => {
         <Route path="students" element={<StudentsSection />} />
         <Route path="students-logs" element={<StudentsLogs />} />
         <Route path="add-tasks" element={<Todo/>}/>
+        <Route path="short-leaves" element={<ShortLeaves/>}/>
       </Routes>
     </FacultySideBar>
   );

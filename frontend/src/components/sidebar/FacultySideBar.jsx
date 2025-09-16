@@ -18,7 +18,7 @@ import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import SidebarMenu from "./SideBarMenu";
 import { useIsMobile } from "../hooks/use-mobile";
-
+import { RiDraftFill } from "react-icons/ri";
 
   const routes = [
     {
@@ -40,6 +40,11 @@ import { useIsMobile } from "../hooks/use-mobile";
       path: "/faculty/add-tasks",
       name: "Task to do",
       icon: <FaTasks />,
+    },
+    {
+      path: "/faculty/short-leaves",
+      name: "Short Leaves",
+      icon: <RiDraftFill />,
     },
     {
       path: "/faculty/attendance-report",
