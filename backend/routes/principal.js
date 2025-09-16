@@ -1500,6 +1500,133 @@ router.get('/present-staff-today', async (req, res) => {
   }
 });
 
+// Student Records with selectable fields
+router.get('/student-records', async (req, res) => {
+  try {
+    const { fields, departmentId, year, division, format, erpid } = req.query;
+
+    // Whitelist allowed fields to prevent SQL injection
+    const allowed = {
+      id: 's.id',
+      erpid: 's.erpid',
+      name: 's.name',
+      email: 's.email',
+      contact_no: 's.contact_no',
+      dob: 's.dob',
+      gender: 's.gender',
+      year: 's.year',
+      semester: 's.semester',
+      division: 's.division',
+      roll_no: 's.roll_no',
+      department_id: 's.department_id',
+      department_name: 'd.name AS department_name',
+      class_teacher: 's.class_teacher'
+    };
+
+    const requested = (fields ? String(fields).split(',') : ['erpid', 'name', 'email', 'department_name']).map(f => f.trim()).filter(Boolean);
+    const selectCols = [];
+    requested.forEach((f) => {
+      if (allowed[f]) selectCols.push(allowed[f]);
+    });
+    // Ensure at least one column
+    if (selectCols.length === 0) selectCols.push(allowed.erpid, allowed.name);
+
+    // Always include department join if department_name requested
+    // Build WHERE filters safely
+    const whereClauses = [];
+    if (departmentId && departmentId !== 'all') {
+      whereClauses.push(sql`s.department_id = ${Number(departmentId)}`);
+    }
+    if (year) {
+      whereClauses.push(sql`s.year = ${Number(year)}`);
+    }
+    if (division) {
+      whereClauses.push(sql`s.division = ${String(division).trim()}`);
+    }
+    if (erpid) {
+      whereClauses.push(sql`s.erpid = ${String(erpid).trim()}`);
+    }
+
+    // Build dynamic WHERE without sql.join (compose fragments)
+    let whereFragment = sql``;
+    if (whereClauses.length) {
+      whereFragment = sql`WHERE `;
+      let first = true;
+      for (const cond of whereClauses) {
+        if (!first) {
+          whereFragment = sql`${whereFragment} AND ${cond}`;
+        } else {
+          whereFragment = sql`${whereFragment} ${cond}`;
+          first = false;
+        }
+      }
+    }
+
+    // Compose base query (fixed safe column list)
+    const rows = await sql`
+      SELECT 
+        s.id,
+        s.erpid,
+        s.name,
+        s.email,
+        s.contact_no,
+        s.dob,
+        s.gender,
+        s.year,
+        s.semester,
+        s.division,
+        s.roll_no,
+        s.department_id,
+        d.name AS department_name
+      FROM students s
+      LEFT JOIN departments d ON s.department_id = d.id
+      ${whereFragment}
+      ORDER BY s.name
+    `;
+
+    // Filter to requested columns for response/export
+    const safeRequested = requested.filter(f => !!allowed[f]);
+    const filteredRows = rows.map(r => {
+      const obj = {};
+      safeRequested.forEach(k => { obj[k] = r[k]; });
+      return obj;
+    });
+
+    // Export formats
+    if (format === 'csv') {
+      const headers = safeRequested.join(',');
+      const csvRows = filteredRows.map(r => safeRequested.map(k => {
+        const v = r[k] !== undefined ? r[k] : r[k === 'department_name' ? 'department_name' : k];
+        const s = v === null || v === undefined ? '' : String(v);
+        return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+      }).join(','));
+      const csv = headers + '\n' + csvRows.join('\n');
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', 'attachment; filename=student_records.csv');
+      return res.send(csv);
+    }
+
+    if (format === 'xlsx') {
+      const ExcelJS = require('exceljs');
+      const workbook = new ExcelJS.Workbook();
+      const sheet = workbook.addWorksheet('Students');
+      sheet.columns = safeRequested.map(k => ({ header: k.replace(/_/g, ' ').toUpperCase(), key: k, width: 20 }));
+      filteredRows.forEach(r => { sheet.addRow(r); });
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Content-Disposition', 'attachment; filename=student_records.xlsx');
+      await workbook.xlsx.write(res);
+      res.end();
+      return;
+    }
+
+    // Default: JSON
+    return res.json({ columns: safeRequested, rows: filteredRows });
+  } catch (error) {
+    console.error('Student records fetch error:', error);
+    res.status(500).json({ message: 'Failed to fetch student records', error: error.message });
+  }
+});
+
 // Staff Attendance Report (Non-Teaching Staff)
 router.get('/staff-attendance-report', async (req, res) => {
   try {

@@ -50,6 +50,7 @@ export default function LeaveApprovalDashboard() {
         if (response.data && Array.isArray(response.data)) {
           console.log('Received leave applications:', response.data);
           console.log(typeof(response.data));
+          console.log(typeof(response.data));
           setLeaveApplications(response.data);
         } else {
           console.error('Invalid data format received:', response.data);

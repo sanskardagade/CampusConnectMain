@@ -15,6 +15,7 @@ import LeaveApplication from "../components/principal/LeaveApplication";
 import FacultyReport from "../components/principal/FacultyReport";
 import StressDisplay from "../components/principal/StressDisplay";
 import ClassroomDistribution from "../components/principal/ClassroomDistribution";
+import StudentRecord from "../components/principal/StudentRecord";
 
 
 const Principal = () => {
@@ -35,6 +36,7 @@ const Principal = () => {
         <Route path="faculty-report" element={<FacultyReport />} />
         <Route path="view-stress-level" element={<StressDisplay />} />
         <Route path="classroom-distribution" element={<ClassroomDistribution />} />
+        <Route path="student-record" element={<StudentRecord />} />
       </Routes>
     </PrincipalSideBar>
   );
