@@ -64,6 +64,18 @@ import { FiActivity } from "react-icons/fi";
       name: "Faculty Attendance Report",
       icon: <AiOutlineFilePdf />,
     },
+
+    {
+      path: "/principal/student-record",
+      name: "Student Report",
+      icon: <AiOutlineFilePdf />,
+    },
+
+
+
+
+
+
     // {
     //   path: "/principal/classroom-distribution",
     //   name: "Classroom Distribution",
