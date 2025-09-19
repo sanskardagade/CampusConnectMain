@@ -328,13 +328,19 @@ const StudentLogs = () => {
               <label className="text-sm font-medium text-slate-700">
                 Year <span className="text-red-500">*</span>
               </label>
-              <input
-                type="text"
-                placeholder="Year"
+              <select 
+                name="year" 
                 value={filters.year}
                 onChange={(e) => setFilters({ ...filters, year: e.target.value })}
                 className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200 bg-white/50"
-              />
+              >
+              <option value="">Select Year</option>
+                <option value="1">1</option>
+                <option value="2">2</option>
+                <option value="3">3</option>
+                <option value="4">4</option>
+              </select>
+             
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium text-slate-700">
