@@ -103,6 +103,13 @@ function ShortLeaves() {
         }
     };
 
+    const getDisplayStatus = (lv) => lv?.FinalStatus
+    const getStatusClass = (status) => (
+        status === 'Approved' ? 'bg-green-100 text-green-700' :
+        status === 'Rejected' ? 'bg-red-100 text-red-700' :
+        'bg-yellow-100 text-yellow-700'
+    );
+
     const toggleExpanded = (id) => {
         setExpandedIds(prev => {
             const next = new Set(prev);
@@ -308,6 +315,7 @@ function ShortLeaves() {
                                         <div className="space-y-2 max-h-[300px] overflow-y-auto">
                                             {myLeaves.map((lv) => {
                                                 const isExpanded = expandedIds.has(lv.id);
+                                                const displayStatus = getDisplayStatus(lv);
                                                 return (
                                                     <div key={lv.id} className="border border-gray-100 rounded-lg p-2 hover:bg-gray-50 transition-colors">
                                                         <div className="flex items-start justify-between gap-2">
@@ -320,12 +328,8 @@ function ShortLeaves() {
                                                                 </p>
                                                             </div>
                                                             <div className="flex flex-col items-end gap-1">
-                                                                <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
-                                                                    lv.status === 'Approved' ? 'bg-green-100 text-green-700' : 
-                                                                    lv.status === 'Rejected' ? 'bg-red-100 text-red-700' : 
-                                                                    'bg-yellow-100 text-yellow-700'
-                                                                }`}>
-                                                                    {lv.status || 'Pending'}
+                                                                <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${getStatusClass(displayStatus)}`}>
+                                                                    {displayStatus}
                                                                 </span>
                                                                 <button
                                                                     type="button"
@@ -338,7 +342,7 @@ function ShortLeaves() {
                                                         </div>
 
                                                         {isExpanded && (
-                                                            <div className="mt-2 pt-2 border-t border-gray-100 text-xs text-gray-600 space-y-0.5">
+                                                            <div className="mt-2 pt-2 border-t border-gray-100 text-xs text-gray-600 space-y-1">
                                                                 {lv.applied_on && (
                                                                     <p><span className="text-gray-400">Applied:</span> {formatDateTime(lv.applied_on)}</p>
                                                                 )}
@@ -347,6 +351,13 @@ function ShortLeaves() {
                                                                 {(lv.staffid || lv.erpid) && (
                                                                     <p><span className="text-gray-400">ID:</span> {lv.erpid || lv.staffid}</p>
                                                                 )}
+                                                                {/* Per-role statuses */}
+                                                                <div className="flex flex-wrap gap-2 pt-1">
+                                                                    <span className="text-gray-500">Status:</span>
+                                                                    <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${getStatusClass(lv.HodStatus || 'Pending')}`}>HOD: {lv.HodStatus || 'Pending'}</span>
+                                                                    <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${getStatusClass(lv.PrincipalRegistrar || 'Pending')}`}>Principal: {lv.PrincipalRegistrar || 'Pending'}</span>
+                                                                    <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${getStatusClass(lv.FinalStatus || 'Pending')}`}>Final: {lv.FinalStatus || 'Pending'}</span>
+                                                                </div>
                                                             </div>
                                                         )}
                                                     </div>

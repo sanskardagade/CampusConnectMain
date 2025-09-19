@@ -1939,7 +1939,7 @@ router.get('/short-leaves', authenticateToken, async (req, res) => {
     const result = await sql`
       SELECT sl.*,fl.name FROM short_leaves as sl
       JOIN faculty as fl ON fl.erpid = sl.staffid
-      WHERE fl.department_id = ${departmentId}
+      WHERE fl.department_id = ${departmentId};
     `;
     console.log("short leaves",result);
     res.json(result);
@@ -1951,10 +1951,17 @@ router.get('/short-leaves', authenticateToken, async (req, res) => {
 
 router.put('/short-leaves/:leave_id', async (req, res) => {
   const { leave_id } = req.params;
-  const { status } = req.body;
-  console.log(leave_id,status);
+  const { HodStatus } = req.body;
   try {
-    await sql`UPDATE short_leaves SET status = ${status}, approved_on = NOW() WHERE id = ${leave_id}`;
+    await sql`
+    UPDATE short_leaves
+    SET 
+      "HodStatus" = ${HodStatus},
+      "FinalStatus" = CASE 
+                      WHEN ${HodStatus} = 'Rejected' THEN 'Rejected'
+                      ELSE "FinalStatus"
+                    END 
+    WHERE id = ${leave_id};`;
     console.log("short leave updated successfully");
     res.json({ message: 'Short leave updated successfully' });
   } catch (error) {

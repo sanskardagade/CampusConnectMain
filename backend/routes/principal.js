@@ -2298,4 +2298,32 @@ router.get('/absent-staff-today', async (req, res) => {
   }
 });
 
+router.get('/short-leaves', async(req,res) => {
+  try {
+    const result = await sql`
+    SELECT sl.*, fl.name FROM short_leaves as sl
+    JOIN faculty as fl ON fl.erpid = sl.staffid 
+    WHERE "HodStatus" = 'Approved'`;
+    console.log("got this leaves", result);
+    res.json(result);
+  }catch(error){
+    console.error('Error getting the leaves', error);
+    res.status(500).json({ message: 'Failed to get short leave' });
+  } 
+})
+
+router.put('/short-leaves/:leave_id', async(req,res) => {
+  const { leave_id } = req.params;
+  const { PrincipalRegistrar } = req.body;
+  console.log(PrincipalRegistrar);
+  try {
+    await sql`UPDATE short_leaves SET "PrincipalRegistrar" = ${PrincipalRegistrar}, "FinalStatus" = 'Approved' WHERE id = ${leave_id};`;
+    console.log("short leave updated successfully");
+    res.json({ message: 'Short leave updated successfully' });
+  }catch(error){
+    console.error('Error updating short leave:', error);
+    res.status(500).json({ message: 'Failed to update short leave' });
+  }
+})
+
 module.exports = router;

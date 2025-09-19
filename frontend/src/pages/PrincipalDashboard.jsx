@@ -68,6 +68,8 @@ const PrincipalDashboard = () => {
   const [staffListRefreshing, setStaffListRefreshing] = useState(false);
   const [branchPdfLoading, setBranchPdfLoading] = useState(null);
   const [staffBranchPdfLoading, setStaffBranchPdfLoading] = useState(null);
+  const [pendingShortCount, setPendingShortCount] = useState(0);
+  const [pendingNormalCount, setPendingNormalCount] = useState(0);
 
   useEffect(() => {
     fetchDashboardData();
@@ -130,12 +132,18 @@ const PrincipalDashboard = () => {
   const fetchPendingLeaves = async () => {
     try {
       const token = localStorage.getItem('token');
-      const res = await axios.get('http://localhost:5000/api/principal/faculty-leave-approval', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      const pending = (res.data || []).filter(l => l.PrincipalApproval === 'Pending').length;
-      setPendingLeaves(pending);
+      const [normalRes, shortRes] = await Promise.all([
+        axios.get('http://localhost:5000/api/principal/faculty-leave-approval', { headers: { Authorization: `Bearer ${token}` } }),
+        axios.get('http://localhost:5000/api/principal/short-leaves', { headers: { Authorization: `Bearer ${token}` } })
+      ]);
+      const normalPending = (normalRes.data || []).filter(l => l.PrincipalApproval === 'Pending').length;
+      const shortPending = (shortRes.data || []).filter(l => (l.PrincipalRegistrar || l.PrincipalRegistrar === '' ? l.PrincipalRegistrar : l.status) === 'Pending').length;
+      setPendingNormalCount(normalPending);
+      setPendingShortCount(shortPending);
+      setPendingLeaves(normalPending + shortPending);
     } catch (e) {
+      setPendingNormalCount(0);
+      setPendingShortCount(0);
       setPendingLeaves(0);
     }
   };
@@ -421,7 +429,8 @@ const PrincipalDashboard = () => {
 
   // Handler for navigating to faculty leave approval
   const handleNavigateLeaveApproval = () => {
-    navigate('/principal/faculty-leave-approval');
+    const view = pendingShortCount > 0 ? 'Short' : 'Regular';
+    navigate(`/principal/faculty-leave-approval?view=${view}`);
   };
 
   // Fetch faculty totals per department

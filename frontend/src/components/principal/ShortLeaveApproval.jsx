@@ -14,10 +14,9 @@ export default function ShortLeaveApproval() {
       try {
         const token = localStorage.getItem('token');
         if (!token) throw new Error('Missing auth token');
-        const res = await axios.get('http://localhost:5000/api/hod/short-leaves', {
+        const res = await axios.get('http://localhost:5000/api/principal/short-leaves', {
           headers: { Authorization: `Bearer ${token}` },
         });
-        console.log(res.data)
         if (Array.isArray(res.data)) {
           setApplications(res.data);
         } else {
@@ -47,13 +46,12 @@ export default function ShortLeaveApproval() {
       const token = localStorage.getItem('token');
       if (!token) throw new Error('Missing auth token');
       await axios.put(
-        `http://localhost:5000/api/hod/short-leaves/${app.id}`,
-        { HodStatus: 'Approved' },
+        `http://localhost:5000/api/principal/short-leaves/${app.id}`,
+        { PrincipalRegistrar: 'Approved' },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      console.log(app.id);
-      setApplications((prev) => prev.map((a) => (a.id === app.id ? { ...a, HodStatus: 'Approved' } : a)));
-      if (selected?.id === app.id) setSelected({ ...app, HodStatus: 'Approved' });
+      setApplications((prev) => prev.map((a) => (a.id === app.id ? { ...a, PrincipalRegistrar: 'Approved' } : a)));
+      if (selected?.id === app.id) setSelected({ ...app, PrincipalRegistrar: 'Approved' });
       addNotification(`Approved short leave for ${app.name}`);
     } catch (e) {
       addNotification('Error approving short leave');
@@ -65,12 +63,12 @@ export default function ShortLeaveApproval() {
       const token = localStorage.getItem('token');
       if (!token) throw new Error('Missing auth token');
       await axios.put(
-        `http://localhost:5000/api/hod/short-leaves/${app.id}`,
-        { HodStatus: 'Rejected' },
+        `http://localhost:5000/api/principal/short-leaves/${app.id}`,
+        { PrincipalRegistrar: 'Rejected' },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      setApplications((prev) => prev.map((a) => (a.id === app.id ? { ...a, HodStatus: 'Rejected' } : a)));
-      if (selected?.id === app.id) setSelected({ ...app, HodStatus: 'Rejected' });
+      setApplications((prev) => prev.map((a) => (a.id === app.id ? { ...a, PrincipalRegistrar: 'Rejected' } : a)));
+      if (selected?.id === app.id) setSelected({ ...app, PrincipalRegistrar: 'Rejected' });
       addNotification(`Rejected short leave for ${app.name}`);
     } catch (e) {
       addNotification('Error rejecting short leave');
@@ -90,21 +88,30 @@ export default function ShortLeaveApproval() {
     }
   };
 
-  // Only use HodStatus to drive tabs
+  // STRICT: Use PrincipalRegistrar only
   const filterByTab = (app) => {
-    const status = app?.HodStatus;
+    const status = app?.PrincipalRegistrar;
     if (!status) return selectedTab === 'Pending';
     return status === selectedTab;
   };
 
-  const isPending = (hodStatus) => hodStatus === 'Pending';
+  const isPending = (principalRegistrar) => principalRegistrar === 'Pending'; 
+
+  const hodPendingCount = applications.filter(a => a.HodStatus === 'Pending').length;
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
       <div className="lg:col-span-1 space-y-6">
         <div className="bg-white rounded-lg shadow-md p-4">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-semibold text-purple-900">Short Leaves</h2>
+            <div className="flex items-center gap-2">
+              <h2 className="text-xl font-semibold text-purple-900">Short Leaves</h2>
+              {hodPendingCount > 0 && (
+                <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-800" title="Pending at HOD">
+                  HOD Pending: {hodPendingCount}
+                </span>
+              )}
+            </div>
             <span className="bg-purple-100 text-purple-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
               {applications.filter(filterByTab).length} {selectedTab.toLowerCase()}
             </span>
@@ -142,45 +149,27 @@ export default function ShortLeaveApproval() {
                 {applications.filter(filterByTab).map((app) => (
                   <div
                     key={app.id}
-                    className={`border rounded-lg p-3 transition-all duration-200 cursor-pointer ${
+                    className={`border rounded-lg p-3 cursor-pointer transition-all duration-200 ${
                       selected?.id === app.id ? 'border-purple-300 bg-purple-50' : 'border-purple-200 bg-purple-50 hover:border-purple-300'
                     }`}
                     onClick={() => setSelected(app)}
                   >
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex items-center">
-                        <div className="w-10 h-10 rounded-full bg-purple-100 overflow-hidden mr-3 flex items-center justify-center">
-                          <span className="text-purple-800 font-medium">{app.name?.charAt(0)}</span>
+                    <div className="flex items-center">
+                      <div className="w-10 h-10 rounded-full bg-purple-100 overflow-hidden mr-3 flex items-center justify-center">
+                        <span className="text-purple-800 font-medium">{app.name?.charAt(0)}</span>
+                      </div>
+                      <div className="flex-grow">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <span className="font-medium text-gray-900">{app.name}</span>
+                            <p className="text-xs text-gray-500 mt-1">ID: {app.erpid || app.staffid}</p>
+                          </div>
+                          <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-purple-100 text-purple-800">Short Leave</span>
                         </div>
-                        <div className="flex-grow">
-                          <div className="flex justify-between items-start">
-                            <div>
-                              <span className="font-medium text-gray-900">{app.name}</span>
-                              <p className="text-xs text-gray-500 mt-1">ID: {app.erpid || app.staffid}</p>
-                            </div>
-                            <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-purple-100 text-purple-800">Short Leave</span>
-                          </div>
-                          <div className="mt-2 text-xs text-gray-600">
-                            {formatDateTime(app.leave_date, app.start_time)} - {formatDateTime(app.leave_date, app.end_time)}
-                          </div>
+                        <div className="mt-2 text-xs text-gray-600">
+                          {formatDateTime(app.leave_date, app.start_time)} - {formatDateTime(app.leave_date, app.end_time)}
                         </div>
                       </div>
-                      {isPending(app.HodStatus) && (
-                        <div className="flex flex-col items-end gap-1">
-                          <button
-                            onClick={(e) => { e.stopPropagation(); handleApprove(app); }}
-                            className="text-xs px-2 py-1 rounded bg-green-50 text-green-700 hover:bg-green-100"
-                          >
-                            Approve
-                          </button>
-                          <button
-                            onClick={(e) => { e.stopPropagation(); handleReject(app); }}
-                            className="text-xs px-2 py-1 rounded bg-red-50 text-red-700 hover:bg-red-100"
-                          >
-                            Reject
-                          </button>
-                        </div>
-                      )}
                     </div>
                   </div>
                 ))}
@@ -224,7 +213,7 @@ export default function ShortLeaveApproval() {
                 <h3 className="text-lg font-medium text-purple-800 mb-3">Details</h3>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <p className="text-sm text-gray-500">From</p>
+                    <p className="text-sm text.gray-500">From</p>
                     <p className="font-medium">{formatDateTime(selected.leave_date, selected.start_time)}</p>
                   </div>
                   <div>
@@ -236,7 +225,7 @@ export default function ShortLeaveApproval() {
                   <p className="text-sm text-gray-500">Reason</p>
                   <p className="p-3 bg-gray-50 rounded-md mt-1">{selected.reason}</p>
                 </div>
-                {isPending(selected.HodStatus) && (
+                {isPending(selected.PrincipalRegistrar) && (
                   <div className="mt-6 flex justify-end space-x-4">
                     <button onClick={() => handleReject(selected)} className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors duration-200 flex items-center">
                       <X size={18} className="mr-2" />

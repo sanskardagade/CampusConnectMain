@@ -56,15 +56,15 @@ router.get('/department/:department', authenticateToken, async (req, res) => {
 // Update faculty profile
 router.put('/profile', authenticateToken, async (req, res) => {
   try {
-    console.log('Update profile request received:', req.body);
-    console.log('Auth user:', req.user);
+     ('Update profile request received:', req.body);
+     ('Auth user:', req.user);
     const erpStaffId = req.user.erpStaffId;
-    console.log('User erpStaffId:', erpStaffId);
+     ('User erpStaffId:', erpStaffId);
     
     // Only allow updating email
     const { email } = req.body;
     if (!email) {
-      console.log('Email not provided in request');
+       ('Email not provided in request');
       return res.status(400).json({ message: 'Email is required' });
     }
 
@@ -72,19 +72,19 @@ router.put('/profile', authenticateToken, async (req, res) => {
     const facultyCheck = await sql`
       SELECT erpid FROM faculty WHERE erpid = ${erpStaffId}::text
     `;
-    console.log('Faculty check result:', facultyCheck);
+     ('Faculty check result:', facultyCheck);
 
     if (facultyCheck.length === 0) {
-      console.log('Faculty not found in database with erpStaffId:', erpStaffId);
+       ('Faculty not found in database with erpStaffId:', erpStaffId);
       return res.status(404).json({ message: 'Faculty not found' });
     }
 
-    console.log('Updating faculty email...');
+     ('Updating faculty email...');
     const updatedFaculty = await Faculty.update(erpStaffId, { email });
-    console.log('Update result:', updatedFaculty);
+     ('Update result:', updatedFaculty);
     
     if (!updatedFaculty) {
-      console.log('Faculty not found after update with erpStaffId:', erpStaffId);
+       ('Faculty not found after update with erpStaffId:', erpStaffId);
       return res.status(404).json({ message: 'Faculty not found' });
     }
 
@@ -95,7 +95,7 @@ router.put('/profile', authenticateToken, async (req, res) => {
       email: updatedFaculty.email
     };
 
-    console.log('Sending response:', response);
+     ('Sending response:', response);
     res.json(response);
   } catch (error) {
     console.error('Detailed error in profile update:', {
@@ -169,14 +169,14 @@ router.post('/', authenticateToken, async (req, res) => {
 // Get student stress levels
 router.get('/student-stress-level', authenticateToken, async (req, res) => {
   try {
-    console.log('API call received at:', new Date().toISOString());
+     ('API call received at:', new Date().toISOString());
     
     // Fetch all student stress data from the database
     const result = await sql`
       SELECT * FROM stress_logs WHERE id between 1 and 34
       ORDER BY id ASC
     `;
-    console.log(result);
+     (result);
     res.json(result);
   } catch (error) {
     console.error('Error fetching student stress data:', error);
@@ -197,10 +197,10 @@ router.post("/leave-apply", authenticateToken, async (req, res) => {
       leavetype
     } = req.body;
 
-    console.log("the data is:",req.body);
+     ("the data is:",req.body);
 
     const facultyleave =  FacultyLeave.AddLeaveIntoTable(req.body);
-    console.log(facultyleave);
+     (facultyleave);
     res.status(200).json({ 
       message: 'Leave application submitted successfully!',
     });
@@ -214,8 +214,8 @@ router.post("/leave-apply", authenticateToken, async (req, res) => {
 router.get("/leave-apply", authenticateToken, async (req, res) => {
   try {
     const erpStaffId = req.user.erpStaffId;
-    console.log('Fetching leave applications for faculty:', erpStaffId);
-    console.log('User object:', req.user);
+     ('Fetching leave applications for faculty:', erpStaffId);
+     ('User object:', req.user);
     
     if (!erpStaffId) {
       console.error('No erpStaffId found in user object');
@@ -231,16 +231,16 @@ router.get("/leave-apply", authenticateToken, async (req, res) => {
       ORDER BY "ApplicationDate" DESC
     `;
 
-    console.log('hello Query result:', result[0]);
+     ('hello Query result:', result[0]);
     
     if (!result) {
-      console.log('No leave applications found for faculty:', erpStaffId);
+       ('No leave applications found for faculty:', erpStaffId);
       return res.json([]);
     }
     
     // Ensure we're sending an array
     const leaveApplications = Array.isArray(result) ? result : [result];
-    console.log('Sending response:', leaveApplications);
+     ('Sending response:', leaveApplications);
     
     res.json(leaveApplications);
   } catch (error) {
@@ -257,7 +257,7 @@ router.get("/leave-apply", authenticateToken, async (req, res) => {
 router.get("/leave-balances", authenticateToken, async (req, res) => {
   try {
     const erpStaffId = req.user.erpStaffId;
-    console.log('Fetching leave balances for faculty:', erpStaffId);
+     ('Fetching leave balances for faculty:', erpStaffId);
     
     if (!erpStaffId) {
       console.error('No erpStaffId found in user object');
@@ -283,17 +283,17 @@ router.get("/leave-balances", authenticateToken, async (req, res) => {
       WHERE "ErpStaffId" = ${erpStaffId}
     `;
     
-    console.log('Leave balances query result:', result);
+     ('Leave balances query result:', result);
     
     if (!result || result.length === 0) {
-      console.log('No leave balances found for faculty:', erpStaffId);
+       ('No leave balances found for faculty:', erpStaffId);
       return res.status(404).json({ 
         message: 'Leave balances not found for this faculty',
         error: 'No leave balance record exists'
       });
     }
     
-    console.log('Sending leave balances response:', result[0]);
+     ('Sending leave balances response:', result[0]);
     res.json(result[0]);
   } catch (error) {
     console.error("Error in leave-balances GET endpoint:", error);
@@ -358,7 +358,7 @@ router.get('/task-history', authenticateToken, async (req, res) => {
       tasks: taskHistory 
     });
 
-    console.log({ 
+     ({ 
       total: taskHistory.length,
       completed: taskHistory.filter(t => t.status === 'completed').length,
       pending: taskHistory.filter(t => t.status === 'pending').length,
@@ -378,7 +378,7 @@ router.get('/task-history', authenticateToken, async (req, res) => {
 // Change password route
 router.put('/change-password', authenticateToken, async (req, res) => {
   try {
-    console.log('Change password request received')
+     ('Change password request received')
     const { currentPassword, newPassword } = req.body
     const erpStaffId = req.user.erpStaffId
 
@@ -418,7 +418,7 @@ router.put('/change-password', authenticateToken, async (req, res) => {
 router.get('/assigned-tasks', authenticateToken, async (req, res) => {
   try {
     const erpStaffId = req.user.erpStaffId;
-    console.log(erpStaffId);
+     (erpStaffId);
     if (!erpStaffId) {
       return res.status(400).json({ message: 'Invalid user data', error: 'No erpStaffId found' });
     }
@@ -558,7 +558,7 @@ router.post('/start-session', authenticateToken, async (req, res) => {
       end_time,
       location
     } = req.body;
-    console.log(req.body);
+     (req.body);
     // Validate required fields
     if (!subject || !department_id || !year || !semester || !division || !start_time || !end_time || !location) {
       return res.status(400).json({ message: 'Missing required fields' });
@@ -572,11 +572,11 @@ router.post('/start-session', authenticateToken, async (req, res) => {
         ${subject_id}, ${subject}, ${faculty_erpid}, ${department_id}, ${year}, ${semester}, ${division}, ${batch || null}, ${session_date}, ${start_time}, ${end_time}, ${location}
       ) RETURNING session_id;
     `;
-    console.log(result);
+     (result);
     const sessionId = result[0]?.session_id;
     res.status(201).json({ message: 'Session started successfully', session_id: sessionId });
   } catch (error) {
-    console.log('Error starting session from start',error);
+     ('Error starting session from start',error);
     res.status(500).json({ message: 'Error starting session' });
   }
 });
@@ -585,7 +585,7 @@ router.post('/start-session', authenticateToken, async (req, res) => {
 router.get('/students-data', authenticateToken, async (req, res) => {
   try {
     const erpStaffId = req.user.erpStaffId;
-    console.log(erpStaffId);
+     (erpStaffId);
     if (!erpStaffId) {
       return res.status(400).json({ message: 'Invalid user data', error: 'No erpStaffId found' });
     }
@@ -604,7 +604,7 @@ router.get('/students-data', authenticateToken, async (req, res) => {
 
 router.get('/sessions', authenticateToken, async (req, res) => {
   const { date, subject_id } = req.query;
-  console.log("subject id is",subject_id);
+   ("subject id is",subject_id);
   if (!date || !subject_id) {
     return res.status(400).json({ message: 'Date and subject_id are required' });
   }
@@ -633,7 +633,7 @@ router.get('/sessions', authenticateToken, async (req, res) => {
       WHERE session_date = ${formattedDate}::date AND subject_id = ${subject_id}
       ORDER BY created_at ASC
     `;
-    console.log(result);
+     (result);
     res.json(result);
   } catch (error) {
     console.error('Error fetching sessions: from sessions', error);
@@ -651,7 +651,7 @@ router.get('/subjects', authenticateToken, async(req, res) => {
       JOIN subjects s ON fs.subject_id = s.subject_id
       WHERE fs.faculty_erpid = ${erpid}
     `;
-    console.log("from subjects routes",result);
+     ("from subjects routes",result);
     res.json(result);
   }catch(error) {
     console.error('Error fetching sessions from subjects:', error);
@@ -662,10 +662,50 @@ router.get('/subjects', authenticateToken, async(req, res) => {
 router.get("/students-logs",authenticateToken,async(req,res) => {
 
   try {
-    const {subject_id, division, selecteddate, year} = req.query;
+    const {subject_id, division, selecteddate, year, start_date, end_date} = req.query;
+     console.log(req.query);
     const erpid = req.user.erpStaffId;
-    console.log("this is query",req.query);
-    const result = await sql`
+     ("this is query",req.query);
+
+    if (!subject_id || !division || !year) {
+      return res.status(400).json({ message: 'Missing required query params: subject_id, division, year' });
+    }
+
+    let result;
+
+    if (start_date && end_date) {
+      // Fetch logs in a date range (inclusive)
+      result = await sql`
+          SELECT 
+          st.erpid AS student_id,
+          st.name  AS student_name,
+          ad.session_date,
+          ad.status,
+          s.subject_id,
+          subj.name,
+          s.division,
+          s.year,
+          s.semester,
+          f.department_id AS faculty_branch
+      FROM attendance_details ad
+      JOIN students st 
+          ON ad.student_erpid = st.erpid
+      JOIN sessions s 
+          ON ad.session_id = s.session_id
+      JOIN subjects subj
+          ON s.subject_id = subj.subject_id
+      JOIN faculty f
+          ON s.faculty_erpid = f.erpid
+      WHERE s.faculty_erpid = ${erpid}         
+        AND st.department_id = f.department_id     
+        AND s.division = ${division}                       
+        AND s.year = ${year}                             
+        AND s.subject_id = ${subject_id}                       
+        AND ad.session_date BETWEEN ${start_date} AND ${end_date}
+      ORDER BY ad.session_date, st.erpid;`;
+    } else if (selecteddate) {
+      // Fallback: fetch logs for a single date
+      result = await sql`
           SELECT 
           st.erpid AS student_id,
           st.name  AS student_name,
@@ -692,8 +732,10 @@ router.get("/students-logs",authenticateToken,async(req,res) => {
         AND s.year = ${year}                             
         AND s.subject_id = ${subject_id}                       
         AND ad.session_date = ${selecteddate}  
-      ORDER BY ad.session_date, st.erpid;
-    `;
+      ORDER BY ad.session_date, st.erpid;`;
+    } else {
+      return res.status(400).json({ message: 'Provide either selecteddate or start_date and end_date' });
+    }
     res.json(result);
   } catch (error) {
     console.error('Error fetching attendance:', error);
@@ -717,7 +759,7 @@ router.put('/students-logs/update-attendance', authenticateToken, async (req, re
       return res.status(400).json({ message: 'Status must be either "Present" or "Absent"' });
     }
 
-    console.log('Updating attendance:', { student_id, subject_id, session_date, status, faculty_erpid });
+     ('Updating attendance:', { student_id, subject_id, session_date, status, faculty_erpid });
 
     // Update the attendance record
     const result = await sql`
@@ -740,7 +782,7 @@ router.put('/students-logs/update-attendance', authenticateToken, async (req, re
       });
     }
 
-    console.log('Attendance updated successfully:', result[0]);
+     ('Attendance updated successfully:', result[0]);
     res.json({ 
       message: 'Attendance updated successfully',
       updated_record: result[0]
@@ -765,7 +807,7 @@ router.post('/todo', authenticateToken, async(req,res) => {
       tasktime = task_timing;
     }
 
-    console.log("task time is ",tasktime);
+     ("task time is ",tasktime);
 
     const account = await sql `
       SELECT account_id 
@@ -792,7 +834,7 @@ router.post('/todo', authenticateToken, async(req,res) => {
       task: result[0]
     });
 
-    console.log(result);
+     (result);
 
   } catch (err) {
     console.error('Error in /todo POST:', err); // Add this line
@@ -825,7 +867,7 @@ router.get('/todo', authenticateToken, async (req, res) => {
       WHERE account_id = ${accountId}
       ORDER BY created_at DESC;
     `;
-    console.log("from get request",tasks);
+     ("from get request",tasks);
     res.json({ tasks });
 
   } catch (err) {
@@ -891,7 +933,7 @@ router.get("/short-leave", authenticateToken, async(req,res) => {
     const erpid = req.user.erpStaffId;
     const result = await sql`
       SELECT * FROM short_leaves WHERE staffid = ${erpid}`;
-    console.log("short leave",result);
+     ("short leave",result);
     res.json(result);
   }
   catch(err) {
@@ -920,7 +962,7 @@ router.post('/short-leave', authenticateToken, async(req,res) => {
       message: 'Short leave created successfully',
       short_leave: result[0]
     });
-    console.log(result);
+     (result);
   } catch (err) {
     console.error('Error in /short-leave POST:', err);
     res.status(500).json({
