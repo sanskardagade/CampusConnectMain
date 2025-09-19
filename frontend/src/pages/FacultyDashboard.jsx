@@ -130,6 +130,7 @@ const FacultyDashboard = () => {
       const response = await axios.get('http://localhost:5000/api/faculty/assigned-tasks', {
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
       });
+      console.log("FROM FRONTEND", response.data.tasks);
       setTasks(response.data.tasks || []);
     } catch (err) {
       setTasks([]);
@@ -446,6 +447,12 @@ const FacultyDashboard = () => {
                       <div key={task.assigned_task_id} className="border-l-4 border-blue-500 pl-3 py-2 bg-blue-50 rounded-r">
                         <div className="font-medium text-sm">{task.heading || 'Task'}</div>
                         <div className="text-xs text-gray-600 mt-1">{task.message}</div>
+                      {(task.deadline) && (
+                        <div className="text-xs text-gray-600 mt-1 flex items-center">
+                          <FiCalendar className="mr-1" size={12} />
+                          Deadline: {new Date(task.deadline).toLocaleDateString()}
+                        </div>
+                      )}
                         <div className="flex items-center justify-between mt-2">
                           <span className={`text-xs px-2 py-1 rounded-full ${
                             task.status === 'completed' ? 'bg-green-100 text-green-800' :
@@ -604,6 +611,11 @@ const FacultyDashboard = () => {
                       <div className="text-xs text-gray-500 mb-3 flex items-center">
                         <FiUsers className="mr-1" size={12} />
                         Assigned by: {task.hod_name || 'HOD'} | {new Date(task.created_at).toLocaleString()}
+                        {(task.deadline) && (
+                          <span className="ml-2 flex items-center">
+                            | <FiCalendar className="ml-2 mr-1" size={12} /> Deadline: {new Date(task.deadline).toLocaleString()}
+                          </span>
+                        )}
                       </div>
 
                       {/* Task Actions */}
@@ -755,6 +767,12 @@ const FacultyDashboard = () => {
                             <FiCalendar className="mr-1" size={14} />
                             Created: {task.created_at_formatted}
                           </div>
+                          {(task.deadline) && (
+                            <div className="flex items-center">
+                              <FiCalendar className="mr-1" size={14} />
+                              Deadline: {task.deadline_formatted || new Date(task.deadline).toLocaleString()}
+                            </div>
+                          )}
                           {task.completed_at_formatted && (
                             <div className="flex items-center">
                               <FiCheckCircle className="mr-1" size={14} />

@@ -430,6 +430,7 @@ router.get('/assigned-tasks', authenticateToken, async (req, res) => {
         t.message,
         t.file_url,
         t.created_at,
+        t.deadline,
         h.name as hod_name,
         at.id as assigned_task_id,
         at.status
@@ -439,6 +440,7 @@ router.get('/assigned-tasks', authenticateToken, async (req, res) => {
       WHERE at.faculty_erpid = ${erpStaffId} AND (at.is_dismissed IS NULL OR at.is_dismissed = FALSE)
       ORDER BY t.created_at DESC
     `;
+    console.log(result);
     res.json({ tasks: result });
   } catch (error) {
     console.error('Error fetching assigned tasks:', error);
