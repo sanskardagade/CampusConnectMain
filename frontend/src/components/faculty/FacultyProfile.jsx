@@ -39,7 +39,7 @@ const FacultyProfile = () => {
         const today = new Date().toISOString().slice(0, 10);
 
         const response = await axios.get(
-          `http://82.112.238.4:5000/api/faculty/dashboard?date=${today}`,
+          `https://82.112.238.4:5000/api/faculty/dashboard?date=${today}`,
           {
             headers: {
               Authorization: `Bearer ${token}`

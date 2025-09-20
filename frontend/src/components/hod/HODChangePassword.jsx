@@ -45,7 +45,7 @@ const HODChangePassword = () => {
     try {
       const token = localStorage.getItem('token');
       const response = await axios.put(
-        'http://82.112.238.4:5000/api/hod/change-password',
+        'https://82.112.238.4:5000/api/hod/change-password',
         {
           currentPassword,
           newPassword,

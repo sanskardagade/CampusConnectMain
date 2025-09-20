@@ -73,7 +73,7 @@ function TaskAssign() {
           return;
         }
         const res = await axios.get(
-          `http://82.112.238.4:5000/api/hod/assign-task?departmentId=${departmentId}`,
+          `https://82.112.238.4:5000/api/hod/assign-task?departmentId=${departmentId}`,
           {
             headers: {
               Authorization: `Bearer ${localStorage.getItem("token")}`,
@@ -95,7 +95,7 @@ function TaskAssign() {
       setLoadingHistory(true);
       try {
         const token = localStorage.getItem("token");
-        const res = await axios.get("http://82.112.238.4:5000/api/hod/assigned-tasks/history", {
+        const res = await axios.get("https://82.112.238.4:5000/api/hod/assigned-tasks/history", {
           headers: { Authorization: `Bearer ${token}` }
         });
         setAssignedTasksHistory(res.data.tasks || []);
@@ -174,7 +174,7 @@ function TaskAssign() {
       const localCreatedAt = getLocalISOString();
       const timezoneOffset = new Date().getTimezoneOffset();
       const res = await axios.post(
-        "http://82.112.238.4:5000/api/hod/assign-task",
+        "https://82.112.238.4:5000/api/hod/assign-task",
         {
           heading: heading.trim(),
           facultyErpIds: selectedFaculty.map(f => f.erpid),

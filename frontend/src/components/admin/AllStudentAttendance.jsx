@@ -21,7 +21,7 @@ const AdminAllStudentAttendance = () => {
   const fetchAttendanceData = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://82.112.238.4:5000/api/admin/all-student-attendance?${new URLSearchParams(filters)}`, {
+      const response = await fetch(`https://82.112.238.4:5000/api/admin/all-student-attendance?${new URLSearchParams(filters)}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -60,7 +60,7 @@ const AdminAllStudentAttendance = () => {
   const downloadReport = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://82.112.238.4:5000/api/attendance/download/all?${new URLSearchParams(filters)}`, {
+      const response = await fetch(`https://82.112.238.4:5000/api/attendance/download/all?${new URLSearchParams(filters)}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }

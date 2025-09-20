@@ -45,7 +45,7 @@ const AdminChangePassword = () => {
     try {
       const token = localStorage.getItem('token');
       const response = await axios.put(
-        'http://82.112.238.4:5000/api/admin/change-password',
+        'https://82.112.238.4:5000/api/admin/change-password',
         {
           currentPassword,
           newPassword,

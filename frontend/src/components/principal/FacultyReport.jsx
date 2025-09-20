@@ -47,7 +47,7 @@ const FacultyReport = () => {
     const fetchDepartments = async () => {
       try {
         const token = localStorage.getItem('token');
-        const response = await axios.get('http://82.112.238.4:5000/api/principal/dashboard', {
+        const response = await axios.get('https://82.112.238.4:5000/api/principal/dashboard', {
           headers: { Authorization: `Bearer ${token}` },
         });
         setDepartments(response.data.departments || []);
@@ -116,19 +116,19 @@ const FacultyReport = () => {
       if (reportType === 'attendance') {
         if (attendanceStatus === 'present') {
           endpoint = attendanceType === 'faculty'
-            ? 'http://82.112.238.4:5000/api/principal/faculty-attendance-report'
-            : 'http://82.112.238.4:5000/api/principal/staff-attendance-report';
+            ? 'https://82.112.238.4:5000/api/principal/faculty-attendance-report'
+            : 'https://82.112.238.4:5000/api/principal/staff-attendance-report';
         } else {
           endpoint = attendanceType === 'faculty'
-            ? 'http://82.112.238.4:5000/api/principal/absent-faculty-today'
-            : 'http://82.112.238.4:5000/api/principal/absent-staff-today'; // be sure to implement this backend route
+            ? 'https://82.112.238.4:5000/api/principal/absent-faculty-today'
+            : 'https://82.112.238.4:5000/api/principal/absent-staff-today'; // be sure to implement this backend route
         }
       } else if (reportType === 'stress') {
         endpoint = stressType === 'faculty'
-          ? 'http://82.112.238.4:5000/api/principal/faculty-stress-report'
-          : 'http://82.112.238.4:5000/api/principal/staff-stress-report';
+          ? 'https://82.112.238.4:5000/api/principal/faculty-stress-report'
+          : 'https://82.112.238.4:5000/api/principal/staff-stress-report';
       } else if (reportType === 'leave') {
-        endpoint = 'http://82.112.238.4:5000/api/principal/faculty-leave-report';
+        endpoint = 'https://82.112.238.4:5000/api/principal/faculty-leave-report';
       }
 
       const response = await axios.get(endpoint, {

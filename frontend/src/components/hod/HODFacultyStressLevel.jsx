@@ -32,7 +32,7 @@ function HODFacultyStressLevel() {
     try {
       const token = localStorage.getItem('token');
       const response = await axios.get(
-        'http://82.112.238.4:5000/api/hod/faculty-stress-members',
+        'https://82.112.238.4:5000/api/hod/faculty-stress-members',
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setFaculty(response.data.members || []);
@@ -59,7 +59,7 @@ function HODFacultyStressLevel() {
       try {
         const token = localStorage.getItem('token');
         const res = await axios.get(
-          `http://82.112.238.4:5000/api/hod/view-stress-level?facultyId=${selectedFaculty.value}`,
+          `https://82.112.238.4:5000/api/hod/view-stress-level?facultyId=${selectedFaculty.value}`,
           { headers: { Authorization: `Bearer ${token}` } }
         );
         setStressData((res.data || []).map(item => ({ ...item, name: selectedFaculty.label })));
