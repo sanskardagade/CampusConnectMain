@@ -86,7 +86,7 @@ const Chatbot = () => {
 
       {/* Chat Button */}
       <motion.button
-        className="fixed bottom-4 sm:bottom-6 right-4 sm:right-6 bg-red-700 text-white p-3 sm:p-4 rounded-full shadow-lg hover:bg-red-800 transition-colors z-50"
+        className="fixed bottom-6 sm:bottom-6 right-4 sm:right-6 bg-red-700 text-white p-3 sm:p-4 rounded-full shadow-lg hover:bg-red-800 transition-colors z-50"
         whileHover={{ scale: 1.1 }}
         whileTap={{ scale: 0.9 }}
         onClick={() => setIsOpen(true)}

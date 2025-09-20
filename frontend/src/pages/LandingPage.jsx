@@ -219,9 +219,9 @@ const LandingPage = () => {
       {showScrollButton && (
         <button
           onClick={scrollToTop}
-          className="fixed bottom-6 right-6 bg-red-800 text-white p-3 rounded-full shadow-lg z-50"
+          className="fixed bottom-[90px] animate-bounce right-8 bg-red-800 text-white p-3 rounded-full shadow-lg z-50"
         >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
           </svg>
         </button>
