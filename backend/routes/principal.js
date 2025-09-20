@@ -2137,22 +2137,42 @@ router.get('/staff-stress-report', async (req, res) => {
         let x = startX;
         doc.font('Helvetica-Bold').fontSize(10);
         headers.forEach((header, i) => {
-          doc.text(header, x + 2, y + 5, { width: colWidths[i] - 4, align: 'center' });
+          doc.rect(x, y, colWidths[i], 20).stroke();
+          doc.text(header, x + 2, y + 6, { width: colWidths[i] - 4, align: 'center' });
           x += colWidths[i];
         });
-        y += 18;
+        y += 20;
+        doc.font('Helvetica').fontSize(9);
+        doc.y = y;
       }
       drawHeader();
-      doc.font('Helvetica').fontSize(10);
+      let rowCount = 0;
       let serialNumber = 1;
       finalData.forEach(item => {
+        const row = [
+          serialNumber.toString(),
+          item.staff_name,
+          item.erpid,
+          item.department_name,
+          item.stressed_count.toString(),
+          item.unstressed_count.toString(),
+          item.verdict
+        ];
         let x = startX;
-        const row = [serialNumber++, item.staff_name, item.erpid, item.department_name, item.stressed_count, item.unstressed_count, item.verdict];
         row.forEach((cell, i) => {
-          doc.text(String(cell), x + 2, y + 5, { width: colWidths[i] - 4, align: 'center' });
+          doc.rect(x, y, colWidths[i], 18).stroke();
+          doc.text(String(cell), x + 2, y + 5, { width: colWidths[i] - 4, align: 'center', ellipsis: true });
           x += colWidths[i];
         });
         y += 18;
+        rowCount++;
+        serialNumber++;
+        if (rowCount % 20 === 0) {
+          doc.addPage();
+          y = doc.y;
+          drawHeader();
+          y = doc.y;
+        }
       });
       doc.end();
       return;
