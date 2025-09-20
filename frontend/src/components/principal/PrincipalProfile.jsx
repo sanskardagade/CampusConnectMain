@@ -34,7 +34,7 @@ const PrincipalProfile = () => {
         console.log('Fetching Principal profile...')
         console.log('Token:', token) // Debug token
 
-        const response = await axios.get('https://82.112.238.4:5000/api/principal/profile', {
+        const response = await axios.get('https://api.antryx.in/api/principal/profile', {
           headers: {
             Authorization: `Bearer ${token}`
           }

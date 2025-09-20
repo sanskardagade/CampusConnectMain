@@ -25,7 +25,7 @@ const AdminProfileEdit = () => {
         throw new Error('No authentication token found');
       }
 
-      const response = await axios.get('https://82.112.238.4:5000/api/admin/profile', {
+      const response = await axios.get('https://api.antryx.in/api/admin/profile', {
         headers: {
           Authorization: `Bearer ${token}`
         }
@@ -69,7 +69,7 @@ const AdminProfileEdit = () => {
       }
 
       const response = await axios.put(
-        'https://82.112.238.4:5000/api/admin/profile',
+        'https://api.antryx.in/api/admin/profile',
         {
           name,
           email

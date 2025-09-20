@@ -68,7 +68,7 @@ const SignUpPage = () => {
           department: formData.department,
           semester: formData.semester
         };
-        endpoint = "https://82.112.238.4:5000/api/student/register";
+        endpoint = "https://api.antryx.in/api/student/register";
       } else {
         // Other user registration (faculty, HOD, principal)
         registrationData = {
@@ -92,7 +92,7 @@ const SignUpPage = () => {
           registrationData.principalId = formData.principalId;
         }
 
-        endpoint = "https://82.112.238.4:5000/api/auth/register";
+        endpoint = "https://api.antryx.in/api/auth/register";
       }
 
       console.log('Submitting registration data:', registrationData);

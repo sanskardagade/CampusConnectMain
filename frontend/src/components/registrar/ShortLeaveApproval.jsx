@@ -14,7 +14,7 @@ export default function ShortLeaveApproval() {
       try {
         const token = localStorage.getItem('token');
         if (!token) throw new Error('Missing auth token');
-        const res = await axios.get('https://82.112.238.4:5000/api/registrar/short-leaves', {
+        const res = await axios.get('https://api.antryx.in/api/registrar/short-leaves', {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (Array.isArray(res.data)) {
@@ -46,7 +46,7 @@ export default function ShortLeaveApproval() {
       const token = localStorage.getItem('token');
       if (!token) throw new Error('Missing auth token');
       await axios.put(
-        `https://82.112.238.4:5000/api/registrar/short-leaves/${app.id}`,
+        `https://api.antryx.in/api/registrar/short-leaves/${app.id}`,
         { PrincipalRegistrar: 'Approved' },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -63,7 +63,7 @@ export default function ShortLeaveApproval() {
       const token = localStorage.getItem('token');
       if (!token) throw new Error('Missing auth token');
       await axios.put(
-        `https://82.112.238.4:5000/api/registrar/short-leaves/${app.id}`,
+        `https://api.antryx.in/api/registrar/short-leaves/${app.id}`,
         { PrincipalRegistrar: 'Rejected' },
         { headers: { Authorization: `Bearer ${token}` } }
       );

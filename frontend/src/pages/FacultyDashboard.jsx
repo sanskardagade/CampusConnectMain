@@ -106,7 +106,7 @@ const FacultyDashboard = () => {
     const fetchDashboard = async () => {
       try {
         setLoading(true);
-        const response = await axios.get('https://82.112.238.4:5000/api/faculty/dashboard', {
+        const response = await axios.get('https://api.antryx.in/api/faculty/dashboard', {
           params: { date: selectedDate },
           headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
         });
@@ -127,7 +127,7 @@ const FacultyDashboard = () => {
   // Fetch assigned tasks on mount and after actions
   const fetchTasks = async () => {
     try {
-      const response = await axios.get('https://82.112.238.4:5000/api/faculty/assigned-tasks', {
+      const response = await axios.get('https://api.antryx.in/api/faculty/assigned-tasks', {
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
       });
       console.log("FROM FRONTEND", response.data.tasks);
@@ -142,7 +142,7 @@ const FacultyDashboard = () => {
   useEffect(() => {
     const fetchStudents = async () => {
       try {
-        const response = await axios.get('https://82.112.238.4:5000/api/faculty/students-data', {
+        const response = await axios.get('https://api.antryx.in/api/faculty/students-data', {
           headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
         });
         setStudents(response.data || []);
@@ -158,7 +158,7 @@ const FacultyDashboard = () => {
   // Fetch task history
   const fetchTaskHistory = async () => {
     try {
-      const response = await axios.get('https://82.112.238.4:5000/api/faculty/task-history', {
+      const response = await axios.get('https://api.antryx.in/api/faculty/task-history', {
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
       });
       setTaskHistory(response.data.tasks || []);
@@ -172,7 +172,7 @@ const FacultyDashboard = () => {
   const handleAcceptTask = async (id) => {
     setSubmittingTaskId(id);
     try {
-      await axios.patch(`https://82.112.238.4:5000/api/faculty/assigned-tasks/${id}/accept`, {}, {
+      await axios.patch(`https://api.antryx.in/api/faculty/assigned-tasks/${id}/accept`, {}, {
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
       });
       await fetchTasks();
@@ -185,7 +185,7 @@ const FacultyDashboard = () => {
   const handleRejectTask = async (id) => {
     setSubmittingTaskId(id);
     try {
-      await axios.patch(`https://82.112.238.4:5000/api/faculty/assigned-tasks/${id}/reject`, {}, {
+      await axios.patch(`https://api.antryx.in/api/faculty/assigned-tasks/${id}/reject`, {}, {
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
       });
       await fetchTasks();
@@ -210,7 +210,7 @@ const FacultyDashboard = () => {
         responseFileUrl = uploadRes.data.secure_url;
       }
       setUploading(false);
-      await axios.patch(`https://82.112.238.4:5000/api/faculty/assigned-tasks/${id}/complete`, {
+      await axios.patch(`https://api.antryx.in/api/faculty/assigned-tasks/${id}/complete`, {
         responseFileUrl,
         submissionMessage
       }, {
@@ -232,7 +232,7 @@ const FacultyDashboard = () => {
     setDismissingTaskId(assignedTaskId);
     setDismissError(null);
     try {
-      await axios.patch(`https://82.112.238.4:5000/api/faculty/assigned-tasks/${assignedTaskId}/dismiss`, {}, {
+      await axios.patch(`https://api.antryx.in/api/faculty/assigned-tasks/${assignedTaskId}/dismiss`, {}, {
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
       });
       setTasks(prev => prev.filter(task => task.assigned_task_id !== assignedTaskId));

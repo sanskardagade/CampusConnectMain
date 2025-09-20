@@ -7,7 +7,7 @@ import {
     stuffDone
 } from './studentSlice';
 
-const REACT_APP_BASE_URL = "https://82.112.238.4:5000";
+const REACT_APP_BASE_URL = "https://api.antryx.in";
 
 
 export const getAllStudents = (id) => async (dispatch) => {

@@ -27,7 +27,7 @@ const StaffManagement = () => {
   const fetchStaff = async () => {
     try {
       const token = localStorage.getItem('token') || sessionStorage.getItem('token');
-      const response = await axios.get('https://82.112.238.4:5000/api/registrar/staff', {
+      const response = await axios.get('https://api.antryx.in/api/registrar/staff', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -45,7 +45,7 @@ const StaffManagement = () => {
   const fetchDepartments = async () => {
     try {
       const token = localStorage.getItem('token') || sessionStorage.getItem('token');
-      const response = await axios.get('https://82.112.238.4:5000/api/registrar/departments', {
+      const response = await axios.get('https://api.antryx.in/api/registrar/departments', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -120,8 +120,8 @@ const StaffManagement = () => {
     try {
       const token = localStorage.getItem('token') || sessionStorage.getItem('token');
       const url = editingStaff 
-        ? `https://82.112.238.4:5000/api/registrar/staff/${editingStaff.id}`
-        : 'https://82.112.238.4:5000/api/registrar/staff';
+        ? `https://api.antryx.in/api/registrar/staff/${editingStaff.id}`
+        : 'https://api.antryx.in/api/registrar/staff';
       
       const method = editingStaff ? 'PUT' : 'POST';
       
@@ -177,7 +177,7 @@ const StaffManagement = () => {
 
     try {
       const token = localStorage.getItem('token') || sessionStorage.getItem('token');
-      const response = await axios.delete(`https://82.112.238.4:5000/api/registrar/staff/${id}`, {
+      const response = await axios.delete(`https://api.antryx.in/api/registrar/staff/${id}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }

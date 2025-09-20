@@ -89,7 +89,7 @@ const RegistrarChangePassword = () => {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('https://82.112.238.4:5000/api/registrar/change-password', {
+      const response = await fetch('https://api.antryx.in/api/registrar/change-password', {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,

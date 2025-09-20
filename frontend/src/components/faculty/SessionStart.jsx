@@ -23,7 +23,7 @@ export default function SessionStart({ isOpen, onClose }) {
       setError(null);
       try {
         const token = localStorage.getItem('token');
-        const response = await fetch('https://82.112.238.4:5000/api/faculty/subjects', {
+        const response = await fetch('https://api.antryx.in/api/faculty/subjects', {
           headers: { Authorization: `Bearer ${token}` }
         });
         const data = await response.json();
@@ -48,7 +48,7 @@ export default function SessionStart({ isOpen, onClose }) {
         const token = localStorage.getItem('token');
         const today = new Date().toISOString().split('T')[0];
         const response = await axios.get(
-          `https://82.112.238.4:5000/api/faculty/dashboard?date=${today}`,
+          `https://api.antryx.in/api/faculty/dashboard?date=${today}`,
           { headers: { Authorization: `Bearer ${token}` } }
         );
         if (response.data?.department) {
@@ -142,7 +142,7 @@ export default function SessionStart({ isOpen, onClose }) {
       };
 
       const response = await axios.post(
-        'https://82.112.238.4:5000/api/faculty/start-session',
+        'https://api.antryx.in/api/faculty/start-session',
         sessionData,
         {
           headers: {

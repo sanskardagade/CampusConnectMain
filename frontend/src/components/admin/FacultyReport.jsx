@@ -46,7 +46,7 @@ const AdminFacultyReport = () => {
     const fetchDepartments = async () => {
       try {
         const token = localStorage.getItem('token');
-        const response = await axios.get('https://82.112.238.4:5000/api/admin/dashboard', {
+        const response = await axios.get('https://api.antryx.in/api/admin/dashboard', {
           headers: { Authorization: `Bearer ${token}` }
         });
         setDepartments(response.data.departments || []);
@@ -112,19 +112,19 @@ const AdminFacultyReport = () => {
       if (reportType === 'attendance') {
         if (attendanceStatus === 'present') {
           endpoint = attendanceType === 'faculty'
-            ? 'https://82.112.238.4:5000/api/admin/faculty-attendance-report'
-            : 'https://82.112.238.4:5000/api/admin/staff-attendance-report';
+            ? 'https://api.antryx.in/api/admin/faculty-attendance-report'
+            : 'https://api.antryx.in/api/admin/staff-attendance-report';
         } else {
           endpoint = attendanceType === 'faculty'
-            ? 'https://82.112.238.4:5000/api/admin/absent-faculty-today'
-            : 'https://82.112.238.4:5000/api/admin/absent-staff-today';
+            ? 'https://api.antryx.in/api/admin/absent-faculty-today'
+            : 'https://api.antryx.in/api/admin/absent-staff-today';
         }
       } else if (reportType === 'stress') {
         endpoint = stressType === 'faculty'
-          ? 'https://82.112.238.4:5000/api/admin/faculty-stress-report'
-          : 'https://82.112.238.4:5000/api/admin/staff-stress-report';
+          ? 'https://api.antryx.in/api/admin/faculty-stress-report'
+          : 'https://api.antryx.in/api/admin/staff-stress-report';
       } else if (reportType === 'leave') {
-        endpoint = 'https://82.112.238.4:5000/api/admin/faculty-leave-report';
+        endpoint = 'https://api.antryx.in/api/admin/faculty-leave-report';
       }
       const response = await axios.get(endpoint, {
         params,

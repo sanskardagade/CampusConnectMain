@@ -41,7 +41,7 @@ const HODFacultyReport = () => {
     const fetchFaculty = async () => {
       try {
         const token = localStorage.getItem('token');
-        const response = await axios.get('https://82.112.238.4:5000/api/hod/faculty', {
+        const response = await axios.get('https://api.antryx.in/api/hod/faculty', {
           headers: { Authorization: `Bearer ${token}` }
         });
         setFaculty(response.data || []);
@@ -98,12 +98,12 @@ const HODFacultyReport = () => {
       try {
         const token = localStorage.getItem('token');
         if (userType === 'faculty') {
-          const response = await axios.get('https://82.112.238.4:5000/api/hod/faculty', {
+          const response = await axios.get('https://api.antryx.in/api/hod/faculty', {
             headers: { Authorization: `Bearer ${token}` }
           });
           setFaculty(response.data || []);
         } else {
-          const response = await axios.get('https://82.112.238.4:5000/api/hod/nonteaching', {
+          const response = await axios.get('https://api.antryx.in/api/hod/nonteaching', {
             headers: { Authorization: `Bearer ${token}` }
           });
           setStaff(response.data || []);
@@ -136,24 +136,24 @@ const HODFacultyReport = () => {
       if (userType === 'faculty') {
         params.faculty = selectedFaculty;
         if (reportType === 'attendance') {
-          endpoint = 'https://82.112.238.4:5000/api/hod/faculty-attendance-report';
+          endpoint = 'https://api.antryx.in/api/hod/faculty-attendance-report';
           params.from = fromDate;
           params.to = toDate;
         } else if (reportType === 'stress') {
-          endpoint = 'https://82.112.238.4:5000/api/hod/faculty-stress-report';
+          endpoint = 'https://api.antryx.in/api/hod/faculty-stress-report';
           params.from = fromDate;
           params.to = toDate;
         } else if (reportType === 'leave') {
-          endpoint = 'https://82.112.238.4:5000/api/hod/faculty-leave-report';
+          endpoint = 'https://api.antryx.in/api/hod/faculty-leave-report';
         }
       } else {
         params.staff = selectedStaff;
         if (reportType === 'attendance') {
-          endpoint = 'https://82.112.238.4:5000/api/hod/nonteaching-attendance-report';
+          endpoint = 'https://api.antryx.in/api/hod/nonteaching-attendance-report';
           params.from = fromDate;
           params.to = toDate;
         } else if (reportType === 'stress') {
-          endpoint = 'https://82.112.238.4:5000/api/hod/nonteaching-stress-report';
+          endpoint = 'https://api.antryx.in/api/hod/nonteaching-stress-report';
           params.from = fromDate;
           params.to = toDate;
         } else if (reportType === 'leave') {

@@ -6,7 +6,7 @@ import {
     getError
 } from './complainSlice';
 
-const REACT_APP_BASE_URL = "https://82.112.238.4:5000";
+const REACT_APP_BASE_URL = "https://api.antryx.in";
 
 
 export const getAllComplains = (id, address) => async (dispatch) => {

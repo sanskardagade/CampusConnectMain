@@ -56,7 +56,7 @@ const StudentPasswordChange = () => {
     try{
       const token = localStorage.getItem('token');
       const response = await axios.put(
-         'https://82.112.238.4:5000/api/students/change-password',
+         'https://api.antryx.in/api/students/change-password',
         {
           currentPassword,
           newPassword,

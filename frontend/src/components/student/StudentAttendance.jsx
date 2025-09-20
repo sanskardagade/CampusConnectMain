@@ -21,7 +21,7 @@ const AttendanceDashboard = () => {
   const fetchAttendanceSummary = async () => {
     try {
       setLoading(true);
-      const response = await api.get('https://82.112.238.4:5000/api/studentAttendance/summary');
+      const response = await api.get('https://api.antryx.in/api/studentAttendance/summary');
       setSummary(response.data.data);
     } catch (error) {
       message.error('Failed to fetch attendance summary');
@@ -42,7 +42,7 @@ const AttendanceDashboard = () => {
         ...(selectedSubject && { subjectId: selectedSubject })
       };
       
-      const response = await api.get('https://82.112.238.4:5000/api/details', { params });
+      const response = await api.get('https://api.antryx.in/api/details', { params });
       setDetails(response.data.data);
       
       // Update total count if available from the API

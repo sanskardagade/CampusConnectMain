@@ -22,7 +22,7 @@ const HODProfileEdit = () => {
     try {
       const token = localStorage.getItem('token');
       if (!token) throw new Error('No authentication token found');
-      const response = await axios.get('https://82.112.238.4:5000/api/hod/dashboard', {
+      const response = await axios.get('https://api.antryx.in/api/hod/dashboard', {
         headers: { Authorization: `Bearer ${token}` }
       });
       setFormData({
@@ -56,7 +56,7 @@ const HODProfileEdit = () => {
       const token = localStorage.getItem('token');
       if (!token) throw new Error('No authentication token found');
       const response = await axios.put(
-        'https://82.112.238.4:5000/api/hod/profile',
+        'https://api.antryx.in/api/hod/profile',
         { name, email },
         { headers: { Authorization: `Bearer ${token}` } }
       );

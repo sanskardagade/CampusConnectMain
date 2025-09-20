@@ -71,7 +71,7 @@ const StudentDashboard = () => {
         setError(null);
 
         // Fetch student profile
-        const profileResponse = await fetch('https://82.112.238.4:5000/api/students/profile', {
+        const profileResponse = await fetch('https://api.antryx.in/api/students/profile', {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`
           }
@@ -81,7 +81,7 @@ const StudentDashboard = () => {
         setStudentData(profileData.data);
 
         // Fetch subject-wise attendance
-        const attendanceResponse = await fetch('https://82.112.238.4:5000/api/students/attendance', {
+        const attendanceResponse = await fetch('https://api.antryx.in/api/students/attendance', {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`
           }
@@ -91,7 +91,7 @@ const StudentDashboard = () => {
         setSubjectAttendanceData(attendanceData.data || []);
 
         // Fetch overall attendance
-        const overallResponse = await fetch('https://82.112.238.4:5000/api/students/attendance/overall', {
+        const overallResponse = await fetch('https://api.antryx.in/api/students/attendance/overall', {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`
           }

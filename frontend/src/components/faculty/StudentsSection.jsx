@@ -13,7 +13,7 @@ const StudentsSection = () => {
         const fetchStudents = async () => {
             try {
                 setLoading(true);
-                const response = await fetch('https://82.112.238.4:5000/api/faculty/students-data', {
+                const response = await fetch('https://api.antryx.in/api/faculty/students-data', {
                     headers: { 
                         'Authorization': `Bearer ${localStorage.getItem('token')}`,
                         'Content-Type': 'application/json'
