@@ -21,7 +21,7 @@ function ShortLeaves() {
         setIsLoadingLeaves(true);
         try {
             const token = localStorage.getItem('token');
-            const res = await fetch("http://localhost:5000/api/faculty/short-leave", {
+            const res = await fetch("http://82.112.238.4:5000/api/faculty/short-leave", {
                 method: 'GET',
                 headers: {
                     'Authorization': `Bearer ${token}`
@@ -51,7 +51,7 @@ function ShortLeaves() {
             // Simulate token from memory storage instead of localStorage
             const token = localStorage.getItem('token');  
             
-            const response = await fetch("http://localhost:5000/api/faculty/short-leave", {
+            const response = await fetch("http://82.112.238.4:5000/api/faculty/short-leave", {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

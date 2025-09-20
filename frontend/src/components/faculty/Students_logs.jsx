@@ -31,7 +31,7 @@ const StudentLogs = () => {
       setSubjectsError('');
       try {
         const token = localStorage.getItem('token');
-        const response = await fetch('http://localhost:5000/api/faculty/subjects', {
+        const response = await fetch('http://82.112.238.4:5000/api/faculty/subjects', {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (!response.ok) {
@@ -95,7 +95,7 @@ const StudentLogs = () => {
 
     try {
       const response = await fetch(
-        `http://localhost:5000/api/faculty/students-logs?${params.toString()}`,
+        `http://82.112.238.4:5000/api/faculty/students-logs?${params.toString()}`,
         {
           method: "GET",
           headers: {
@@ -161,7 +161,7 @@ const StudentLogs = () => {
       const token = localStorage.getItem('token');
       const formattedDate = normalizeToISO(date);
       console.log(formattedDate);
-      const response = await fetch('http://localhost:5000/api/faculty/students-logs/update-attendance', {
+      const response = await fetch('http://82.112.238.4:5000/api/faculty/students-logs/update-attendance', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
